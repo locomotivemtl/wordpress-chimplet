@@ -1,0 +1,32 @@
+{
+    "name": "locomotive/chimplet",
+    "description": "Automatically synchronize Users, Categories, and Posts to MailChimp Lists, Groups, and Campaigns.",
+    "keywords": ["mailchimp","wordpress","plugin","email"],
+    "type": "wordpress-plugin",
+    "version": "0.0.0",
+    "require": {
+        "php": ">=5.3",
+        "composer/installers": "~1.0",
+        "mailchimp/mailchimp": "~2.0",
+        "drewm/mailchimp-api": "~1.0"
+    },
+    "autoload": {
+        "psr-4": { "Locomotive\\": "src/" }
+    },
+    "license": "MIT",
+    "homepage": "https://github.com/locomotivemtl/chimplet/",
+    "authors": [
+        {
+            "name": "Locomotive",
+            "email": "info@locomotive.ca",
+            "homepage": "http://locomotive.ca",
+            "role": "Agency"
+        },
+        {
+            "name": "Chauncey McAskill",
+            "email": "chauncey@locomotive.ca",
+            "homepage": "https://mcaskill.ca",
+            "role": "Developer"
+        }
+    ]
+}
