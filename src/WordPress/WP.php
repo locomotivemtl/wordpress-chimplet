@@ -1,22 +1,22 @@
 <?php
 
-namespace Locomotive\Facade;
+namespace Locomotive\WordPress;
 
 /**
  * Acts as a master facade class for WordPress to allow me to isolate and test
  * functionality without bootstrapping all of WordPress
  *
- * @package  Locomotive\Facade
+ * @package  Locomotive\WordPress
  * @author   Kevin Sperrine <https://github.com/kevinsperrine>
  * @license  Unlicense http://unlicense.org
  * @link     https://github.com/kevinsperrine/wp-theme-example/blob/master/src/%7B%7BTHEME_NAMESPACE%7D%7D/Support/Facade/WordPress.php
  */
 
-class WordPress
+class WP
 {
 
 	/**
-	 * Magic __call method that creates a facade for globalwordpress functions.
+	 * Magic __call method that creates a facade for global WordPress functions.
 	 *
 	 * @param string $method    The WordPress function you want to call.
 	 * @param mixed  $arguments The arguments passed to the function
@@ -42,7 +42,7 @@ class WordPress
 	 * @return Object The WordPress global $post object
 	 */
 
-	public function post()
+	public function get_post()
 	{
 		global $post;
 
@@ -57,7 +57,7 @@ class WordPress
 	 * @return Wpdb WordPress's global $wpdb object
 	 */
 
-	public function wpdb()
+	public function get_wpdb()
 	{
 		global $wpdb;
 
@@ -74,7 +74,7 @@ class WordPress
 	 * @return WP_Query
 	 */
 
-	public function newQuery( $args )
+	public function new_query( $args )
 	{
 		return new WP_Query( $args );
 	}
@@ -87,7 +87,7 @@ class WordPress
 	 * @return WP_Query
 	 */
 
-	public function wpQuery()
+	public function get_main_query()
 	{
 		global $wp_query;
 
@@ -102,7 +102,7 @@ class WordPress
 	 * @return WP Object
 	 */
 
-	public function wp()
+	public function get_wp()
 	{
 		global $wp;
 
@@ -117,10 +117,11 @@ class WordPress
 	 * @return string
 	 */
 
-	public function typenow()
+	public function get_typenow()
 	{
 		global $typenow;
 
 		return $typenow;
 	}
+
 }
