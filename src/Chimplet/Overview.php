@@ -75,7 +75,7 @@ class Overview extends Base
 				__('Chimplet', 'chimplet')
 			);
 
-			$badge = ' ' . '<span class="update-plugins" title="' . $badge . '"><span class="update-count">&#9679;</span></span>';
+			$badge = ' ' . '<span class="update-plugins dashicons" title="' . $badge . '"><span class="dashicons-admin-network"></span></span>';
 		}
 
 		$this->wp->add_menu_page( $this->view['title'], $this->get_setting('name') . $badge, 'manage_options', $this->view['slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
@@ -93,7 +93,7 @@ class Overview extends Base
 	{
 		// var_dump( __CLASS__ . '::' . __FUNCTION__ );
 
-		// wp_enqueue_style( 'chimplet-global' );
+		$this->wp->wp_enqueue_style('chimplet-global');
 	}
 
 	/**

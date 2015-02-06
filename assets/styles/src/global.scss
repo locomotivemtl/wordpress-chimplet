@@ -1,0 +1,34 @@
+
+/**
+ * WordPress Administration Styles
+ * ==========================================================================
+ */
+
+// ==========================================================================
+// Settings
+// ==========================================================================
+
+/* ==========================================================================
+   Menu
+   ========================================================================== */
+
+%admin-menu-badge {
+	width       : auto;
+	height      : auto;
+	margin-top  : 0;
+	line-height : 19px;
+}
+
+%admin-menu-badge-count {
+	padding: 0 5px;
+}
+
+#adminmenu .update-plugins.dashicons,
+#sidemenu li a span.update-plugins.dashicons {
+	@extend %admin-menu-badge;
+}
+
+	#adminmenu li span.update-plugins span,
+	#sidemenu li a span.update-plugins span {
+		@extend %admin-menu-badge-count;
+	}

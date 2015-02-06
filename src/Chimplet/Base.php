@@ -11,8 +11,8 @@ namespace Locomotive\Chimplet;
 /**
  * Class: Abstract Base
  *
- * @version 2015-02-05
- * @since   0.0.0 (2015-02-05)
+ * @version 2015-02-06
+ * @since   0.0.0 (2015-02-06)
  */
 
 abstract class Base
@@ -134,6 +134,20 @@ abstract class Base
 	public function get_url( $path )
 	{
 		return $this->get_setting('url') . $path;
+	}
+
+	/**
+	 * Retrieve path to Chimplet assets directory
+	 *
+	 * @version 2015-02-06
+	 * @since   0.0.0 (2015-02-06)
+	 *
+	 * @param   string  $path
+	 */
+
+	public function get_asset( $path )
+	{
+		return $this->get_setting('url') . 'assets/' . $path;
 	}
 
 	/**

@@ -97,24 +97,56 @@ class Application extends Base
 		// $version_info  = $this->get_version_info();
 
 		if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
+			$message = sprintf(
+				__('You need to register a %s to use %s.', 'chimplet'),
+				'<strong>' . __('MailChimp API key', 'chimplet') . '</strong>',
+				'<em>' . __('Chimplet', 'chimplet') . '</em>'
+			);
+
+			if ( ! isset( $_GET['page'] ) || $_GET['page'] !== 'chimplet-overview' ) {
+				$message .= ' ' . '<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings') . '</a>';
+			}
+
 			$this->notices->add(
 				'chimplet/mailchimp/api-key-missing',
-				(
-					sprintf(
-						__('You need to register a %s to use %s.', 'chimplet'),
-						'<strong>' . __('MailChimp API key', 'chimplet') . '</strong>',
-						'<em>' . __('Chimplet', 'chimplet') . '</em>'
-					) .
-					' ' .
-					'<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings') . '</a>'
-				),
+				$message,
 				[ 'type' => 'error' ]
 			);
+		}
+
+		$this->register_assets();
+	}
+
+	/**
+	 * Register Assets
+	 *
+	 * @version 2015-02-06
+	 * @since   0.0.0 (2015-02-06)
+	 */
+
+	public function register_assets()
+	{
+		$scripts = [];
+
+		foreach ( $scripts as $script ) {
+			wp_register_script( $script['handle'], $script['src'], $script['deps'], $this->get_setting('version') );
+		}
+
+		$styles = [
+			[
+				'handle' => 'chimplet-global',
+				'src'    => $this->get_asset('styles/dist/global.css'),
+				'deps'   => false,
+			]
+		];
+
+		foreach ( $styles as $style ) {
+			wp_register_style( $style['handle'], $style['src'], $style['deps'], $this->get_setting('version') );
 		}
 	}
 
 	/**
-	 *
+	 * Plugin Activation
 	 *
 	 * @used-by Action: "register_activation_hook"
 	 * @version 2015-02-05
