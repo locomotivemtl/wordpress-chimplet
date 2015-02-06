@@ -2,6 +2,10 @@
 
 namespace Locomotive\Chimplet;
 
+use Locomotive\Singleton;
+use Locomotive\WordPress\WP;
+use Locomotive\WordPress\Facade;
+
 /**
  * File: Administration Overview Class
  *
@@ -17,6 +21,8 @@ namespace Locomotive\Chimplet;
 
 class Overview extends Base
 {
+	use Singleton, Facade;
+
 	protected $view = [];
 
 	/**
@@ -27,14 +33,20 @@ class Overview extends Base
 	 *
 	 * @version 2015-02-05
 	 * @since   0.0.0 (2015-02-05)
-	 *
-	 * @param   Application  $app
+	 * @access  public
+	 * @param   WP  $facade  Allows inserting a different facade object for testing.
 	 */
 
-	function __construct()
+	public function __construct( WP $facade = null )
 	{
-		add_action( 'admin_menu',            [ $this, 'append_to_menu' ] );
-		add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		$this->set_facade( $facade );
+
+		if ( ! $this->wp->is_admin() ) {
+			return;
+		}
+
+		$this->wp->add_action( 'admin_menu',            [ $this, 'append_to_menu' ] );
+		$this->wp->add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 	}
 
 	/**
@@ -52,7 +64,21 @@ class Overview extends Base
 		$this->view['title'] = __('Overview', 'chimplet');
 		$this->view['slug']  = 'chimplet-overview';
 
-		add_menu_page( $this->view['title'], $this->get_setting('name'), 'manage_options', $this->view['slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
+		$mailchimp_key = $this->get_setting('mailchimp-key');
+		// $version_info  = $this->get_version_info();
+		$badge = '';
+
+		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {
+			$badge = sprintf(
+				__('You need to register a %s to use %s.', 'chimplet'),
+				__('MailChimp API key', 'chimplet'),
+				__('Chimplet', 'chimplet')
+			);
+
+			$badge = ' ' . '<span class="update-plugins" title="' . $badge . '"><span class="update-count">&#9679;</span></span>';
+		}
+
+		$this->wp->add_menu_page( $this->view['title'], $this->get_setting('name') . $badge, 'manage_options', $this->view['slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
 	}
 
 	/**

@@ -36,24 +36,32 @@ abstract class Base
 	 * @version 2015-02-05
 	 * @since   0.0.0 (2015-02-05)
 	 *
-	 * @param   string  $name
-	 * @param   bool    $allow_filter
+	 * @param   string  $name     Name of setting to retrieve.
+	 * @param   mixed   $default  Optional. Default value to return if the option does not exist.
+	 * @return  mixed   $value    Value set for the setting.
 	 */
 
-	public function get_setting( $name, $allow_filter = true )
+	public function get_setting( $name, $default = false, $allow_filter = true )
 	{
 		global $chimplet;
 
 		$value = null;
 
-		if ( isset( $chimplet->settings[ $name ] ) )
-		{
-			$value = $chimplet->settings[ $name ];
+		$name = trim( $name );
+
+		if ( empty( $name ) ) {
+			return false;
 		}
 
-		if ( $allow_filter )
-		{
-			$value = apply_filters( "chimplet/settings/{$name}", $value );
+		if ( isset( $chimplet->settings[ $name ] ) ) {
+			$value = $chimplet->settings[ $name ];
+
+			if ( $allow_filter ) {
+				$value = apply_filters( "chimplet/settings/{$name}", $value );
+			}
+		}
+		else {
+			$value = $default;
 		}
 
 		return $value;
@@ -170,64 +178,6 @@ abstract class Base
 			include $path;
 
 		}
-	}
-
-	/**
-	 * Add a new notice
-	 *
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 * @link    AdvancedCustomFields\acf_add_admin_notice() Based on ACF method
-	 *
-	 * @param   string  $text
-	 * @param   mixed   $args  {
-	 *     @type string $code
-	 *     @type string $class
-	 *     @type string $wrap
-	 * }
-	 * @return  array $notices
-	 */
-
-	function add_notice( $text, $args = [] )
-	{
-		$defaults = [
-			'code'  => '',
-			'class' => 'updated',
-			'wrap'  => 'p'
-		];
-
-		$args = wp_parse_args( $args, $defaults );
-
-		$notices = $this->get_notices();
-
-		$notices[] = array_merge( [ 'text' => $text ], $args );
-
-		$this->update_setting( 'admin_notices', $notices );
-
-		return ( count( $notices ) - 1 );
-	}
-
-	/**
-	 * Retrieve any notices
-	 *
-	 * @used-by static::render_notices()
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 * @link    AdvancedCustomFields\acf_get_admin_notices() Based on ACF method
-	 *
-	 * @return  array $notices
-	 */
-
-	function get_notices()
-	{
-		$notices = $this->get_setting('admin_notices');
-
-		if ( ! $notices )
-		{
-			$notices = [];
-		}
-
-		return $notices;
 	}
 
 }

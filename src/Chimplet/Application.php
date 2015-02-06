@@ -2,7 +2,10 @@
 
 namespace Locomotive\Chimplet;
 
-use Locomotive\Facade\WordPress;
+use Locomotive\Singleton;
+use Locomotive\WordPress\WP;
+use Locomotive\WordPress\Facade;
+use Locomotive\WordPress\AdminNotices;
 
 /**
  * File: Chimplet Application Class
@@ -19,33 +22,12 @@ use Locomotive\Facade\WordPress;
 
 class Application extends Base
 {
-	protected $wp;
+	use Singleton, Facade;
+
+	protected $notices;
+	protected $overview;
 
 	public $settings;
-
-	/**
-	 * Constructor
-	 *
-	 * @param   $facade \WordPress Allows inserting a different facade object for testing.
-	 * @return  void
-	 */
-
-	public function __construct( WordPress $facade = null )
-	{
-		$this->setFacade( $facade );
-	}
-
-	/**
-	 * Set Facade
-	 *
-	 * @param   $facade \WordPress Allows inserting a different facade object for testing.
-	 * @return  void
-	 */
-
-	public function setFacade( WordPress $facade = null )
-	{
-		$this->wp = ( empty( $facade ) ? new WordPress : $facade );
-	}
 
 	/**
 	 * Chimplet Initialization
@@ -65,6 +47,12 @@ class Application extends Base
 	{
 		// var_dump( __CLASS__ . '::' . __FUNCTION__ );
 
+		$this->set_facade();
+
+		if ( ! $this->wp->is_admin() ) {
+			return;
+		}
+
 		$this->settings = [
 			'name'     => __('Chimplet', 'chimplet'),
 			'version'  => '0.0.0',
@@ -76,17 +64,12 @@ class Application extends Base
 
 		$this->wp->load_textdomain( 'chimplet', $this->settings['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
 
-		if ( $this->wp->is_admin() /* && $this->get_setting('show_admin') */ )
-		{
-			$this->overview = new Overview;
+		$this->notices  = AdminNotices::get_singleton();
+		$this->overview = Overview::get_singleton();
 
-			# $this->include('admin/admin.php');
-			# $this->include('admin/options-overview.php');
+		$this->wp->add_action( 'init', [ $this, 'wp_init' ] );
 
-		}
-
-		$this->wp->add_action( 'init',          [ $this, 'wp_init' ], 1 );
-		$this->wp->add_action( 'admin_notices', [ $this, 'render_notices' ] );
+		$this->wp->add_filter( 'plugin_row_meta', [ &$this, 'plugin_meta' ], 10, 4 );
 
 		$this->wp->register_activation_hook( LOCOMOTIVE_CHIMPLET_ABS, [ $this, 'activation_hook' ] );
 
@@ -95,27 +78,9 @@ class Application extends Base
 	}
 
 	/**
-	 *
-	 *
-	 * @used-by Action: register_activation_hook
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 */
-
-	public function activation_hook()
-	{
-		// $mailchimp_key = GFCommon::get_key();
-		// $version_info  = GFCommon::get_version_info();
-
-		// if ( in_array( 'is_valid_key', $version_info ) || isset( $version_info['is_valid_key'] ) ) {
-			$this->add_notice( __('The first thing to do is set your MailChimp API key.', 'chimplet') );
-		// }
-	}
-
-	/**
 	 * WordPress Initialization
 	 *
-	 * @used-by Action: init
+	 * @used-by Action: "init"
 	 * @version 2015-02-05
 	 * @since   0.0.0 (2015-02-05)
 	 * @link    AdvancedCustomFields\acf::wp_init() Based on ACF method
@@ -128,54 +93,55 @@ class Application extends Base
 
 		$min = ( defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ? '' : '.min' );
 
-		$this->add_notice( __('You need to register your MailChimp API key to use Chimplet.' . ' ' . '<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings', 'chimplet') . '</a>', 'chimplet') );
-	}
+		$mailchimp_key = $this->get_setting('mailchimp-key');
+		// $version_info  = $this->get_version_info();
 
-	/**
-	 * Display any notices
-	 *
-	 * @used-by Action: admin_notices
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 * @link    AdvancedCustomFields\acf_admin::admin_notices() Based on ACF method
-	 */
-
-	function render_notices()
-	{
-		// var_dump( __CLASS__ . '::' . __FUNCTION__ );
-
-		$notices = $this->get_notices();
-
-		if ( ! empty( $notices ) )
-		{
-			foreach ( $notices as $notice )
-			{
-				$open  = '';
-				$close = '';
-
-				if ( $notice['wrap'] )
-				{
-					$open  = '<'  . $notice['wrap'] . '>';
-					$close = '</' . $notice['wrap'] . '>';
-				}
-
-?>
-				<div class="<?php echo $notice['class']; ?>">
-					<?php echo $open . $notice['text'] . $close; ?>
-				</div>
-<?php
-
-			}
+		if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
+			$this->notices->add(
+				'chimplet/mailchimp/api-key-missing',
+				(
+					sprintf(
+						__('You need to register a %s to use %s.', 'chimplet'),
+						'<strong>' . __('MailChimp API key', 'chimplet') . '</strong>',
+						'<em>' . __('Chimplet', 'chimplet') . '</em>'
+					) .
+					' ' .
+					'<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings') . '</a>'
+				),
+				[ 'type' => 'error' ]
+			);
 		}
 	}
 
 	/**
-	 * Append a row to the Plugins list table
 	 *
-	 * @used-by Action: after_plugin_row_$plugin_file
+	 *
+	 * @used-by Action: "register_activation_hook"
 	 * @version 2015-02-05
 	 * @since   0.0.0 (2015-02-05)
+	 */
+
+	public function activation_hook()
+	{
+		$mailchimp_key = $this->get_setting('mailchimp-key');
+		// $version_info  = $this->get_version_info();
+
+		if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
+			$this->notices->add(
+				'chimplet/mailchimp/api-key-missing',
+				__('The first thing to do is set your MailChimp API key.', 'chimplet')
+			);
+		}
+	}
+
+	/**
+	 * Append meta data to a plugin in the Plugins list table
 	 *
+	 * @used-by Filter: "plugin_row_meta"
+	 * @version 2015-02-06
+	 * @since   0.0.0 (2015-02-06)
+	 *
+	 * @param   array   $plugin_meta  An array of the plugin's metadata, including the version, author, author URI, and plugin URI.
 	 * @param   string  $plugin_file  Path to the plugin file, relative to the plugins directory.
 	 * @param   array   $plugin_data  An array of plugin data.
 	 * @param   string  $status       {
@@ -191,22 +157,46 @@ class Application extends Base
 	 * }
 	 */
 
+	public function plugin_meta( $plugin_meta, $plugin_file, $plugin_data, $status )
+	{
+		if ( LOCOMOTIVE_CHIMPLET_ABS === $plugin_file ) {
+
+			$plugin_meta[] = '<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings') . '</a>';
+
+		}
+
+		return $plugin_meta;
+	}
+
+	/**
+	 * Append a row for a plugin in the Plugins list table
+	 *
+	 * @used-by Action: "after_plugin_row_$plugin_file"
+	 * @version 2015-02-05
+	 * @since   0.0.0 (2015-02-05)
+	 *
+	 * @param   string  $plugin_file  Path to the plugin file, relative to the plugins directory.
+	 * @param   array   $plugin_data  An array of plugin data.
+	 * @param   string  $status       {@see self::plugin_meta()} for possible values
+	 */
+
 	public function plugin_row( $plugin_file, $plugin_data, $status )
 	{
-		// var_dump( __CLASS__ . '::' . __FUNCTION__ );
+		$mailchimp_key = $this->get_setting('mailchimp-key');
+		// $version_info  = $this->get_version_info();
 
-		// var_dump( $plugin_file, $plugin_data, $status );
-
-		// $mailchimp_key = GFCommon::get_key();
-		// $version_info  = GFCommon::get_version_info();
-
-		// if ( in_array( 'is_valid_key', $version_info ) || isset( $version_info['is_valid_key'] ) ) {
+		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {
 			echo '<tr class="plugin-update-tr"><td colspan="3" class="plugin-update colspanchange"><div class="update-message">';
 
-			printf( __('This plugin requires a MailChimp API Key to operate properly.') );
+			printf(
+				__('This plugin requires a %s to operate.', 'chimplet'),
+				'<strong>' . __('MailChimp API key', 'chimplet') . '</strong>'
+			);
+
+			echo ' ' . '<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings') . '</a>';
 
 			echo '</div></td></tr>';
-		// }
+		}
 	}
 
 }
