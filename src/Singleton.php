@@ -20,7 +20,7 @@ namespace Locomotive;
 
 trait Singleton
 {
-	private static $__instance;
+	protected static $__instance;
 
 	/**
 	 * Retrieve a single reference to the current class.
@@ -28,11 +28,11 @@ trait Singleton
 
 	public static function get_singleton()
 	{
-		if ( empty( self::$__instance ) ) {
-			self::$__instance = new self;
+		if ( empty( static::$__instance ) ) {
+			static::$__instance = new static;
 		}
 
-		return self::$__instance;
+		return static::$__instance;
 	}
 
 }
