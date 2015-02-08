@@ -19,17 +19,6 @@ abstract class Base
 {
 
 	/**
-	 * Constructor
-	 *
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 */
-
-	public function __construct()
-	{
-	}
-
-	/**
 	 * Retrieve a value from the settings array
 	 *
 	 * @uses    Application::$settings
@@ -115,6 +104,7 @@ abstract class Base
 	 * @since   0.0.0 (2015-02-05)
 	 *
 	 * @param   string  $path
+	 * @return  string
 	 */
 
 	public function get_path( $path )
@@ -129,6 +119,7 @@ abstract class Base
 	 * @since   0.0.0 (2015-02-05)
 	 *
 	 * @param   string  $path
+	 * @return  string
 	 */
 
 	public function get_url( $path )
@@ -143,11 +134,41 @@ abstract class Base
 	 * @since   0.0.0 (2015-02-06)
 	 *
 	 * @param   string  $path
+	 * @return  string
 	 */
 
 	public function get_asset( $path )
 	{
 		return $this->get_setting('url') . 'assets/' . $path;
+	}
+
+	/**
+	 * Verify which Chimplet page is currently viewed
+	 *
+	 * @version 2015-02-07
+	 * @since   0.0.0 (2015-02-07)
+	 *
+	 * @param   string  $path
+	 * @return  bool
+	 */
+
+	public function is_page( $page )
+	{
+		return ( isset( $_GET['page'] ) && $_GET['page'] === $page );
+	}
+
+	/**
+	 * Verify if we are viewing the Plugins page or a Chimplet page
+	 *
+	 * @version 2015-02-07
+	 * @since   0.0.0 (2015-02-07)
+	 *
+	 * @return  bool
+	 */
+
+	public function is_related_page()
+	{
+		return ( ( isset( $_SERVER['REQUEST_URI'] ) && false !== strpos( $_SERVER['REQUEST_URI'], 'plugins.php' ) ) || ( isset( $_GET['page'] ) && false !== strpos( $_GET['page'], 'chimplet-' ) ) );
 	}
 
 	/**

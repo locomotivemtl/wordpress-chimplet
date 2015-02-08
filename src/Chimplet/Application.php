@@ -26,6 +26,7 @@ class Application extends Base
 
 	protected $notices;
 	protected $overview;
+	protected $configure;
 
 	public $settings;
 
@@ -64,8 +65,9 @@ class Application extends Base
 
 		$this->wp->load_textdomain( 'chimplet', $this->settings['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
 
-		$this->notices  = AdminNotices::get_singleton();
-		$this->overview = Overview::get_singleton();
+		$this->notices   = AdminNotices::get_singleton();
+		$this->overview  = Overview::get_singleton();
+		$this->configure = Settings::get_singleton();
 
 		$this->wp->add_action( 'init', [ $this, 'wp_init' ] );
 
@@ -93,25 +95,29 @@ class Application extends Base
 
 		$min = ( defined('SCRIPT_DEBUG') && SCRIPT_DEBUG ? '' : '.min' );
 
-		$mailchimp_key = $this->get_setting('mailchimp-key');
-		// $version_info  = $this->get_version_info();
+		if ( $this->is_related_page() ) {
 
-		if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
-			$message = sprintf(
-				__('You need to register a %s to use %s.', 'chimplet'),
-				'<strong>' . __('MailChimp API key', 'chimplet') . '</strong>',
-				'<em>' . __('Chimplet', 'chimplet') . '</em>'
-			);
+			$mailchimp_key = $this->get_setting('mailchimp-key');
+			// $version_info  = $this->get_version_info();
 
-			if ( ! isset( $_GET['page'] ) || $_GET['page'] !== 'chimplet-overview' ) {
-				$message .= ' ' . '<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings') . '</a>';
+			if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
+				$message = sprintf(
+					__('You need to register a %s to use %s.', 'chimplet'),
+					'<strong>' . __('MailChimp API key', 'chimplet') . '</strong>',
+					'<em>' . __('Chimplet', 'chimplet') . '</em>'
+				);
+
+				if ( ! $this->is_page( $this->configure->get_menu_slug() ) ) {
+					$message .= ' ' . '<a href="' . admin_url( 'admin.php?page=' . $this->configure->get_menu_slug() ) . '">' . __('Settings') . '</a>';
+				}
+
+				$this->notices->add(
+					'chimplet/mailchimp/api-key-missing',
+					$message,
+					[ 'type' => 'error' ]
+				);
 			}
 
-			$this->notices->add(
-				'chimplet/mailchimp/api-key-missing',
-				$message,
-				[ 'type' => 'error' ]
-			);
 		}
 
 		$this->register_assets();
@@ -192,9 +198,7 @@ class Application extends Base
 	public function plugin_meta( $plugin_meta, $plugin_file, $plugin_data, $status )
 	{
 		if ( LOCOMOTIVE_CHIMPLET_ABS === $plugin_file ) {
-
-			$plugin_meta[] = '<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings') . '</a>';
-
+			$plugin_meta[] = '<a href="' . admin_url( 'admin.php?page=' . $this->configure->get_menu_slug() ) . '">' . __('Settings') . '</a>';
 		}
 
 		return $plugin_meta;
@@ -225,7 +229,7 @@ class Application extends Base
 				'<strong>' . __('MailChimp API key', 'chimplet') . '</strong>'
 			);
 
-			echo ' ' . '<a href="' . admin_url('admin.php?page=chimplet-overview') . '">' . __('Settings') . '</a>';
+			echo ' ' . '<a href="' . admin_url( 'admin.php?page=' . $this->configure->get_menu_slug() ) . '">' . __('Settings') . '</a>';
 
 			echo '</div></td></tr>';
 		}
