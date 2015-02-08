@@ -187,9 +187,25 @@ abstract class Base
 	{
 		$path = $this->get_path("assets/views/{$template}.php");
 
+		$title = ( isset( $args['title'] ) ? $args['title'] : $this->get_setting('name') );
+
 		if ( file_exists( $path ) ) {
 
+?>
+
+<div class="wrap chimplet-wrap">
+
+	<h2><?php echo esc_html( $title ); ?></h2>
+
+<?php
+
 			include $path;
+
+?>
+
+</div>
+
+<?php
 
 		}
 	}

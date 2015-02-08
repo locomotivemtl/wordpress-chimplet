@@ -3,50 +3,39 @@
 namespace Locomotive\Chimplet;
 
 use Locomotive\Singleton;
-use Locomotive\WordPress\WP;
-use Locomotive\WordPress\Facade;
 
 /**
- * File: Administration Overview Class
+ * File: Chimplet Overview Class
  *
  * @package Locomotive\Chimplet
  */
 
 /**
- * Class: Chimplet Administration Overview
+ * Class: Chimplet Overview
  *
  * @version 2015-02-05
  * @since   0.0.0 (2015-02-05)
  */
 
-class Overview extends Base
+class Overview extends AdminPage
 {
-	use Singleton, Facade;
-
-	protected $view = [];
+	use Singleton;
 
 	/**
 	 * Constructor
 	 *
-	 * Prepares all the necessary actions, filters, and functions
-	 * for the plugin to operate.
-	 *
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
+	 * @version 2015-02-07
+	 * @since   0.0.0 (2015-02-07)
 	 * @access  public
-	 * @param   WP  $facade  Allows inserting a different facade object for testing.
+	 * @param   WP  $facade  {@see WordPress\Facade::__construct}
 	 */
 
 	public function __construct( WP $facade = null )
 	{
-		$this->set_facade( $facade );
+		$this->view['title'] = __('Overview', 'chimplet');
+		$this->view['slug']  = 'chimplet-overview';
 
-		if ( ! $this->wp->is_admin() ) {
-			return;
-		}
-
-		$this->wp->add_action( 'admin_menu',            [ $this, 'append_to_menu' ] );
-		$this->wp->add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		parent::__construct( $facade );
 	}
 
 	/**
@@ -57,16 +46,25 @@ class Overview extends Base
 	 * @since   0.0.0 (2015-02-05)
 	 */
 
-	function append_to_menu()
+	public function append_to_menu()
 	{
-		// var_dump( __CLASS__ . '::' . __FUNCTION__ );
+		$this->wp->add_menu_page( $this->view['title'], $this->get_setting('name') . $this->append_badge(), 'manage_options', $this->view['slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
+		$this->wp->add_submenu_page( $this->view['slug'], $this->view['title'], $this->view['title'], 'manage_options', $this->view['slug'], [ $this, 'render_page' ] );
+	}
 
-		$this->view['title'] = __('Overview', 'chimplet');
-		$this->view['slug']  = 'chimplet-overview';
+	/**
+	 * Append menu badge
+	 *
+	 * @version 2015-02-07
+	 * @since   0.0.0 (2015-02-07)
+	 */
+
+	public function append_badge()
+	{
+		$badge = '';
 
 		$mailchimp_key = $this->get_setting('mailchimp-key');
 		// $version_info  = $this->get_version_info();
-		$badge = '';
 
 		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {
 			$badge = sprintf(
@@ -78,22 +76,7 @@ class Overview extends Base
 			$badge = ' ' . '<span class="update-plugins dashicons" title="' . $badge . '"><span class="dashicons-admin-network"></span></span>';
 		}
 
-		$this->wp->add_menu_page( $this->view['title'], $this->get_setting('name') . $badge, 'manage_options', $this->view['slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
-	}
-
-	/**
-	 * Enqueue assets
-	 *
-	 * @used-by Action: admin_enqueue_scripts
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 */
-
-	function enqueue_assets()
-	{
-		// var_dump( __CLASS__ . '::' . __FUNCTION__ );
-
-		$this->wp->wp_enqueue_style('chimplet-global');
+		return $badge;
 	}
 
 	/**
@@ -104,7 +87,7 @@ class Overview extends Base
 	 * @since   0.0.0 (2015-02-05)
 	 */
 
-	function render_page()
+	public function render_page()
 	{
 		$this->render_view( 'options-overview', $this->view );
 	}
