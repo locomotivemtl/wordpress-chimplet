@@ -17,90 +17,13 @@ namespace Locomotive\Chimplet;
 
 abstract class Base
 {
-
-	/**
-	 * Retrieve a value from the settings array
-	 *
-	 * @uses    Application::$settings
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 *
-	 * @param   string  $name     Name of setting to retrieve.
-	 * @param   mixed   $default  Optional. Default value to return if the option does not exist.
-	 * @return  mixed   $value    Value set for the setting.
-	 */
-
-	public function get_setting( $name, $default = false, $allow_filter = true )
-	{
-		global $chimplet;
-
-		$value = null;
-
-		$name = trim( $name );
-
-		if ( empty( $name ) ) {
-			return false;
-		}
-
-		if ( isset( $chimplet->settings[ $name ] ) ) {
-			$value = $chimplet->settings[ $name ];
-
-			if ( $allow_filter ) {
-				$value = apply_filters( "chimplet/settings/{$name}", $value );
-			}
-		}
-		else {
-			$value = $default;
-		}
-
-		return $value;
-	}
-
-	/**
-	 * Update a value to the settings array
-	 *
-	 * @uses    Application::$settings
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 *
-	 * @param   string  $name
-	 * @param   mixed   $value
-	 */
-
-	public function update_setting( $name, $value )
-	{
-		global $chimplet;
-
-		$chimplet->settings[ $name ] = $value;
-	}
-
-	/**
-	 * Add a value to the settings array
-	 *
-	 * @uses    Application::$settings
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 *
-	 * @param   string  $name
-	 * @param   mixed   $value
-	 */
-
-	public function append_setting( $name, $value )
-	{
-		global $chimplet;
-
-		if ( ! isset( $chimplet->settings[ $name ] ) )
-		{
-			$chimplet->settings[ $name ] = [];
-		}
-
-		$chimplet->settings[ $name ][] = $value;
-	}
+	use BaseInfo;
+	use BaseOption;
 
 	/**
 	 * Retrieve path to Chimplet directory
 	 *
-	 * @version 2015-02-05
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 *
 	 * @param   string  $path
@@ -109,13 +32,13 @@ abstract class Base
 
 	public function get_path( $path )
 	{
-		return $this->get_setting('path') . $path;
+		return $this->get_info('path') . $path;
 	}
 
 	/**
 	 * Retrieve path to Chimplet directory
 	 *
-	 * @version 2015-02-05
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 *
 	 * @param   string  $path
@@ -124,13 +47,13 @@ abstract class Base
 
 	public function get_url( $path )
 	{
-		return $this->get_setting('url') . $path;
+		return $this->get_info('url') . $path;
 	}
 
 	/**
 	 * Retrieve path to Chimplet assets directory
 	 *
-	 * @version 2015-02-06
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-06)
 	 *
 	 * @param   string  $path
@@ -139,7 +62,7 @@ abstract class Base
 
 	public function get_asset( $path )
 	{
-		return $this->get_setting('url') . 'assets/' . $path;
+		return $this->get_info('url') . 'assets/' . $path;
 	}
 
 	/**
@@ -188,7 +111,7 @@ abstract class Base
 	{
 		$path = $this->get_path("assets/views/{$template}.php");
 
-		$title = ( isset( $args['page_title'] ) ? $args['page_title'] : $this->get_setting('name') );
+		$title = ( isset( $args['page_title'] ) ? $args['page_title'] : $this->get_info('name') );
 
 		$classes = [ 'wrap', 'chimplet-wrap' ];
 

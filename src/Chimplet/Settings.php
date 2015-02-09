@@ -51,20 +51,22 @@ class Settings extends AdminPage
 
 	public function append_to_menu()
 	{
-		$this->wp->add_submenu_page( 'chimplet-overview', $this->view['document_title'], $this->view['menu_title'], 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ] );
+		$this->hook = $this->wp->add_submenu_page( 'chimplet-overview', $this->view['document_title'], $this->view['menu_title'], 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ] );
+
+		add_action( "load-{$this->hook}", [ $this, 'load_page' ] );
 	}
 
 	/**
-	 * Display the settings
+	 * Display the settings page
 	 *
 	 * @used-by Function: add_menu_page
-	 * @version 2015-02-07
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-07)
 	 */
 
 	public function render_page()
 	{
-		// $this->view['mailchimp_key'] = $this->get_setting('mailchimp-key');
+		// $this->view['mailchimp_key'] = $this->get_info('mailchimp-key');
 
 		$this->render_view( 'options-settings', $this->view );
 	}

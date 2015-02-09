@@ -16,7 +16,7 @@ use Locomotive\WordPress\AdminNotices;
 /**
  * Class: Chimplet Application
  *
- * @version 2015-02-05
+ * @version 2015-02-09
  * @since   0.0.0 (2015-02-05)
  */
 
@@ -28,7 +28,8 @@ class Application extends Base
 	protected $overview;
 	protected $configure;
 
-	public $settings;
+	public $information;
+	public $options;
 
 	/**
 	 * Chimplet Initialization
@@ -36,9 +37,9 @@ class Application extends Base
 	 * Prepares all the necessary actions, filters, and functions
 	 * for the plugin to operate.
 	 *
-	 * @version 2015-02-05
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
-	 * @uses    self::$settings
+	 * @uses    self::$information
 	 * @uses    self::$wp
 	 *
 	 * @param   string  $file  The filename of the plugin (__FILE__).
@@ -54,7 +55,7 @@ class Application extends Base
 			return;
 		}
 
-		$this->settings = [
+		$this->information = [
 			'name'     => __('Chimplet', 'chimplet'),
 			'version'  => '0.0.0',
 
@@ -63,7 +64,7 @@ class Application extends Base
 			'url'      => LOCOMOTIVE_CHIMPLET_URL  // plugin_dir_url(  $file )
 		];
 
-		$this->wp->load_textdomain( 'chimplet', $this->settings['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
+		$this->wp->load_textdomain( 'chimplet', $this->information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
 
 		$this->notices   = AdminNotices::get_singleton();
 		$this->overview  = Overview::get_singleton();
@@ -76,14 +77,14 @@ class Application extends Base
 		$this->wp->register_activation_hook( LOCOMOTIVE_CHIMPLET_ABS, [ $this, 'activation_hook' ] );
 
 		// plugins.php
-		// $this->wp->add_action( "after_plugin_row_{$this->settings['basename']}", [ $this, 'plugin_row' ], 1, 3 );
+		// $this->wp->add_action( "after_plugin_row_{$this->information['basename']}", [ $this, 'plugin_row' ], 1, 3 );
 	}
 
 	/**
 	 * WordPress Initialization
 	 *
 	 * @used-by Action: "init"
-	 * @version 2015-02-05
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 * @link    AdvancedCustomFields\acf::wp_init() Based on ACF method
 	 * @todo    Register assets, post types, taxonomies
@@ -97,7 +98,7 @@ class Application extends Base
 
 		if ( $this->is_related_page() ) {
 
-			$mailchimp_key = $this->get_setting('mailchimp-key');
+			$mailchimp_key = $this->get_info('mailchimp-key');
 			// $version_info  = $this->get_version_info();
 
 			if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
@@ -126,7 +127,7 @@ class Application extends Base
 	/**
 	 * Register Assets
 	 *
-	 * @version 2015-02-06
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-06)
 	 */
 
@@ -135,7 +136,7 @@ class Application extends Base
 		$scripts = [];
 
 		foreach ( $scripts as $script ) {
-			wp_register_script( $script['handle'], $script['src'], $script['deps'], $this->get_setting('version') );
+			wp_register_script( $script['handle'], $script['src'], $script['deps'], $this->get_info('version') );
 		}
 
 		$styles = [
@@ -147,7 +148,7 @@ class Application extends Base
 		];
 
 		foreach ( $styles as $style ) {
-			wp_register_style( $style['handle'], $style['src'], $style['deps'], $this->get_setting('version') );
+			wp_register_style( $style['handle'], $style['src'], $style['deps'], $this->get_info('version') );
 		}
 	}
 
@@ -155,13 +156,13 @@ class Application extends Base
 	 * Plugin Activation
 	 *
 	 * @used-by Action: "register_activation_hook"
-	 * @version 2015-02-05
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 */
 
 	public function activation_hook()
 	{
-		$mailchimp_key = $this->get_setting('mailchimp-key');
+		$mailchimp_key = $this->get_info('mailchimp-key');
 		// $version_info  = $this->get_version_info();
 
 		if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
@@ -208,7 +209,7 @@ class Application extends Base
 	 * Append a row for a plugin in the Plugins list table
 	 *
 	 * @used-by Action: "after_plugin_row_$plugin_file"
-	 * @version 2015-02-05
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 *
 	 * @param   string  $plugin_file  Path to the plugin file, relative to the plugins directory.
@@ -218,7 +219,7 @@ class Application extends Base
 
 	public function plugin_row( $plugin_file, $plugin_data, $status )
 	{
-		$mailchimp_key = $this->get_setting('mailchimp-key');
+		$mailchimp_key = $this->get_info('mailchimp-key');
 		// $version_info  = $this->get_version_info();
 
 		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {

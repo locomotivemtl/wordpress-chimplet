@@ -51,14 +51,14 @@ class Overview extends AdminPage
 
 	public function append_to_menu()
 	{
-		$this->wp->add_menu_page( $this->view['document_title'], $this->get_setting('name') . $this->append_badge(), 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
+		$this->wp->add_menu_page( $this->view['document_title'], $this->get_info('name') . $this->append_badge(), 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
 		$this->wp->add_submenu_page( $this->view['menu_slug'], $this->view['document_title'], $this->view['page_title'], 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ] );
 	}
 
 	/**
 	 * Append menu badge
 	 *
-	 * @version 2015-02-07
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-07)
 	 */
 
@@ -66,7 +66,7 @@ class Overview extends AdminPage
 	{
 		$badge = '';
 
-		$mailchimp_key = $this->get_setting('mailchimp-key');
+		$mailchimp_key = $this->get_info('mailchimp-key');
 		// $version_info  = $this->get_version_info();
 
 		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {

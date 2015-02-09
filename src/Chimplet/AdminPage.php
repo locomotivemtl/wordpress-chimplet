@@ -23,6 +23,7 @@ class AdminPage extends Base
 	use Facade;
 
 	protected $view = [];
+	protected $hook = '';
 
 	/**
 	 * Constructor
@@ -44,8 +45,7 @@ class AdminPage extends Base
 			return;
 		}
 
-		$this->wp->add_action( 'admin_menu',            [ $this, 'append_to_menu' ] );
-		$this->wp->add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+		$this->wp->add_action( 'admin_menu', [ $this, 'append_to_menu' ] );
 	}
 
 	/**
@@ -58,6 +58,19 @@ class AdminPage extends Base
 
 	public function append_to_menu()
 	{
+	}
+
+	/**
+	 * Load Page
+	 *
+	 * @used-by Action: "load-{$page}"
+	 * @version 2015-02-09
+	 * @since   0.0.0 (2015-02-09)
+	 */
+
+	public function load_page()
+	{
+		$this->wp->add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
 	}
 
 	/**
