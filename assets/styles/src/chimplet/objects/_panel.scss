@@ -1,0 +1,119 @@
+////
+/// Panel
+/// ==========================================================================
+///
+/// @group  Chimplet\Objects
+/// @author Locomotive
+////
+
+// ==========================================================================
+// Settings
+// ==========================================================================
+
+// ==========================================================================
+// Placeholders
+// ==========================================================================
+
+// ==========================================================================
+// Styles
+// ==========================================================================
+
+.chimplet-panel {
+	position   : relative;
+	min-width  : 255px;
+	border     : 1px solid #E5E5E5;
+	box-shadow : 0 1px 1px rgba(0, 0, 0, 0.04);
+
+	background-color: #FFF;
+
+	@media screen and ( max-width: 782px ) {
+		font-size: 14px;
+	}
+
+	.panel-heading {
+		margin      : 0;
+		padding     : 8px 12px;
+		user-select : none;
+
+		background-color : #FFF;
+		border-bottom    : 1px solid #EEE;
+
+		.panel-title {
+			font-size   : 14px;
+			line-height : 1.4em;
+			margin      : 0;
+			padding     : 0;
+		}
+
+	}
+
+	.panel-block {
+		overflow : hidden;
+		padding  : 8px 0;
+	}
+
+	.panel-body {
+		padding: 15px;
+
+		.panel-title {
+			margin      : 0 0 8px 12px;
+			font-weight : 400;
+		}
+
+		> .inset {
+			margin: 0 -15px;
+
+			&:first-child {
+				margin-top: -15px;
+			}
+
+			&:last-child {
+				margin-bottom: -15px;
+			}
+
+		}
+
+	}
+
+	.panel-assistance {
+		padding: 1em 15px 1em 11px;
+		border-left: 4px solid #2EA2CC;
+		background-color: #F7FCFE;
+	}
+
+	h2 {
+		color       : #333333;
+		font-size   : 25px;
+		line-height : 29px;
+		margin      : 0.25em 0 0.75em;
+		padding     : 0;
+	}
+
+	h3 {
+		margin: 1.5em 0 0;
+	}
+
+	p {
+		margin-top: 0.5em;
+	}
+
+	.panel-footer {
+		overflow: hidden;
+		position: relative;
+		padding: 15px;
+		border-top: 1px solid #E1E1E1;
+		background-color: #F5F5F5;
+	}
+
+		.footer-blue {
+			color: #FFF;
+			border-top: 0 none;
+			background-color: #52ACCC;
+		}
+
+		.footer-blue a {
+			text-decoration : none;
+			text-shadow     : none;
+		}
+
+}

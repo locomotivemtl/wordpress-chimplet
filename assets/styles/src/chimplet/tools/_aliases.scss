@@ -1,0 +1,31 @@
+////
+/// Aliases
+/// ==========================================================================
+///
+/// @group  Chimplet\Tools
+/// @author Locomotive
+////
+
+/**
+ * Contain Floats
+ *
+ * Make an element expand to contain floated children.
+ * Uses pseudo-elements (micro clearfix).
+ *
+ * @see   {mixin} contain-floats in Chimplet\Tools\mixins
+ * @link  //github.com/suitcss/utils-layout
+ * @link  //github.com/inuitcss/generic.clearfix
+ * @link  //css-101.org/articles/clearfix/latest-new-clearfix-so-far.php
+ */
+
+%clearfix {
+	@include contain-floats;
+}
+
+
+/// Extend the clearfix class with Sass to avoid the `.cf` class
+/// appearing over and over in your markup.
+
+	.cf {
+		@extend %clearfix;
+	}

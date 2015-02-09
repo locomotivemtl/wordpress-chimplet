@@ -8,27 +8,13 @@
 // Settings
 // ==========================================================================
 
-/* ==========================================================================
-   Menu
-   ========================================================================== */
+// ==========================================================================
+// Import
+// ==========================================================================
 
-%admin-menu-badge {
-	width       : auto;
-	height      : auto;
-	margin-top  : 0;
-	line-height : 19px;
-}
+@import 'chimplet/tools/functions';
+@import 'chimplet/tools/mixins';
+@import 'chimplet/tools/aliases';
 
-%admin-menu-badge-count {
-	padding: 0 5px;
-}
-
-#adminmenu .update-plugins.dashicons,
-#sidemenu li a span.update-plugins.dashicons {
-	@extend %admin-menu-badge;
-}
-
-	#adminmenu li span.update-plugins span,
-	#sidemenu li a span.update-plugins span {
-		@extend %admin-menu-badge-count;
-	}
+@import 'chimplet/objects/wp-menu';
+@import 'chimplet/objects/panel';
