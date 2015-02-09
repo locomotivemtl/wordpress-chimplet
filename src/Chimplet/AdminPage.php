@@ -14,7 +14,7 @@ use Locomotive\WordPress\Facade;
 /**
  * Class: Chimplet Administration Page
  *
- * @version 2015-02-07
+ * @version 2015-02-09
  * @since   0.0.0 (2015-02-07)
  */
 
@@ -76,7 +76,7 @@ class AdminPage extends Base
 	/**
 	 * Retrieve plugin menu slug
 	 *
-	 * @version 2015-02-07
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-07)
 	 *
 	 * @return  string
@@ -84,8 +84,8 @@ class AdminPage extends Base
 
 	public function get_menu_slug()
 	{
-		if ( isset( $this->view['slug'] ) ) {
-			return $this->view['slug'];
+		if ( isset( $this->view['menu_slug'] ) ) {
+			return $this->view['menu_slug'];
 		}
 	}
 

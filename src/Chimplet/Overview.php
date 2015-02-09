@@ -13,7 +13,7 @@ use Locomotive\Singleton;
 /**
  * Class: Chimplet Overview
  *
- * @version 2015-02-05
+ * @version 2015-02-09
  * @since   0.0.0 (2015-02-05)
  */
 
@@ -24,7 +24,7 @@ class Overview extends AdminPage
 	/**
 	 * Constructor
 	 *
-	 * @version 2015-02-07
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-07)
 	 * @access  public
 	 * @param   WP  $facade  {@see WordPress\Facade::__construct}
@@ -32,8 +32,11 @@ class Overview extends AdminPage
 
 	public function __construct( WP $facade = null )
 	{
-		$this->view['title'] = __('Overview', 'chimplet');
-		$this->view['slug']  = 'chimplet-overview';
+		$this->view['document_title'] = __('Chimplet Overview', 'chimplet');
+
+		$this->view['page_title'] = __('Overview', 'chimplet');
+		$this->view['menu_title'] = $this->view['page_title'];
+		$this->view['menu_slug']  = 'chimplet-overview';
 
 		parent::__construct( $facade );
 	}
@@ -42,14 +45,14 @@ class Overview extends AdminPage
 	 * Add pages to the WordPress administration menu
 	 *
 	 * @used-by Action: admin_menu
-	 * @version 2015-02-05
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 */
 
 	public function append_to_menu()
 	{
-		$this->wp->add_menu_page( $this->view['title'], $this->get_setting('name') . $this->append_badge(), 'manage_options', $this->view['slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
-		$this->wp->add_submenu_page( $this->view['slug'], $this->view['title'], $this->view['title'], 'manage_options', $this->view['slug'], [ $this, 'render_page' ] );
+		$this->wp->add_menu_page( $this->view['document_title'], $this->get_setting('name') . $this->append_badge(), 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
+		$this->wp->add_submenu_page( $this->view['menu_slug'], $this->view['document_title'], $this->view['page_title'], 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ] );
 	}
 
 	/**

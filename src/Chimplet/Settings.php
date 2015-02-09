@@ -13,7 +13,7 @@ use Locomotive\Singleton;
 /**
  * Class: Chimplet Settings
  *
- * @version 2015-02-07
+ * @version 2015-02-09
  * @since   0.0.0 (2015-02-07)
  */
 
@@ -24,7 +24,7 @@ class Settings extends AdminPage
 	/**
 	 * Constructor
 	 *
-	 * @version 2015-02-07
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-07)
 	 * @access  public
 	 * @param   WP  $facade  {@see WordPress\Facade::__construct}
@@ -32,8 +32,11 @@ class Settings extends AdminPage
 
 	public function __construct( WP $facade = null )
 	{
-		$this->view['title'] = __('Settings', 'chimplet');
-		$this->view['slug']  = 'chimplet-settings';
+		$this->view['document_title'] = __('Chimplet Settings', 'chimplet');
+
+		$this->view['page_title'] = __('Settings', 'chimplet');
+		$this->view['menu_title'] = $this->view['page_title'];
+		$this->view['menu_slug']  = 'chimplet-settings';
 
 		parent::__construct( $facade );
 	}
@@ -42,13 +45,13 @@ class Settings extends AdminPage
 	 * Add pages to the WordPress administration menu
 	 *
 	 * @used-by Action: admin_menu
-	 * @version 2015-02-07
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-07)
 	 */
 
 	public function append_to_menu()
 	{
-		$this->wp->add_submenu_page( 'chimplet-overview', $this->view['title'], $this->view['title'], 'manage_options', $this->view['slug'], [ $this, 'render_page' ] );
+		$this->wp->add_submenu_page( 'chimplet-overview', $this->view['document_title'], $this->view['menu_title'], 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ] );
 	}
 
 	/**

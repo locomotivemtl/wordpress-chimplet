@@ -11,7 +11,7 @@ namespace Locomotive\Chimplet;
 /**
  * Class: Abstract Base
  *
- * @version 2015-02-06
+ * @version 2015-02-09
  * @since   0.0.0 (2015-02-06)
  */
 
@@ -177,7 +177,7 @@ abstract class Base
 	 * Load template from `views/` directory and allow
 	 * variables to be passed through.
 	 *
-	 * @version 2015-02-07
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 *
 	 * @param   string  $template
@@ -188,12 +188,12 @@ abstract class Base
 	{
 		$path = $this->get_path("assets/views/{$template}.php");
 
-		$title = ( isset( $args['title'] ) ? $args['title'] : $this->get_setting('name') );
+		$title = ( isset( $args['page_title'] ) ? $args['page_title'] : $this->get_setting('name') );
 
 		$classes = [ 'wrap', 'chimplet-wrap' ];
 
-		if ( isset( $args['slug'] ) ) {
-			$classes[] = $args['slug'] . '-wrap';
+		if ( isset( $args['menu_slug'] ) ) {
+			$classes[] = $args['menu_slug'] . '-wrap';
 		}
 
 		if ( file_exists( $path ) ) {
