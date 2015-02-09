@@ -21,6 +21,7 @@ use Locomotive\WordPress\Facade;
 class AdminPage extends Base
 {
 	use Facade;
+	use AdminForm;
 
 	protected $view = [];
 	protected $hook = '';
@@ -71,6 +72,12 @@ class AdminPage extends Base
 	public function load_page()
 	{
 		$this->wp->add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
+
+		if ( $this->validate_submitted_values() ) {
+
+			// $this->save
+
+		}
 	}
 
 	/**

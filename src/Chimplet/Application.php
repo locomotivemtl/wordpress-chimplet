@@ -98,7 +98,7 @@ class Application extends Base
 
 		if ( $this->is_related_page() ) {
 
-			$mailchimp_key = $this->get_info('mailchimp-key');
+			$mailchimp_key = $this->get_option('mailchimp-api-key');
 			// $version_info  = $this->get_version_info();
 
 			if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
@@ -162,7 +162,7 @@ class Application extends Base
 
 	public function activation_hook()
 	{
-		$mailchimp_key = $this->get_info('mailchimp-key');
+		$mailchimp_key = $this->get_option('mailchimp-api-key');
 		// $version_info  = $this->get_version_info();
 
 		if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
@@ -219,7 +219,7 @@ class Application extends Base
 
 	public function plugin_row( $plugin_file, $plugin_data, $status )
 	{
-		$mailchimp_key = $this->get_info('mailchimp-key');
+		$mailchimp_key = $this->get_option('mailchimp-api-key');
 		// $version_info  = $this->get_version_info();
 
 		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {

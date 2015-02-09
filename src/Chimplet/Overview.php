@@ -66,7 +66,7 @@ class Overview extends AdminPage
 	{
 		$badge = '';
 
-		$mailchimp_key = $this->get_info('mailchimp-key');
+		$mailchimp_key = $this->get_option('mailchimp-api-key');
 		// $version_info  = $this->get_version_info();
 
 		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {

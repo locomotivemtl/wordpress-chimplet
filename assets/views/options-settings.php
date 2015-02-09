@@ -12,13 +12,14 @@
 
 extract( $args );
 
-$mailchimp_key = '';
+$options = $this->get_options();
+$inputs  = $this->get_submitted_values();
+
+$mailchimp_key = $this->get_option('mailchimp-api-key');
 
 $active = ! empty( $mailchimp_key );
 
 if ( $active ) {
-
-	$nonce = 'deactivate_mailchimp_api_key';
 
 	$button = (object) [
 		'label' => __('Disable API Key', 'chimplet'),
@@ -30,8 +31,6 @@ if ( $active ) {
 
 }
 else {
-
-	$nonce = 'activate_mailchimp_api_key';
 
 	$button = (object) [
 		'label' => __('Save API Key', 'chimplet'),
@@ -87,16 +86,16 @@ else {
 
 			<form action="" method="post">
 				<div class="chimplet-hidden">
-					<input type="hidden" name="_chimpletnonce" value="<?php echo wp_create_nonce( $nonce ); ?>" />
+					<input type="hidden" name="_chimpletnonce" value="<?php echo wp_create_nonce( $this->nonce ); ?>" />
 				</div>
 				<table class="form-table">
 					<tbody>
 						<tr>
 							<th>
-								<label for="chimplet-field-mailchimp-api-key"><?php _e('API Key', 'chimplet'); ?></label>
+								<label for="chimplet-field-mailchimp-api_key"><?php _e('API Key', 'chimplet'); ?></label>
 							</th>
 							<td>
-								<input type="text" class="regular-text" id="chimplet-field-mailchimp-api-key" name="chimplet[mailchimp][api][key]"<?php echo $readonly; ?> />
+								<input type="text" class="regular-text" id="chimplet-field-mailchimp-api_key" name="chimplet[mailchimp][api_key]"<?php echo $readonly; ?> />
 							</td>
 						</tr>
 						<tr>

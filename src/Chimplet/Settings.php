@@ -32,6 +32,10 @@ class Settings extends AdminPage
 
 	public function __construct( WP $facade = null )
 	{
+		$mailchimp_key = $this->get_option('mailchimp-api-key');
+
+		$this->nonce = ( empty( $mailchimp_key ) ? 'activate_mailchimp_api_key' : 'deactivate_mailchimp_api_key' );
+
 		$this->view['document_title'] = __('Chimplet Settings', 'chimplet');
 
 		$this->view['page_title'] = __('Settings', 'chimplet');
@@ -66,7 +70,7 @@ class Settings extends AdminPage
 
 	public function render_page()
 	{
-		// $this->view['mailchimp_key'] = $this->get_info('mailchimp-key');
+		// $this->view['mailchimp_key'] = $this->get_option('mailchimp-api-key');
 
 		$this->render_view( 'options-settings', $this->view );
 	}
