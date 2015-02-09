@@ -67,8 +67,8 @@ class Application extends Base
 		$this->wp->load_textdomain( 'chimplet', $this->information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
 
 		$this->notices   = AdminNotices::get_singleton();
-		$this->overview  = Overview::get_singleton();
-		$this->configure = Settings::get_singleton();
+		$this->overview  = OverviewPage::get_singleton();
+		$this->configure = SettingsPage::get_singleton();
 
 		$this->wp->add_action( 'init', [ $this, 'wp_init' ] );
 

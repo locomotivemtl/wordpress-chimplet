@@ -5,19 +5,19 @@ namespace Locomotive\Chimplet;
 use Locomotive\Singleton;
 
 /**
- * File: Chimplet Settings Class
+ * File: Chimplet Settings Page Class
  *
  * @package Locomotive\Chimplet
  */
 
 /**
- * Class: Chimplet Settings
+ * Class: Chimplet Settings Page
  *
  * @version 2015-02-09
  * @since   0.0.0 (2015-02-07)
  */
 
-class Settings extends AdminPage
+class SettingsPage extends AdminPage
 {
 	use Singleton;
 

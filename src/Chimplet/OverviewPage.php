@@ -5,19 +5,19 @@ namespace Locomotive\Chimplet;
 use Locomotive\Singleton;
 
 /**
- * File: Chimplet Overview Class
+ * File: Chimplet Overview Page Class
  *
  * @package Locomotive\Chimplet
  */
 
 /**
- * Class: Chimplet Overview
+ * Class: Chimplet Overview Page
  *
  * @version 2015-02-09
  * @since   0.0.0 (2015-02-05)
  */
 
-class Overview extends AdminPage
+class OverviewPage extends AdminPage
 {
 	use Singleton;
 
