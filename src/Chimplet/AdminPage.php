@@ -99,14 +99,32 @@ class AdminPage extends Base
 	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-07)
 	 *
+	 * @param   string  $page_slug  Class name of requested menu slug
 	 * @return  string
 	 */
 
-	public function get_menu_slug()
+	public function get_menu_slug( $page_slug = null )
 	{
-		if ( isset( $this->view['menu_slug'] ) ) {
-			return $this->view['menu_slug'];
+		if ( empty( $page_slug ) ) {
+
+			if ( isset( $this->view['menu_slug'] ) ) {
+				return $this->view['menu_slug'];
+			}
+
 		}
+		else {
+			$namespaced_slug = __NAMESPACE__ . '\\' . $page_slug;
+
+			if ( class_exists( $namespaced_slug ) ) {
+
+				$page_object = $namespaced_slug::get_singleton();
+
+				return $page_object->get_menu_slug();
+			}
+
+		}
+
+		return '';
 	}
 
 }

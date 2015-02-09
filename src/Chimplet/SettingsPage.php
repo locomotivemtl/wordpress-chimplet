@@ -55,7 +55,7 @@ class SettingsPage extends AdminPage
 
 	public function append_to_menu()
 	{
-		$this->hook = $this->wp->add_submenu_page( 'chimplet-overview', $this->view['document_title'], $this->view['menu_title'], 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ] );
+		$this->hook = $this->wp->add_submenu_page( $this->get_menu_slug('OverviewPage'), $this->view['document_title'], $this->view['menu_title'], 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ] );
 
 		add_action( "load-{$this->hook}", [ $this, 'load_page' ] );
 	}
