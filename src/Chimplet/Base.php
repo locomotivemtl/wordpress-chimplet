@@ -172,32 +172,12 @@ abstract class Base
 	}
 
 	/**
-	 * Include File
-	 *
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
-	 *
-	 * @param   string  $file
-	 */
-/*
-	public function include( $file )
-	{
-		$path = $this->get_path( $file );
-
-		if ( file_exists( $path ) ) {
-
-			include $path;
-
-		}
-	}
-*/
-	/**
 	 * Render View
 	 *
 	 * Load template from `views/` directory and allow
 	 * variables to be passed through.
 	 *
-	 * @version 2015-02-05
+	 * @version 2015-02-07
 	 * @since   0.0.0 (2015-02-05)
 	 *
 	 * @param   string  $template
@@ -210,11 +190,17 @@ abstract class Base
 
 		$title = ( isset( $args['title'] ) ? $args['title'] : $this->get_setting('name') );
 
+		$classes = [ 'wrap', 'chimplet-wrap' ];
+
+		if ( isset( $args['slug'] ) ) {
+			$classes[] = $args['slug'] . '-wrap';
+		}
+
 		if ( file_exists( $path ) ) {
 
 ?>
 
-<div class="wrap chimplet-wrap">
+<div class="<?php echo implode( ' ', $classes ); ?>">
 
 	<h2><?php echo esc_html( $title ); ?></h2>
 

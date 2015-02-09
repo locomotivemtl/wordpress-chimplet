@@ -61,6 +61,8 @@ class Settings extends AdminPage
 
 	public function render_page()
 	{
+		// $this->view['mailchimp_key'] = $this->get_setting('mailchimp-key');
+
 		$this->render_view( 'options-settings', $this->view );
 	}
 
