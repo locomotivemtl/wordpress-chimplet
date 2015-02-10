@@ -3,6 +3,7 @@
 namespace Locomotive\Chimplet;
 
 use Locomotive\Singleton;
+use Locomotive\WordPress\AdminNotices;
 
 /**
  * File: Chimplet Settings Page Class
@@ -21,6 +22,9 @@ class SettingsPage extends AdminPage
 {
 	use Singleton;
 
+	protected $mc;
+	protected $notices;
+
 	/**
 	 * Constructor
 	 *
@@ -32,15 +36,50 @@ class SettingsPage extends AdminPage
 
 	public function __construct( WP $facade = null )
 	{
-		$mailchimp_key = $this->get_option('mailchimp.api_key');
-
-		$this->nonce = ( empty( $mailchimp_key ) ? 'activate_mailchimp_api_key' : 'deactivate_mailchimp_api_key' );
-
 		$this->view['document_title'] = __('Chimplet Settings', 'chimplet');
 
 		$this->view['page_title'] = __('Settings', 'chimplet');
 		$this->view['menu_title'] = $this->view['page_title'];
 		$this->view['menu_slug']  = 'chimplet-settings';
+
+		$this->notices = AdminNotices::get_singleton();
+
+		$mailchimp_key = $this->get_option('mailchimp.api_key');
+
+		if ( empty( $mailchimp_key ) ) {
+
+			$this->nonce = 'activate_mailchimp_api_key';
+
+		}
+		else {
+
+			$this->nonce = 'deactivate_mailchimp_api_key';
+
+			try {
+
+				$this->mc = new \Mailchimp( $mailchimp_key );
+
+			} catch ( \Mailchimp_Error $e ) {
+
+				if ( $e->getMessage() ) {
+					$message = $e->getMessage();
+				} else {
+					$message  = '<p>' . __('Chimplet was unable to integrate with MailChimp.', 'chimplet') . ' ' . __('Possible reasons:', 'chimplet') . '</p>';
+					$message .= '<ul>';
+					$message .= 	'<li>' . __('You have not set an API key.', 'chimplet') . '</p>';
+					$message .= 	'<li>' . __('Your API key is invalid.', 'chimplet') . '</p>';
+					$message .= '</ul>';
+				}
+
+				$this->notices->add(
+					'chimplet/mailchimp/api-key-failed',
+					$message,
+					[ 'type' => 'error' ]
+				);
+
+			}
+
+		}
 
 		parent::__construct( $facade );
 	}
@@ -78,6 +117,22 @@ class SettingsPage extends AdminPage
 				'label_for' => 'chimplet-field-mailchimp-api_key'
 			]
 		);
+
+		// Settings fields when API Key integrated
+		if ( $this->mc ) {
+
+			add_settings_field(
+				'chimplet-field-mailchimp-list',
+				__('Select Mailing List', 'chimplet'),
+				[ $this, 'render_mailchimp_field_list' ],
+				$this->view['menu_slug'],
+				'chimplet-section-mailchimp-api',
+				[
+					'control' => 'radio-table' // Choices: select, radio-table
+				]
+			);
+
+		}
 	}
 
 	/**
@@ -191,19 +246,137 @@ class SettingsPage extends AdminPage
 
 	public function render_mailchimp_field_api_key( $args )
 	{
-		$mailchimp_key = $this->get_option('mailchimp.api_key');
+		$value = $this->get_option('mailchimp.api_key');
 
-		if ( empty( $mailchimp_key ) ) {
+		if ( empty( $value ) ) {
 			$value = $readonly = '';
 		}
 		else {
-			$value = esc_attr( $mailchimp_key );
+			$value    = esc_attr( $value );
 			$readonly = ' readonly';
 		}
 
 		$readonly = '';
 
 		echo '<input type="text" class="regular-text" id="' . $args['label_for'] . '" name="chimplet[mailchimp][api_key]"' . $readonly . ' value="' . $value . '" />';
+	}
+
+	/**
+	 * Display the Subscriber List Settings Field
+	 *
+	 * @used-by Function: add_settings_field
+	 * @version 2015-02-10
+	 * @since   0.0.0 (2015-02-09)
+	 *
+	 * @param  array  $args
+	 */
+
+	public function render_mailchimp_field_list( $args )
+	{
+		$value = $this->get_option('mailchimp.list');
+
+		try {
+
+			$lists = $this->mc->lists->getList();
+
+			// var_dump( $lists );
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			if ( $e->getMessage() ) {
+				echo '<p>' . $e->getMessage() . '</p>';
+			} else {
+				echo '<p>' . __('An unknown error occurred', 'chimplet') . '</p>';
+			}
+
+		}
+
+		if ( empty( $value ) ) {
+			$value = $readonly = '';
+		}
+		else {
+			$value = esc_attr( $value );
+			$readonly = ' readonly';
+		}
+
+		$readonly = '';
+		$selected = '';
+
+		if ( ! empty( $lists['data'] ) ) {
+
+			if ( ! isset( $args['control'] ) ) {
+				$args['control'] = 'radio-table';
+			}
+
+			if ( $args['control'] === 'select' ) {
+
+				echo '<select name="list" id="' . $args['label_for'] . '" name="chimplet[mailchimp][list]"' . $readonly . '>';
+
+				foreach ( $lists['data'] as $list ) {
+					echo '<option value="' . $list['id'] . '"' . selected( $value, $list['id'] ) . '>' . $list['name'] . '</option>';
+				}
+
+				echo '</select>';
+
+			}
+			else {
+?>
+					</td>
+				</tr>
+			</table>
+			<table class="wp-list-table widefat mailchimp-lists">
+				<thead>
+					<tr>
+						<th scope="col" id="chimplet-rb" class="manage-column column-rb check-column"><label class="screen-reader-text"><?php _e('Select One', 'chimplet'); ?></label></th>
+						<th scope="col" id="mailchimp-list-title" class="manage-column column-name"><?php _e('Title'); ?></th>
+						<th scope="col" id="mailchimp-list-members" class="manage-column column-members num"><?php _e('Members', 'chimplet'); ?></th>
+						<th scope="col" id="mailchimp-list-date" class="manage-column column-date"><?php _e('Date Created', 'chimplet'); ?></th>
+						<th scope="col" id="mailchimp-list-rating" class="manage-column column-rating num"><?php _e('Rating'); ?></th>
+					</tr>
+				</thead>
+				<tbody>
+<?php
+				$i = 0;
+				foreach ( $lists['data'] as $list ) {
+					$select_label = sprintf( __('Select %s'), '&ldquo;' . $list['name'] . '&rdquo;' );
+?>
+					<tr id="mailchimp-list-<?php echo $list['id']; ?>" class="mailchimp-list-<?php echo $list['id']; ?> mailchimp-list<?php echo ( $i % 2 === 0 ? ' alternate' : '' ); ?>">
+						<th scope="row" class="check-column">
+							<label class="screen-reader-text" for="rb-select-<?php echo $list['id']; ?>"><?php echo $select_label; ?></label>
+							<input type="radio" id="rb-select-<?php echo $list['id']; ?>" name="chimplet[mailchimp][list]" value="<?php echo $list['id']; ?>"<?php echo checked( $value, $list['id'] ); ?> />
+						</th>
+						<td class="column-title">
+							<strong><label for="rb-select-<?php echo $list['id']; ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo $list['name']; ?></label></strong>
+						</td>
+						<td class="column-members num"><?php echo $list['stats']['member_count']; ?></td>
+						<td class="column-date"><time datetime="<?php echo $list['date_created']; ?>"><?php echo date_i18n( get_option('date_format'), strtotime( $list['date_created'] ) ); ?></time></td>
+						<td class="column-rating num"><?php echo $list['list_rating']; ?></td>
+					</tr>
+<?php
+					$i++;
+				}
+?>
+			</table>
+			<div class="tablenav bottom cf">
+<?php /*
+				<div class="alignright tablenav-actions">
+					<input type="submit" name="chimplet-new-list" id="mailing-list-add-new" class="button action" value="<?php _e('Add New List', 'chimplet'); ?>">
+				</div>
+*/ ?>
+				<div class="alignleft tablenav-information">
+					<span class="displaying-num"><?php printf( _n( '1 list', '%s lists', $lists['total'], 'chimplet' ), $lists['total'] ); ?></span>
+				</div>
+			</div>
+			<table class="form-table">
+				<tr>
+					<td>
+
+<?php
+
+			}
+
+		}
+
 	}
 
 }

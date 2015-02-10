@@ -26,6 +26,10 @@
 
 	background-color: #FFF;
 
+	+ * {
+		margin-top: 15px;
+	}
+
 	@media screen and ( max-width: 782px ) {
 		font-size: 14px;
 	}

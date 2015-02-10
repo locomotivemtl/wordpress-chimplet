@@ -48,6 +48,20 @@ class AdminPage extends Base
 
 		$this->wp->add_action( 'admin_menu', [ $this, 'append_to_menu' ] );
 		$this->wp->add_action( 'admin_init', [ $this, 'register_settings' ] );
+
+		$this->wp->add_filter( 'pre_update_option_chimplet', [ $this, 'pre_update_option' ], 1, 2 );
+	}
+
+	/**
+	 * Add pages to the WordPress administration menu
+	 *
+	 * @used-by Action: admin_menu
+	 * @version 2015-02-05
+	 * @since   0.0.0 (2015-02-05)
+	 */
+
+	public function append_to_menu()
+	{
 	}
 
 	/**
@@ -63,15 +77,24 @@ class AdminPage extends Base
 	}
 
 	/**
-	 * Add pages to the WordPress administration menu
+	 * Filter the Chimplet option before its value is (maybe) serialized and updated.
 	 *
-	 * @used-by Action: admin_menu
-	 * @version 2015-02-05
-	 * @since   0.0.0 (2015-02-05)
+	 * Merges the old value with new value to preserve supplementary data
+	 * (such as plugin meta data).
+	 *
+	 * @used-by Filter: "pre_update_option_$option"
+	 * @version 2015-02-10
+	 * @since   0.0.0 (2015-02-10)
+	 *
+	 * @param mixed $value     The new, unserialized option value.
+	 * @param mixed $old_value The old option value.
 	 */
 
-	public function append_to_menu()
+	public function pre_update_option( $value, $old_value )
 	{
+		$value = array_merge( $old_value, $value );
+
+		return $value;
 	}
 
 	/**
