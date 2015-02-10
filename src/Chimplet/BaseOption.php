@@ -11,7 +11,7 @@ namespace Locomotive\Chimplet;
 /**
  * Trait: Static Options Handling
  *
- * @version 2015-02-09
+ * @version 2015-02-10
  * @since   0.0.0 (2015-02-06)
  */
 
@@ -69,14 +69,14 @@ trait BaseOption
 			$chimplet->options = apply_filters( "chimplet/options/save", $chimplet->options );
 		}
 
-		return update_option( 'upa', $chimplet->options );
+		return update_option( 'chimplet', $chimplet->options );
 	}
 
 	/**
 	 * Retrieve a value from the $options array
 	 *
 	 * @uses    Application::$options
-	 * @version 2015-02-09
+	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-09)
 	 *
 	 * @param   string  $name          Name of information to retrieve.
@@ -99,15 +99,22 @@ trait BaseOption
 			return false;
 		}
 
-		if ( isset( $chimplet->options[ $name ] ) ) {
-			$value = $chimplet->options[ $name ];
+		$spaces = explode( '.', $name );
+		$value  = & $chimplet->options;
 
-			if ( $allow_filter ) {
-				$value = apply_filters( "chimplet/options/value/{$name}", $value );
+		foreach ( $spaces as $space ) {
+
+			if ( isset( $value[ $space ] ) ) {
+				$value = & $value[ $space ];
 			}
+			else {
+				return $default;
+			}
+
 		}
-		else {
-			$value = $default;
+
+		if ( $allow_filter ) {
+			$value = apply_filters( "chimplet/options/value/{$name}", $value );
 		}
 
 		return $value;

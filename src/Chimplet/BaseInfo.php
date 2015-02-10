@@ -11,7 +11,7 @@ namespace Locomotive\Chimplet;
 /**
  * Trait: Static Information Handling
  *
- * @version 2015-02-09
+ * @version 2015-02-10
  * @since   0.0.0 (2015-02-06)
  */
 
@@ -22,7 +22,7 @@ trait BaseInfo
 	 * Retrieve a value from the $information array
 	 *
 	 * @uses    Application::$information
-	 * @version 2015-02-09
+	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-05)
 	 *
 	 * @param   string  $name          Name of information to retrieve.
@@ -43,15 +43,22 @@ trait BaseInfo
 			return false;
 		}
 
-		if ( isset( $chimplet->information[ $name ] ) ) {
-			$value = $chimplet->information[ $name ];
+		$spaces = explode( '.', $name );
+		$value  = & $chimplet->information;
 
-			if ( $allow_filter ) {
-				$value = apply_filters( "chimplet/info/value/{$name}", $value );
+		foreach ( $spaces as $space ) {
+
+			if ( isset( $value[ $space ] ) ) {
+				$value = & $value[ $space ];
 			}
+			else {
+				return $default;
+			}
+
 		}
-		else {
-			$value = $default;
+
+		if ( $allow_filter ) {
+			$value = apply_filters( "chimplet/info/value/{$name}", $value );
 		}
 
 		return $value;

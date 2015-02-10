@@ -4,31 +4,13 @@
  * File: Chimplet Application
  *
  * @package Locomotive\Chimplet
- * @version 2015-02-09
+ * @version 2015-02-10
  * @since   0.0.0 (2015-02-07)
  *
  * @uses    array $args
  */
 
 extract( $args );
-
-$options = $this->get_options();
-$inputs  = $this->get_submitted_values();
-
-$mailchimp_key = $this->get_option('mailchimp-api-key');
-
-$active = ! empty( $mailchimp_key );
-
-if ( $active ) {
-
-	$button_label = null;
-
-}
-else {
-
-	$button_label = __('Save API Key', 'chimplet');
-
-}
 
 ?>
 

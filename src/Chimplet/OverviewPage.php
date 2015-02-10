@@ -13,7 +13,7 @@ use Locomotive\Singleton;
 /**
  * Class: Chimplet Overview Page
  *
- * @version 2015-02-09
+ * @version 2015-02-10
  * @since   0.0.0 (2015-02-05)
  */
 
@@ -58,7 +58,7 @@ class OverviewPage extends AdminPage
 	/**
 	 * Append menu badge
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-07)
 	 */
 
@@ -66,7 +66,7 @@ class OverviewPage extends AdminPage
 	{
 		$badge = '';
 
-		$mailchimp_key = $this->get_option('mailchimp-api-key');
+		$mailchimp_key = $this->get_option('mailchimp.api_key');
 		// $version_info  = $this->get_version_info();
 
 		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {

@@ -13,7 +13,7 @@ use Locomotive\Singleton;
 /**
  * Class: Chimplet Settings Page
  *
- * @version 2015-02-09
+ * @version 2015-02-10
  * @since   0.0.0 (2015-02-07)
  */
 
@@ -32,7 +32,7 @@ class SettingsPage extends AdminPage
 
 	public function __construct( WP $facade = null )
 	{
-		$mailchimp_key = $this->get_option('mailchimp-api-key');
+		$mailchimp_key = $this->get_option('mailchimp.api_key');
 
 		$this->nonce = ( empty( $mailchimp_key ) ? 'activate_mailchimp_api_key' : 'deactivate_mailchimp_api_key' );
 
@@ -49,7 +49,7 @@ class SettingsPage extends AdminPage
 	 * Register settings, sections, and fields
 	 *
 	 * @used-by Action: "admin_init"
-	 * @version 2015-02-09
+	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-09)
 	 */
 
@@ -112,13 +112,22 @@ class SettingsPage extends AdminPage
 	 * Display the Settings Page
 	 *
 	 * @used-by Function: add_menu_page
-	 * @version 2015-02-09
+	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-07)
 	 */
 
 	public function render_page()
 	{
-		// $this->view['mailchimp_key'] = $this->get_option('mailchimp-api-key');
+		$mailchimp_key = $this->get_option('mailchimp.api_key');
+
+		if ( empty( $mailchimp_key ) ) {
+			$this->view['button_label'] = __('Save API Key', 'chimplet');
+		}
+		else {
+			$this->view['button_label'] = null;
+		}
+
+		// $this->view['mailchimp_key'] = $this->get_option('mailchimp.api_key');
 
 		$this->render_view( 'options-settings', $this->view );
 	}
@@ -174,7 +183,7 @@ class SettingsPage extends AdminPage
 	 * Display the API Key Settings Field
 	 *
 	 * @used-by Function: add_settings_field
-	 * @version 2015-02-09
+	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-09)
 	 *
 	 * @param  array  $args
@@ -182,13 +191,13 @@ class SettingsPage extends AdminPage
 
 	public function render_mailchimp_field_api_key( $args )
 	{
-		$options = $this->get_options();
+		$mailchimp_key = $this->get_option('mailchimp.api_key');
 
-		if ( empty( $options['mailchimp']['api_key'] ) ) {
+		if ( empty( $mailchimp_key ) ) {
 			$value = $readonly = '';
 		}
 		else {
-			$value = esc_attr( $options['mailchimp']['api_key'] );
+			$value = esc_attr( $mailchimp_key );
 			$readonly = ' readonly';
 		}
 

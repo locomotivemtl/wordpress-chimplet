@@ -16,7 +16,7 @@ use Locomotive\WordPress\AdminNotices;
 /**
  * Class: Chimplet Application
  *
- * @version 2015-02-09
+ * @version 2015-02-10
  * @since   0.0.0 (2015-02-05)
  */
 
@@ -37,7 +37,7 @@ class Application extends Base
 	 * Prepares all the necessary actions, filters, and functions
 	 * for the plugin to operate.
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-05)
 	 * @uses    self::$information
 	 * @uses    self::$wp
@@ -66,6 +66,8 @@ class Application extends Base
 
 		$this->wp->load_textdomain( 'chimplet', $this->information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
 
+		$this->verify_version();
+
 		$this->notices   = AdminNotices::get_singleton();
 		$this->overview  = OverviewPage::get_singleton();
 		$this->configure = SettingsPage::get_singleton();
@@ -81,10 +83,31 @@ class Application extends Base
 	}
 
 	/**
+	 * Verify versions saved in Options Table
+	 *
+	 * @version 2015-02-09
+	 * @since   0.0.0 (2015-02-09)
+	 */
+
+	public function verify_version()
+	{
+		$options = $this->get_options();
+		$version = $this->get_info('version');
+
+		if ( empty( $options['initial_version'] ) ) {
+			$this->update_option( 'initial_version', $version );
+		}
+
+		if ( empty( $options['current_version'] ) || $options['current_version'] !== $version ) {
+			$this->update_option( 'current_version', $version );
+		}
+	}
+
+	/**
 	 * WordPress Initialization
 	 *
 	 * @used-by Action: "init"
-	 * @version 2015-02-09
+	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-05)
 	 * @link    AdvancedCustomFields\acf::wp_init() Based on ACF method
 	 * @todo    Register assets, post types, taxonomies
@@ -98,7 +121,8 @@ class Application extends Base
 
 		if ( $this->is_related_page() ) {
 
-			$mailchimp_key = $this->get_option('mailchimp-api-key');
+			$mailchimp_key = $this->get_option('mailchimp.api_key');
+
 			// $version_info  = $this->get_version_info();
 
 			if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
@@ -162,7 +186,7 @@ class Application extends Base
 
 	public function activation_hook()
 	{
-		$mailchimp_key = $this->get_option('mailchimp-api-key');
+		$mailchimp_key = $this->get_option('mailchimp.api_key');
 		// $version_info  = $this->get_version_info();
 
 		if ( ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) && $this->notices instanceof AdminNotices ) {
@@ -219,7 +243,7 @@ class Application extends Base
 
 	public function plugin_row( $plugin_file, $plugin_data, $status )
 	{
-		$mailchimp_key = $this->get_option('mailchimp-api-key');
+		$mailchimp_key = $this->get_option('mailchimp.api_key');
 		// $version_info  = $this->get_version_info();
 
 		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {

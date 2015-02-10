@@ -32,7 +32,7 @@ class AdminPage extends Base
 	 * Prepares all the necessary actions, filters, and functions
 	 * for the plugin to operate.
 	 *
-	 * @version 2015-02-05
+	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 * @access  public
 	 * @param   WP  $facade  {@see WordPress\Facade::__construct}
