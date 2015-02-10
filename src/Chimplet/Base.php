@@ -125,7 +125,7 @@ abstract class Base
 
 <div class="<?php echo implode( ' ', $classes ); ?>">
 
-	<h2><?php echo esc_html( $title ); ?></h2>
+	<h2><strong class="screen-reader-text"><?php _e('Chimplet', 'chimplet'); ?>: </strong><?php echo esc_html( $title ); ?></h2>
 
 <?php
 

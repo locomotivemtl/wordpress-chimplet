@@ -47,6 +47,19 @@ class AdminPage extends Base
 		}
 
 		$this->wp->add_action( 'admin_menu', [ $this, 'append_to_menu' ] );
+		$this->wp->add_action( 'admin_init', [ $this, 'register_settings' ] );
+	}
+
+	/**
+	 * Register settings sections and fields
+	 *
+	 * @used-by Action: "admin_init"
+	 * @version 2015-02-09
+	 * @since   0.0.0 (2015-02-09)
+	 */
+
+	public function register_settings()
+	{
 	}
 
 	/**
