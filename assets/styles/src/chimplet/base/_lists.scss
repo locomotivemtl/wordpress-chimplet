@@ -1,0 +1,56 @@
+////
+/// Lists
+/// ==========================================================================
+///
+/// @group  Chimplet\Base
+/// @author Locomotive
+////
+
+// ==========================================================================
+// Settings
+// ==========================================================================
+
+// ==========================================================================
+// Placeholders
+// ==========================================================================
+
+%list-bare {
+	margin     : 0;
+	padding    : 0;
+	list-style : none;
+}
+
+// ==========================================================================
+// Styles
+// ==========================================================================
+
+.chimplet-hl,
+.chimplet-mc,
+.chimplet-bl {
+	@extend %clearfix;
+}
+
+/* Item List
+   ========================================================================== */
+
+.chimplet-item-list > * {
+	word-wrap: break-word;
+}
+
+.chimplet-item-list.chimplet-hl > * + * {
+	margin-left: 20px !important; /* @shame .form-table td fieldset label */
+}
+
+.chimplet-item-list.chimplet-mc {
+
+	// @media all and ( min-width: 600px ) {
+		column-count : 3;
+		column-gap   : 20px;
+	// }
+
+	> * {
+		display: block;
+		column-break-inside: avoid;
+	}
+
+}

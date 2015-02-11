@@ -1,0 +1,72 @@
+////
+/// Headings
+/// ==========================================================================
+///
+/// Duplicate heading styles from WordPress and apply them
+/// to global classes for easy heading emulation.
+///
+/// @group  Chimplet\Base
+/// @author Locomotive
+////
+
+// ==========================================================================
+// Settings
+// ==========================================================================
+
+// ==========================================================================
+// Placeholders
+// ==========================================================================
+
+%wp-base-heading {
+	display     : block;
+	font-weight : 600;
+}
+
+// ==========================================================================
+// Styles
+// ==========================================================================
+
+.h1 {
+	@extend %wp-base-heading;
+
+	font-size : 2em;
+	margin    : .67em 0;
+}
+
+.h2 {
+	@extend %wp-base-heading;
+
+	color       : #222;
+	font-size   : 1.5em;
+	margin      : .83em 0;
+	font-weight : 400;
+}
+
+.h3 {
+	@extend %wp-base-heading;
+
+	color     : #222;
+	font-size : 1.3em;
+	margin    : 1em 0;
+}
+
+.h4 {
+	@extend %wp-base-heading;
+
+	font-size : 1em;
+	margin    : 1.33em 0;
+}
+
+.h5 {
+	@extend %wp-base-heading;
+
+	font-size : .83em;
+	margin    : 1.67em 0;
+}
+
+.h6 {
+	@extend %wp-base-heading;
+
+	font-size : .67em;
+	margin    : 2.33em 0;
+}

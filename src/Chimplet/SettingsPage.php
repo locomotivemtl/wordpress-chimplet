@@ -25,6 +25,9 @@ class SettingsPage extends AdminPage
 	protected $mc;
 	protected $notices;
 
+	public $excluded_post_types = [];
+	public $excluded_taxonomies = [];
+
 	/**
 	 * Constructor
 	 *
@@ -41,6 +44,9 @@ class SettingsPage extends AdminPage
 		$this->view['page_title'] = __('Settings', 'chimplet');
 		$this->view['menu_title'] = $this->view['page_title'];
 		$this->view['menu_slug']  = 'chimplet-settings';
+
+		$this->excluded_post_types = [ 'page', 'revision', 'nav_menu_item' ];
+		$this->excluded_taxonomies = [ 'post_format', 'nav_menu' ];
 
 		$this->notices = AdminNotices::get_singleton();
 
@@ -118,11 +124,11 @@ class SettingsPage extends AdminPage
 			]
 		);
 
-		// Settings fields when API Key integrated
+		// Add these fields when the API Key integrated
 		if ( $this->mc ) {
 
 			add_settings_field(
-				'chimplet-field-mailchimp-list',
+				'chimplet-field-mailchimp-lists',
 				__('Select Mailing List', 'chimplet'),
 				[ $this, 'render_mailchimp_field_list' ],
 				$this->view['menu_slug'],
@@ -131,6 +137,19 @@ class SettingsPage extends AdminPage
 					'control' => 'radio-table' // Choices: select, radio-table
 				]
 			);
+
+			// Add these fields when the List is selected
+			if ( $this->get_option('mailchimp.list') ) {
+
+				add_settings_field(
+					'chimplet-field-mailchimp-categories',
+					__('Select Taxonomy Terms', 'chimplet'),
+					[ $this, 'render_mailchimp_field_terms' ],
+					$this->view['menu_slug'],
+					'chimplet-section-mailchimp-api'
+				);
+
+			}
 
 		}
 	}
@@ -279,14 +298,12 @@ class SettingsPage extends AdminPage
 
 			$lists = $this->mc->lists->getList();
 
-			// var_dump( $lists );
-
 		} catch ( \Mailchimp_Error $e ) {
 
 			if ( $e->getMessage() ) {
-				echo '<p>' . $e->getMessage() . '</p>';
+				echo '<p class="chimplet-alert alert-error">' . $e->getMessage() . '</p>';
 			} else {
-				echo '<p>' . __('An unknown error occurred', 'chimplet') . '</p>';
+				echo '<p class="chimplet-alert alert-error">' . __('An unknown error occurred while fetching the Mailing Lists from your account.', 'chimplet') . '</p>';
 			}
 
 		}
@@ -329,6 +346,7 @@ class SettingsPage extends AdminPage
 					<tr>
 						<th scope="col" id="chimplet-rb" class="manage-column column-rb check-column"><label class="screen-reader-text"><?php _e('Select One', 'chimplet'); ?></label></th>
 						<th scope="col" id="mailchimp-list-title" class="manage-column column-name"><?php _e('Title'); ?></th>
+						<th scope="col" id="mailchimp-list-groups" class="manage-column column-groups num"><?php _e('Groupings', 'chimplet'); ?></th>
 						<th scope="col" id="mailchimp-list-members" class="manage-column column-members num"><?php _e('Members', 'chimplet'); ?></th>
 						<th scope="col" id="mailchimp-list-rating" class="manage-column column-rating num"><?php _e('Rating'); ?></th>
 						<th scope="col" id="mailchimp-list-date" class="manage-column column-date"><?php _e('Date Created', 'chimplet'); ?></th>
@@ -339,15 +357,17 @@ class SettingsPage extends AdminPage
 				$i = 0;
 				foreach ( $lists['data'] as $list ) {
 					$select_label = sprintf( __('Select %s'), '&ldquo;' . $list['name'] . '&rdquo;' );
+					$id = 'rb-select-' . $list['id'];
 ?>
 					<tr id="mailchimp-list-<?php echo $list['id']; ?>" class="mailchimp-list-<?php echo $list['id']; ?> mailchimp-list<?php echo ( $i % 2 === 0 ? ' alternate' : '' ); ?>">
 						<th scope="row" class="check-column">
-							<label class="screen-reader-text" for="rb-select-<?php echo $list['id']; ?>"><?php echo $select_label; ?></label>
-							<input type="radio" id="rb-select-<?php echo $list['id']; ?>" name="chimplet[mailchimp][list]" value="<?php echo $list['id']; ?>"<?php echo checked( $value, $list['id'] ); ?> />
+							<label class="screen-reader-text" for="<?php echo $id; ?>"><?php echo $select_label; ?></label>
+							<input type="radio" id="<?php echo $id; ?>" name="chimplet[mailchimp][list]" value="<?php echo $list['id']; ?>"<?php echo checked( $value, $list['id'] ); ?> />
 						</th>
 						<td class="column-title">
-							<strong><label for="rb-select-<?php echo $list['id']; ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo $list['name']; ?></label></strong>
+							<strong><label for="<?php echo $id; ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo $list['name']; ?></label></strong>
 						</td>
+						<td class="column-groupings num"><?php echo $list['stats']['grouping_count']; ?></td>
 						<td class="column-members num"><?php echo $list['stats']['member_count']; ?></td>
 						<td class="column-rating num"><?php echo $list['list_rating']; ?></td>
 						<td class="column-date"><time datetime="<?php echo $list['date_created']; ?>"><?php echo date_i18n( get_option('date_format'), strtotime( $list['date_created'] ) ); ?></time></td>
@@ -372,6 +392,144 @@ class SettingsPage extends AdminPage
 					<td>
 
 <?php
+
+			}
+
+		}
+	}
+
+	/**
+	 * Display a terms from all taxonomies
+	 *
+	 * @used-by Function: add_settings_field
+	 * @version 2015-02-11
+	 * @since   0.0.0 (2015-02-11)
+	 * @todo    Support all taxonomies
+	 * @todo    Add badges to indicate already synced groups
+	 *
+	 * @param  array  $args
+	 */
+
+	public function render_mailchimp_field_terms( $args )
+	{
+		$list  = $this->get_option( 'mailchimp.list' );
+
+		if ( empty( $list ) ) {
+
+			echo '<p class="chimplet-alert alert-error">' . __('A List must be selected and saved.', 'chimplet') . '</p>';
+			return;
+
+		}
+
+		try {
+
+			$list = $this->mc->lists->getList([ 'list_id' => $list ]);
+			$list = reset( $list['data'] );
+
+		} catch ( \Mailchimp_List_DoesNotExist $e ) {
+
+			echo '<p class="chimplet-alert alert-error">' . __('The selected List does not exist in your account.', 'chimplet') . '</p>';
+			return;
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			if ( $e->getMessage() ) {
+				echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
+			} else {
+				echo '<p class="chimplet-alert alert-error">' . __('An unknown error occurred while fetching the selected Mailing List from your account.', 'chimplet') . '</p>';
+			}
+			return;
+
+		}
+
+?>
+			<p class="description"><?php _e('Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List.', 'chimplet'); ?></p>
+
+<?php
+
+		$value = $this->get_option( 'mailchimp.terms', [] );
+
+		try {
+
+			$groups = $this->mc->lists->interestGroupings( $list['id'] );
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			if ( $e->getMessage() ) {
+				echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
+			} else {
+				echo '<p class="chimplet-alert alert-error">' . __('An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet') . '</p>';
+			}
+
+		}
+
+		if ( empty( $groups ) ) {
+			$groups = [];
+		}
+
+		if ( empty( $value ) ) {
+			$value = $readonly = '';
+		}
+		else {
+			$value = esc_attr( $value );
+			$readonly = ' readonly';
+		}
+
+		$readonly = '';
+		$selected = '';
+
+		$taxonomies = get_taxonomies( [ 'object_type' => $this->excluded_post_types ], 'objects', 'NOT' );
+
+		if ( count( $taxonomies ) ) {
+			foreach ( $taxonomies as $taxonomy ) {
+
+				if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
+					continue;
+				}
+
+				$terms = get_terms( $taxonomy->name );
+
+				if ( count( $terms ) ) {
+
+?>
+			<fieldset>
+				<legend><span class="h4"><?php echo $taxonomy->label; ?></span></legend>
+				<div class="chimplet-item-list chimplet-mc">
+<?php
+
+					$id   = 'cb-select-' . $taxonomy->name . '-all';
+					$name = 'chimplet[mailchimp][terms][' . $taxonomy->name . '][]';
+?>
+
+					<label for="<?php echo $id; ?>">
+						<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="all">
+						<span><?php _e('Select All/None', 'chimplet'); ?></span>
+					</label>
+
+<?php
+
+					foreach ( $terms as $term ) {
+						$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
+						$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( empty( $value[ $taxonomy->name ] ) ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
+
+?>
+
+					<label for="<?php echo $id; ?>">
+						<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="<?php echo $term->term_id; ?>"<?php echo checked( $match ); ?>>
+						<span><?php echo $term->name; ?></span>
+					</label>
+
+<?php
+
+					}
+
+?>
+				</div>
+			</fieldset>
+
+<?php
+
+				}
 
 			}
 
