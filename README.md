@@ -1,10 +1,10 @@
 #Chimplet
 WordPress Plugin that automatically synchronize Users, Categories and Posts to MailChimp Lists, Groups and Campaigns.
 
-**Contributors:** [locomotive](https://github.com/locomotivemtl), [mcaskill](https://github.com/mcaskill), [jonathanbardo](https://github.com/jonathanbardo)
-**Requires at least:** 4.1
-**Tested up to:** 4.1
-**Stable tag:** trunk (master)
+**Contributors:** [locomotive](https://github.com/locomotivemtl), [mcaskill](https://github.com/mcaskill), [jonathanbardo](https://github.com/jonathanbardo)  
+**Requires at least:** 4.1  
+**Tested up to:** 4.1  
+**Stable tag:** trunk (master)  
 **License:** [MIT](http://en.wikipedia.org/wiki/MIT_License)  
 
 ## Description ##
