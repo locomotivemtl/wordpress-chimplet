@@ -273,7 +273,7 @@ class SettingsPage extends AdminPage
 
 	public function render_mailchimp_field_list( $args )
 	{
-		$value = $this->get_option('mailchimp.list');
+		$value = $this->get_option( 'mailchimp.list' );
 
 		try {
 
@@ -330,8 +330,8 @@ class SettingsPage extends AdminPage
 						<th scope="col" id="chimplet-rb" class="manage-column column-rb check-column"><label class="screen-reader-text"><?php _e('Select One', 'chimplet'); ?></label></th>
 						<th scope="col" id="mailchimp-list-title" class="manage-column column-name"><?php _e('Title'); ?></th>
 						<th scope="col" id="mailchimp-list-members" class="manage-column column-members num"><?php _e('Members', 'chimplet'); ?></th>
-						<th scope="col" id="mailchimp-list-date" class="manage-column column-date"><?php _e('Date Created', 'chimplet'); ?></th>
 						<th scope="col" id="mailchimp-list-rating" class="manage-column column-rating num"><?php _e('Rating'); ?></th>
+						<th scope="col" id="mailchimp-list-date" class="manage-column column-date"><?php _e('Date Created', 'chimplet'); ?></th>
 					</tr>
 				</thead>
 				<tbody>
@@ -349,8 +349,8 @@ class SettingsPage extends AdminPage
 							<strong><label for="rb-select-<?php echo $list['id']; ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo $list['name']; ?></label></strong>
 						</td>
 						<td class="column-members num"><?php echo $list['stats']['member_count']; ?></td>
-						<td class="column-date"><time datetime="<?php echo $list['date_created']; ?>"><?php echo date_i18n( get_option('date_format'), strtotime( $list['date_created'] ) ); ?></time></td>
 						<td class="column-rating num"><?php echo $list['list_rating']; ?></td>
+						<td class="column-date"><time datetime="<?php echo $list['date_created']; ?>"><?php echo date_i18n( get_option('date_format'), strtotime( $list['date_created'] ) ); ?></time></td>
 					</tr>
 <?php
 					$i++;
