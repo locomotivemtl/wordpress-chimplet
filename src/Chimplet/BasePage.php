@@ -19,7 +19,7 @@ use Locomotive\MailChimp\Facade as MC;
  * @since   0.0.0 (2015-02-07)
  */
 
-abstract class AdminPage extends Base
+abstract class BasePage extends Base
 {
 
 	/**

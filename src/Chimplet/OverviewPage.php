@@ -15,7 +15,7 @@ namespace Locomotive\Chimplet;
  * @since   0.0.0 (2015-02-05)
  */
 
-class OverviewPage extends AdminPage
+class OverviewPage extends BasePage
 {
 
 	/**

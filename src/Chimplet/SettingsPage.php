@@ -15,7 +15,7 @@ namespace Locomotive\Chimplet;
  * @since   0.0.0 (2015-02-07)
  */
 
-class SettingsPage extends AdminPage
+class SettingsPage extends BasePage
 {
 
 	const SETTINGS_KEY = 'chimplet';
