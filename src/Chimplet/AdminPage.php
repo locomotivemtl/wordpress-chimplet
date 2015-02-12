@@ -18,7 +18,7 @@ use Locomotive\WordPress\Facade;
  * @since   0.0.0 (2015-02-07)
  */
 
-class AdminPage extends Base
+abstract class AdminPage extends Base
 {
 	use Facade;
 
@@ -34,7 +34,7 @@ class AdminPage extends Base
 	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-05)
 	 * @access  public
-	 * @param   WP  $facade  {@see WordPress\Facade::__construct}
+	 * @param WP $facade
 	 */
 
 	public function __construct( WP $facade = null )

@@ -17,6 +17,7 @@ namespace Locomotive\Chimplet;
 
 trait BaseInfo
 {
+	protected static $information;
 
 	/**
 	 * Retrieve a value from the $information array
@@ -33,8 +34,6 @@ trait BaseInfo
 
 	public function get_info( $name, $default = false, $allow_filter = true )
 	{
-		global $chimplet;
-
 		$value = null;
 
 		$name = trim( $name );
@@ -44,7 +43,7 @@ trait BaseInfo
 		}
 
 		$spaces = explode( '.', $name );
-		$value  = & $chimplet->information;
+		$value  = &self::$information;
 
 		foreach ( $spaces as $space ) {
 
@@ -54,7 +53,6 @@ trait BaseInfo
 			else {
 				return $default;
 			}
-
 		}
 
 		if ( $allow_filter ) {
@@ -77,9 +75,7 @@ trait BaseInfo
 
 	public function update_info( $name, $value )
 	{
-		global $chimplet;
-
-		$chimplet->information[ $name ] = $value;
+		self::$information[ $name ] = $value;
 	}
 
 	/**
@@ -95,14 +91,11 @@ trait BaseInfo
 
 	public function append_info( $name, $value )
 	{
-		global $chimplet;
-
-		if ( ! isset( $chimplet->information[ $name ] ) )
-		{
-			$chimplet->information[ $name ] = [];
+		if ( ! isset( self::$information[ $name ] ) ) {
+			self::$information[ $name ] = [];
 		}
 
-		$chimplet->information[ $name ][] = $value;
+		self::$information[ $name ][] = $value;
 	}
 
 }

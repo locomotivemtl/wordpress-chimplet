@@ -32,9 +32,9 @@ class OverviewPage extends AdminPage
 
 	public function __construct( WP $facade = null )
 	{
-		$this->view['document_title'] = __('Chimplet Overview', 'chimplet');
+		$this->view['document_title'] = __( 'Chimplet Overview', 'chimplet' );
 
-		$this->view['page_title'] = __('Overview', 'chimplet');
+		$this->view['page_title'] = __( 'Overview', 'chimplet' );
 		$this->view['menu_title'] = $this->view['page_title'];
 		$this->view['menu_slug']  = 'chimplet-overview';
 
@@ -51,8 +51,23 @@ class OverviewPage extends AdminPage
 
 	public function append_to_menu()
 	{
-		$this->wp->add_menu_page( $this->view['document_title'], $this->get_info('name') . $this->append_badge(), 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ], 'dashicons-email-alt', 81 );
-		$this->wp->add_submenu_page( $this->view['menu_slug'], $this->view['document_title'], $this->view['page_title'], 'manage_options', $this->view['menu_slug'], [ $this, 'render_page' ] );
+		$this->wp->add_menu_page(
+			$this->view['document_title'],
+			$this->get_info( 'name' ) . $this->append_badge(),
+			apply_filters( 'chimplet-manage-cap', 'manage_options' ),
+			$this->view['menu_slug'],
+			[ $this, 'render_page' ],
+			'dashicons-email-alt',
+			81
+		);
+		$this->wp->add_submenu_page(
+			$this->view['menu_slug'],
+			$this->view['document_title'],
+			$this->view['page_title'],
+			apply_filters( 'chimplet-manage-cap', 'manage_options' ),
+			$this->view['menu_slug'],
+			[ $this, 'render_page' ]
+		);
 	}
 
 	/**
@@ -66,14 +81,14 @@ class OverviewPage extends AdminPage
 	{
 		$badge = '';
 
-		$mailchimp_key = $this->get_option('mailchimp.api_key');
+		$mailchimp_key = $this->get_option( 'mailchimp.api_key' );
 		// $version_info  = $this->get_version_info();
 
-		if ( empty( $mailchimp_key ) /* || isset( $version_info['is_valid_key'] ) */ ) {
+		if ( empty( $mailchimp_key ) ) {
 			$badge = sprintf(
-				__('You need to register a %s to use %s.', 'chimplet'),
-				__('MailChimp API key', 'chimplet'),
-				__('Chimplet', 'chimplet')
+				__( 'You need to register a %s to use %s.', 'chimplet' ),
+				__( 'MailChimp API key', 'chimplet' ),
+				__( 'Chimplet', 'chimplet' )
 			);
 
 			$badge = ' ' . '<span class="update-plugins dashicons" title="' . $badge . '"><span class="dashicons-admin-network"></span></span>';

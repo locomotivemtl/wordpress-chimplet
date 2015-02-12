@@ -298,7 +298,7 @@ class AdminNotices
 		// First show all possible settings errors
 		settings_errors( SettingsPage::SETTINGS_KEY );
 
-		if( isset( $_GET[ 'settings-updated' ] ) ) : ?>
+		if ( isset( $_GET['settings-updated'] ) ) : //input var okay ?>
 		<div id="message" class="updated">
 			<p><strong><?php esc_html_e( 'Settings saved.' ) ?></strong></p>
 		</div>

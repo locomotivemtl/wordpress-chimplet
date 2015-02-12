@@ -14,8 +14,6 @@
 
 if ( ! defined('ABSPATH') ) wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
 
-global $chimplet;
-
 require 'vendor/autoload.php';
 
 define( 'LOCOMOTIVE_CHIMPLET_ABS', plugin_basename( __FILE__ ) );

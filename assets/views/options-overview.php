@@ -9,9 +9,7 @@
  *
  * @uses    array $args
  */
-
-extract( $args );
-
+// $args var
 ?>
 
 <p>Hello, Overview Page!</p>

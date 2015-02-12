@@ -3,7 +3,6 @@
 namespace Locomotive\Chimplet;
 
 use Locomotive\Singleton;
-use Locomotive\WordPress\WP;
 use Locomotive\WordPress\Facade;
 use Locomotive\WordPress\AdminNotices;
 
@@ -28,9 +27,6 @@ class Application extends Base
 	protected $overview;
 	protected $configure;
 
-	public $information;
-	public $options;
-
 	/**
 	 * Chimplet Initialization
 	 *
@@ -47,15 +43,13 @@ class Application extends Base
 
 	public function initialize( $file = __FILE__ )
 	{
-		// var_dump( __CLASS__ . '::' . __FUNCTION__ );
-
 		$this->set_facade();
 
 		if ( ! $this->wp->is_admin() ) {
 			return;
 		}
 
-		$this->information = [
+		self::$information = [
 			'name'     => __( 'Chimplet', 'chimplet' ),
 			'version'  => '0.0.0',
 			'basename' => LOCOMOTIVE_CHIMPLET_ABS, // plugin_basename( $file ),
@@ -63,7 +57,7 @@ class Application extends Base
 			'url'      => LOCOMOTIVE_CHIMPLET_URL  // plugin_dir_url(  $file )
 		];
 
-		$this->wp->load_textdomain( 'chimplet', $this->information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
+		$this->wp->load_textdomain( 'chimplet', self::$information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
 
 		$this->verify_version();
 
@@ -253,5 +247,4 @@ class Application extends Base
 			);
 		}
 	}
-
 }

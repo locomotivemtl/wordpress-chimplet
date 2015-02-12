@@ -32,7 +32,7 @@ abstract class Base
 
 	public function get_path( $path )
 	{
-		return $this->get_info('path') . $path;
+		return $this->get_info( 'path' ) . $path;
 	}
 
 	/**
@@ -47,7 +47,7 @@ abstract class Base
 
 	public function get_url( $path )
 	{
-		return $this->get_info('url') . $path;
+		return $this->get_info( 'url' ) . $path;
 	}
 
 	/**
@@ -62,7 +62,7 @@ abstract class Base
 
 	public function get_asset( $path )
 	{
-		return $this->get_info('url') . 'assets/' . $path;
+		return $this->get_info( 'url' ) . 'assets/' . $path;
 	}
 
 	/**
@@ -71,13 +71,15 @@ abstract class Base
 	 * @version 2015-02-07
 	 * @since   0.0.0 (2015-02-07)
 	 *
-	 * @param   string  $path
-	 * @return  bool
+	 * @param $page
+	 *
+	 * @return bool
 	 */
 
 	public function is_page( $page )
 	{
-		return ( isset( $_GET['page'] ) && $_GET['page'] === $page );
+		$page_get = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : null;
+		return ( isset( $page_get ) && $page_get === $page );
 	}
 
 	/**
@@ -91,7 +93,10 @@ abstract class Base
 
 	public function is_related_page()
 	{
-		return ( ( isset( $_SERVER['REQUEST_URI'] ) && false !== strpos( $_SERVER['REQUEST_URI'], 'plugins.php' ) ) || ( isset( $_GET['page'] ) && false !== strpos( $_GET['page'], 'chimplet-' ) ) );
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_text_field( $_SERVER['REQUEST_URI'] ) : null;
+		$page        = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : null;
+
+		return ( ( isset( $request_uri ) && false !== strpos( $request_uri, 'plugins.php' ) ) || ( isset( $page ) && false !== strpos( $page, 'chimplet-' ) ) );
 	}
 
 	/**
@@ -111,7 +116,7 @@ abstract class Base
 	{
 		$path = $this->get_path( "assets/views/{$template}.php" );
 
-		$title = ( isset( $args['page_title'] ) ? $args['page_title'] : $this->get_info('name') );
+		$title = ( isset( $args['page_title'] ) ? $args['page_title'] : $this->get_info( 'name' ) );
 
 		$classes = [ 'wrap', 'chimplet-wrap' ];
 
@@ -122,7 +127,7 @@ abstract class Base
 		if ( file_exists( $path ) ) {
 			?>
 
-			<div class="<?php echo implode( ' ', $classes ); ?>">
+			<div class="<?php echo implode( ' ', $classes ); //xss ok ?>">
 
 				<h2>
 					<strong class="screen-reader-text"><?php esc_html_e( 'Chimplet', 'chimplet' ); ?>: </strong>

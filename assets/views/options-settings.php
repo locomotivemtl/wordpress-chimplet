@@ -9,21 +9,16 @@
  *
  * @uses    array $args
  */
-use Locomotive\Chimplet\SettingsPage;
-
-extract( $args );
-
 ?>
-
-	<section class="chimplet-panel">
-		<header class="panel-heading">
-			<h3 class="panel-title"><?php esc_html_e( 'MailChimp API Management', 'chimplet' ); ?></h3>
-		</header>
-		<form action="options.php" method="POST" class="panel-body">
-			<div class="chimplet-hidden">
-				<?php settings_fields( SettingsPage::SETTINGS_KEY ); ?>
-			</div>
-			<?php do_settings_sections( $menu_slug ); ?>
-			<?php submit_button( $button_label ); ?>
-		</form>
-	</section>
+<section class="chimplet-panel">
+	<header class="panel-heading">
+		<h3 class="panel-title"><?php esc_html_e( 'MailChimp API Management', 'chimplet' ); ?></h3>
+	</header>
+	<form action="options.php" method="POST" class="panel-body">
+		<div class="chimplet-hidden">
+			<?php $this->wp->settings_fields( $args['settings_group'] ); ?>
+		</div>
+		<?php $this->wp->do_settings_sections( $args['menu_slug'] ); ?>
+		<?php $this->wp->submit_button( $args['button_label'] ); ?>
+	</form>
+</section>

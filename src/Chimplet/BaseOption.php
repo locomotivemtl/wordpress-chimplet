@@ -17,6 +17,7 @@ namespace Locomotive\Chimplet;
 
 trait BaseOption
 {
+	protected static $options;
 
 	/**
 	 * Retrieve options array from Options Table
@@ -31,18 +32,15 @@ trait BaseOption
 
 	public function get_options( $allow_filter = true )
 	{
-		global $chimplet;
-
-		if ( empty( $chimplet->options ) )
-		{
-			$chimplet->options = get_option( 'chimplet', [] );
+		if ( empty( self::$options ) ) {
+			self::$options = $this->wp->get_option( 'chimplet', [] );
 		}
 
 		if ( $allow_filter ) {
-			$chimplet->options = apply_filters( "chimplet/options/load", $chimplet->options );
+			self::$options = apply_filters( 'chimplet/options/load', self::$options );
 		}
 
-		return $chimplet->options;
+		return self::$options;
 	}
 
 	/**
@@ -59,17 +57,15 @@ trait BaseOption
 
 	public function update_options( $options = null, $allow_filter = true )
 	{
-		global $chimplet;
-
 		if ( ! is_null( $options ) ) {
-			$chimplet->options = $options;
+			self::$options = $options;
 		}
 
 		if ( $allow_filter ) {
-			$chimplet->options = apply_filters( "chimplet/options/save", $chimplet->options );
+			self::$options = apply_filters( 'chimplet/options/save', self::$options );
 		}
 
-		return update_option( 'chimplet', $chimplet->options );
+		return $this->wp->update_option( 'chimplet', self::$options );
 	}
 
 	/**
@@ -87,8 +83,6 @@ trait BaseOption
 
 	public function get_option( $name, $default = false, $allow_filter = true )
 	{
-		global $chimplet;
-
 		$this->get_options();
 
 		$value = null;
@@ -100,7 +94,7 @@ trait BaseOption
 		}
 
 		$spaces = explode( '.', $name );
-		$value  = & $chimplet->options;
+		$value  = &self::$options;
 
 		foreach ( $spaces as $space ) {
 
@@ -110,7 +104,6 @@ trait BaseOption
 			else {
 				return $default;
 			}
-
 		}
 
 		if ( $allow_filter ) {
@@ -132,10 +125,8 @@ trait BaseOption
 
 	public function remove_option( $name )
 	{
-		global $chimplet;
-
-		if ( isset( $chimplet->options[ $name ] ) ) {
-			unset( $chimplet->options[ $name ] );
+		if ( isset( self::$options[ $name ] ) ) {
+			unset( self::$options[ $name ] );
 
 			$this->update_options();
 		}
@@ -154,9 +145,7 @@ trait BaseOption
 
 	public function update_option( $name, $value )
 	{
-		global $chimplet;
-
-		$chimplet->options[ $name ] = $value;
+		self::$options[ $name ] = $value;
 
 		$this->update_options();
 	}
@@ -174,14 +163,11 @@ trait BaseOption
 
 	public function append_option( $name, $value )
 	{
-		global $chimplet;
-
-		if ( ! isset( $chimplet->options[ $name ] ) )
-		{
-			$chimplet->options[ $name ] = [];
+		if ( ! isset( self::$options[ $name ] ) )  {
+			self::$options[ $name ] = [];
 		}
 
-		$chimplet->options[ $name ][] = $value;
+		self::$options[ $name ][] = $value;
 
 		$this->update_options();
 	}

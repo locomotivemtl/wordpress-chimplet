@@ -66,23 +66,23 @@ class SettingsPage extends AdminPage
 	public function register_settings()
 	{
 		if ( false === get_option( 'chimplet' ) ) {
-			update_option( 'chimplet', [] );
+			$this->wp->update_option( 'chimplet', [] );
 		}
 
-		register_setting(
+		$this->wp->register_setting(
 			self::SETTINGS_KEY,
 			self::SETTINGS_KEY,
 			[ $this, 'sanitize_settings' ]
 		);
 
-		add_settings_section(
+		$this->wp->add_settings_section(
 			'chimplet-section-mailchimp-api',
 			null,
 			[ $this, 'render_mailchimp_section' ],
 			$this->view['menu_slug']
 		);
 
-		add_settings_field(
+		$this->wp->add_settings_field(
 			'chimplet-field-mailchimp-api_key',
 			__( 'API Key', 'chimplet' ),
 			[ $this, 'render_mailchimp_field_api_key' ],
@@ -96,7 +96,7 @@ class SettingsPage extends AdminPage
 		// Add these fields when the API Key is integrated
 		if ( $this->mc ) {
 
-			add_settings_field(
+			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-lists',
 				__( 'Select Mailing List', 'chimplet' ),
 				[ $this, 'render_mailchimp_field_list' ],
@@ -110,7 +110,7 @@ class SettingsPage extends AdminPage
 			// Add these fields when the List is selected
 			if ( $this->get_option( 'mailchimp.list' ) ) {
 
-				add_settings_field(
+				$this->wp->add_settings_field(
 					'chimplet-field-mailchimp-categories',
 					__( 'Select Taxonomy Terms', 'chimplet' ),
 					[ $this, 'render_mailchimp_field_terms' ],
@@ -147,7 +147,7 @@ class SettingsPage extends AdminPage
 
 			} catch ( \Mailchimp_Error $e ) {
 
-				add_settings_error(
+				$this->wp->add_settings_error(
 					self::SETTINGS_KEY,
 					'api-key-failed',
 					$e->getMessage(),
@@ -175,12 +175,12 @@ class SettingsPage extends AdminPage
 			$this->get_menu_slug( 'OverviewPage' ),
 			$this->view['document_title'],
 			$this->view['menu_title'],
-			'manage_options',
+			apply_filters( 'chimplet-manage-cap', 'manage_options' ),
 			$this->view['menu_slug'],
 			[ $this, 'render_page' ]
 		);
 
-		add_action( "load-{$this->hook}", [ $this, 'load_page' ] );
+		$this->wp->add_action( "load-{$this->hook}", [ $this, 'load_page' ] );
 	}
 
 	/**
@@ -193,7 +193,7 @@ class SettingsPage extends AdminPage
 
 	public function render_page()
 	{
-		$mailchimp_key = $this->get_option( 'mailchimp.api_key' );
+		$this->view['settings_group'] = self::SETTINGS_KEY;
 
 		if ( empty( $mailchimp_key ) ) {
 			$this->view['button_label'] = __( 'Save API Key', 'chimplet' );
@@ -220,8 +220,7 @@ class SettingsPage extends AdminPage
 		$options = $this->get_options();
 
 		if ( empty( $options['mailchimp']['api_key'] ) ) {
-
-?>
+		?>
 			<p><?php _e( 'To integrate your blog with your MailChimp account, you need to generate an API key.', 'chimplet' ); ?></p>
 			<aside class="panel-assistance inset">
 				<p><?php
@@ -238,16 +237,13 @@ class SettingsPage extends AdminPage
 				</ol>
 			</aside>
 			<p><?php esc_html_e( 'Once the API Key is integrated with Chimplet, you will be provided with additional options.', 'chimplet' ); ?></p>
-<?php
-
+		<?php
 		}
 		else {
-
-?>
+			?>
 			<p><?php esc_html_e( 'With an integrated API Key, additional options are provided below.', 'chimplet' ); ?></p>
 			<p><?php esc_html_e( 'Removing the API Key will disable Chimplet’s data synchronization features and no longer provides access to your account to manage your subscribers and campaigns. This does not delete any data from your MailChimp nor does it disable Post Category feeds and the active RSS-Driven Campaigns.', 'chimplet' ); ?></p>
-<?php
-
+		<?php
 		}
 
 	}
@@ -266,21 +262,10 @@ class SettingsPage extends AdminPage
 	{
 		$value = $this->get_option( 'mailchimp.api_key' );
 
-		if ( empty( $value ) ) {
-			$value = $readonly = '';
-		}
-		else {
-			$value    = esc_attr( $value );
-			$readonly = ' readonly';
-		}
-
-		$readonly = '';
-
 		printf(
-			'<input type="text" class="regular-text" id="%s" name="chimplet[mailchimp][api_key]" value="%s" %s/>',
+			'<input type="text" class="regular-text" id="%s" name="chimplet[mailchimp][api_key]" value="%s"/>',
 			esc_attr( $args['label_for'] ),
-			esc_attr( $value ),
-			esc_attr( $readonly )
+			esc_attr( $value )
 		);
 	}
 
@@ -328,7 +313,7 @@ class SettingsPage extends AdminPage
 				$args['control'] = 'radio-table';
 			}
 
-			if ( $args['control'] === 'select' ) {
+			if ( 'select' === $args['control'] ) {
 
 				echo '<select name="list" id="' . $args['label_for'] . '" name="chimplet[mailchimp][list]"' . $readonly . '>';
 
@@ -391,7 +376,6 @@ class SettingsPage extends AdminPage
 <?php
 
 			}
-
 		}
 	}
 
@@ -420,7 +404,7 @@ class SettingsPage extends AdminPage
 
 		try {
 
-			$list = $this->mc->lists->getList([ 'list_id' => $list ]);
+			$list = $this->mc->lists->getList( [ 'list_id' => $list ] );
 			$list = reset( $list['data'] );
 
 		} catch ( \Mailchimp_List_DoesNotExist $e ) {
