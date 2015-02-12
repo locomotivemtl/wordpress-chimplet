@@ -27,6 +27,7 @@ use Mailchimp;
 
 class Facade
 {
+	public  static $is_initialized = false;
 	private static $__facade;
 
 	/**
@@ -36,6 +37,7 @@ class Facade
 	 * @since   2015-02-12
 	 * @access  public
 	 * @param   mixed  The arguments passed to the function
+	 * @return  void|object
 	 */
 
 	public function initialize()
@@ -52,6 +54,24 @@ class Facade
 			static::$__facade = new Mailchimp;
 
 		}
+
+		if ( static::$__facade instanceof Mailchimp ) {
+			return static::$__facade;
+		}
+	}
+
+	/**
+	 * Is MailChimp API Client Initialized?
+	 *
+	 * @version 2015-02-12
+	 * @since   2015-02-12
+	 * @access  public
+	 * @return  bool
+	 */
+
+	public function is_initialized()
+	{
+		return ( static::$__facade instanceof Mailchimp );
 	}
 
 	/**

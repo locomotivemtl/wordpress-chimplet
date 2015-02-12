@@ -53,67 +53,6 @@ class SettingsPage extends BasePage
 	/**
 	 * Register settings, sections, and fields
 	 *
-	 * @version 2015-02-10
-	 * @since   0.0.0 (2015-02-09)
-	 *
-	 * @param   string    $api_key
-	 * @param   callable  $try_callback  Optional. Test MailChimp API and throw an error if it fails. Default is to use ping() method.
-	 * @return  bool
-	 */
-
-	public function mc_init( $api_key = null, $try_callback = null )
-	{
-		if ( $this->mc instanceof \Mailchimp ) {
-			return true;
-		}
-
-		if ( empty( $api_key ) ) {
-			$api_key = $this->get_option( 'mailchimp.api_key' );
-		}
-
-		if ( empty( $api_key ) && ! isset( $_GET['settings-updated'] ) ) {
-			return false;
-		}
-
-		try {
-
-			$this->mc = new \Mailchimp( $api_key );
-
-			if ( is_callable( $try_callback ) ) {
-
-				call_user_func( $try_callback );
-
-			}
-			else {
-
-				$ping = $this->mc->helper->ping();
-
-				if ( $ping['msg'] !== "Everything's Chimpy!" ) {
-					throw $this->castError( $ping );
-				}
-
-			}
-
-			return true;
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			$this->wp->add_settings_error(
-				self::SETTINGS_KEY,
-				'api-key-failed',
-				$e->getMessage(),
-				'error'
-			);
-
-			// @todo save that the key is invalid
-		}
-
-		return false;
-	}
-
-	/**
-	 * Register settings, sections, and fields
-	 *
 	 * @used-by Action: "admin_init"
 	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-09)
@@ -150,7 +89,7 @@ class SettingsPage extends BasePage
 		);
 
 		// Add these fields when the API Key is integrated
-		if ( $this->mc_init() ) {
+		if ( $this->app->mc_init() ) {
 
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-lists',
@@ -195,7 +134,7 @@ class SettingsPage extends BasePage
 		// Validate key with MailChimp service
 		if ( isset( $settings['mailchimp']['api_key'] ) ) {
 
-			$this->mc_init( $settings['mailchimp']['api_key'] );
+			$this->app->mc_init( $settings['mailchimp']['api_key'] );
 
 		}
 
@@ -236,7 +175,7 @@ class SettingsPage extends BasePage
 	{
 		$this->view['settings_group'] = self::SETTINGS_KEY;
 
-		if ( $this->mc_init() ) {
+		if ( $this->app->mc_init() ) {
 			$this->view['button_label'] = null;
 		}
 		else {
