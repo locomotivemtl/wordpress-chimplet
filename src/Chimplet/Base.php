@@ -109,7 +109,7 @@ abstract class Base
 
 	public function render_view( $template, $args = [] )
 	{
-		$path = $this->get_path("assets/views/{$template}.php");
+		$path = $this->get_path( "assets/views/{$template}.php" );
 
 		$title = ( isset( $args['page_title'] ) ? $args['page_title'] : $this->get_info('name') );
 
@@ -120,24 +120,18 @@ abstract class Base
 		}
 
 		if ( file_exists( $path ) ) {
+			?>
 
-?>
+			<div class="<?php echo implode( ' ', $classes ); ?>">
 
-<div class="<?php echo implode( ' ', $classes ); ?>">
+				<h2>
+					<strong class="screen-reader-text"><?php esc_html_e( 'Chimplet', 'chimplet' ); ?>: </strong>
+					<?php echo esc_html( $title ); ?>
+				</h2>
+				<?php include $path; ?>
 
-	<h2><strong class="screen-reader-text"><?php _e('Chimplet', 'chimplet'); ?>: </strong><?php echo esc_html( $title ); ?></h2>
-
-<?php
-
-			include $path;
-
-?>
-
-</div>
-
-<?php
-
+			</div>
+			<?php
 		}
 	}
-
 }

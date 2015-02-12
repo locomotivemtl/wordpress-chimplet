@@ -21,7 +21,6 @@ use Locomotive\WordPress\Facade;
 class AdminPage extends Base
 {
 	use Facade;
-	use AdminForm;
 
 	protected $view = [];
 	protected $hook = '';
@@ -86,8 +85,10 @@ class AdminPage extends Base
 	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-10)
 	 *
-	 * @param mixed $value     The new, unserialized option value.
+	 * @param mixed $value The new, unserialized option value.
 	 * @param mixed $old_value The old option value.
+	 *
+	 * @return array|mixed
 	 */
 
 	public function pre_update_option( $value, $old_value )
@@ -108,12 +109,6 @@ class AdminPage extends Base
 	public function load_page()
 	{
 		$this->wp->add_action( 'admin_enqueue_scripts', [ $this, 'enqueue_assets' ] );
-
-		if ( $this->validate_submitted_values() ) {
-
-			// $this->save
-
-		}
 	}
 
 	/**
@@ -126,7 +121,7 @@ class AdminPage extends Base
 
 	public function enqueue_assets()
 	{
-		$this->wp->wp_enqueue_style('chimplet-global');
+		$this->wp->wp_enqueue_style( 'chimplet-global' );
 	}
 
 	/**
@@ -146,7 +141,6 @@ class AdminPage extends Base
 			if ( isset( $this->view['menu_slug'] ) ) {
 				return $this->view['menu_slug'];
 			}
-
 		}
 		else {
 			$namespaced_slug = __NAMESPACE__ . '\\' . $page_slug;
@@ -157,7 +151,6 @@ class AdminPage extends Base
 
 				return $page_object->get_menu_slug();
 			}
-
 		}
 
 		return '';

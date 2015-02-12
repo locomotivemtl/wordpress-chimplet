@@ -2,8 +2,8 @@
 
 /**
  * Plugin Name: Chimplet
- * Plugin URI: https://github.com/locomotivemtl/chimplet/
- * Description: Automatically synchronize Users, Categories, and Posts to MailChimp Lists, Groups, and Campaigns.
+ * Plugin URI: https://github.com/locomotivemtl/wordpress-chimplet/
+ * Description: Automatically synchronize Users, Categories and Posts to MailChimp Lists, Groups and Campaigns.
  * Version: 0.0.0
  * Author: Locomotive
  * Author URI: http://locomotive.ca

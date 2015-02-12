@@ -18,12 +18,13 @@ class WP
 	/**
 	 * Magic __call method that creates a facade for global WordPress functions.
 	 *
-	 * @param string $method    The WordPress function you want to call.
-	 * @param mixed  $arguments The arguments passed to the function
-	 *
-	 * @access public
+	 * @param string $method The WordPress function you want to call.
+	 * @param mixed $arguments The arguments passed to the function
 	 *
 	 * @return mixed The returns value from the WP function
+	 * @throws Exception
+	 * @access public
+	 *
 	 */
 	public function __call( $method, $arguments )
 	{

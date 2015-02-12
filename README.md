@@ -5,7 +5,7 @@ WordPress Plugin that automatically synchronize Users, Categories and Posts to M
 **Requires at least:** 4.1  
 **Tested up to:** 4.1  
 **Stable tag:** trunk (master)  
-**License:** [MIT](http://en.wikipedia.org/wiki/MIT_License)  
+**License:** [MIT](http://en.wikipedia.org/wiki/MIT_License)
 
 ## Description ##
 

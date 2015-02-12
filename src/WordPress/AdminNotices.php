@@ -2,9 +2,8 @@
 
 namespace Locomotive\WordPress;
 
+use Locomotive\Chimplet\SettingsPage;
 use Locomotive\Singleton;
-use Locomotive\WordPress\WP;
-use Locomotive\WordPress\Facade;
 
 /**
  * File: WordPress Administration Notifications Class
@@ -77,16 +76,14 @@ class AdminNotices
 	{
 		$this->types = [ 'info', 'update', 'error' ];
 
-		$saved = $this->wp->get_transient('admin_notices');
+		$saved = $this->wp->get_transient( 'admin_notices' );
 
 		if ( empty( $saved ) ) {
 			$saved = [
 				'notices'     => [],
 				'notice_data' => []
 			];
-		}
-		else {
-
+		} else {
 			if ( empty( $saved['notices'] ) ) {
 				$saved['notices'] = [];
 			}
@@ -94,7 +91,6 @@ class AdminNotices
 			if ( empty( $saved['notice_data'] ) ) {
 				$saved['notice_data'] = [];
 			}
-
 		}
 
 		$this->notices     = $saved['notices'];
@@ -299,8 +295,16 @@ class AdminNotices
 
 	public function render()
 	{
-		$codes  = $this->get_codes();
-		$groups = [];
+		// First show all possible settings errors
+		settings_errors( SettingsPage::SETTINGS_KEY );
+
+		if( isset( $_GET[ 'settings-updated' ] ) ) : ?>
+		<div id="message" class="updated">
+			<p><strong><?php esc_html_e( 'Settings saved.' ) ?></strong></p>
+		</div>
+		<?php endif;
+
+		$codes = $this->get_codes();
 
 		foreach ( $codes as $code ) {
 			$messages = $this->get_messages( $code );
@@ -330,17 +334,15 @@ class AdminNotices
 				$open  = '<'  . $data['wrap'] . '>';
 				$close = '</' . $data['wrap'] . '>';
 
-?>
-				<div role="alert" class="<?php echo $classes; ?>">
-<?php
+				?>
+				<div role="alert" class="<?php esc_attr_e( $classes ); ?>">
+				<?php
 				foreach ( $messages as $message ) {
-
-					echo $open . wp_kses( $message, wp_kses_allowed_html('post') ) . $close;
-
+					echo $open . wp_kses( $message, wp_kses_allowed_html( 'post' ) ) . $close; //xss ok
 				}
-?>
+				?>
 				</div>
-<?php
+				<?php
 
 			}
 
