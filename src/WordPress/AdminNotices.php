@@ -31,7 +31,7 @@ class AdminNotices
 	 * @var array  $notices          Stores the list of notifications
 	 * @var array  $notice_data      Stores the list of data for notification codes.
 	 * @var bool   $updated          Whether the current queue of notifications has been saved to the database
-	 * @var array  $settings_params  Configuration for {@see settings_errors()}
+	 * @var array  $settings_params  Array of settings configurations for {@see settings_errors()}
 	 */
 
 	protected $types           = [];
@@ -69,6 +69,9 @@ class AdminNotices
 	 * {@see get_settings_errors()}.
 	 *
 	 * @access public
+	 * @version  2015-02-12
+	 * @since    0.0.0 (2015-02-12)
+	 *
 	 * @param  string   $setting         Optional slug title of a specific setting who's errors you want.
 	 * @param  boolean  $sanitize        Whether to re-sanitize the setting value before returning errors.
 	 * @param  boolean  $hide_on_update  If set to true errors will not be shown if the settings page has already been submitted.
@@ -76,12 +79,20 @@ class AdminNotices
 
 	public function set_settings_errors_params( $setting = '', $sanitize = false, $hide_on_update = false )
 	{
-		$this->settings_params = [
-			'errors' => [
-				'setting'        => $setting,
-				'sanitize'       => $sanitize,
-				'hide_on_update' => $hide_on_update
-			]
+		if ( ! isset( $this->settings_params['errors'] ) ) {
+			$this->settings_params['errors'] = [];
+		}
+
+		if ( empty( $setting ) || ( ! is_string( $setting ) && ! is_numeric( $setting ) ) ) {
+			return;
+		}
+
+		$setting = (string) $setting;
+
+		$this->settings_params['errors'][ $setting ] = [
+			'setting'        => $setting,
+			'sanitize'       => $sanitize,
+			'hide_on_update' => $hide_on_update
 		];
 	}
 
@@ -312,6 +323,7 @@ class AdminNotices
 	 * Display any notices for the administration screen
 	 *
 	 * @used-by  Action: "admin_notices"
+	 * @uses     \WordPress\settings_errors()
 	 * @version  2015-02-12
 	 * @since    0.0.0 (2015-02-05)
 	 * @link     AdvancedCustomFields\acf_admin::admin_notices() Based on ACF method
@@ -320,12 +332,18 @@ class AdminNotices
 	public function render()
 	{
 		// First, show all possible Settings API errors
-		if ( isset( $this->settings_params['errors'] ) ) {
-			// settings_errors();
-			call_user_func_array(
-				[ $this->wp, 'settings_errors' ],
-				$this->settings_params['errors']
-			);
+		if ( isset( $this->settings_params['errors'] ) && count( $this->settings_params['errors'] ) ) {
+
+			foreach ( $this->settings_params['errors'] as $setting_key => $setting_options ) {
+
+				call_user_func_array(
+					[ $this->wp, 'settings_errors' ],
+					$setting_options
+				);
+
+			}
+
+			unset( $setting_key, $setting_options );
 		}
 
 		if ( isset( $_GET['settings-updated'] ) ) { // input var okay

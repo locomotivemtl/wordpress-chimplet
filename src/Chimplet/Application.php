@@ -109,7 +109,7 @@ class Application extends Base
 
 			$mailchimp_key = $this->get_option( 'mailchimp.api_key' );
 
-			if ( empty( $mailchimp_key ) && $this->notices instanceof AdminNotices ) {
+			if ( empty( $mailchimp_key ) && $this->notices instanceof AdminNotices && ! isset( $_GET['settings-updated'] ) ) {
 				$message = sprintf(
 					__( 'You need to register a %s to use %s.', 'chimplet' ),
 					'<strong>' . esc_html__( 'MailChimp API key', 'chimplet' ) . '</strong>',
@@ -129,7 +129,9 @@ class Application extends Base
 					$message,
 					[ 'type' => 'error' ]
 				);
+
 			}
+
 		}
 
 		$this->register_assets();
