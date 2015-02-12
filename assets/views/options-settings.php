@@ -4,12 +4,14 @@
  * File: Chimplet Application
  *
  * @package Locomotive\Chimplet
- * @version 2015-02-10
+ * @version 2015-02-12
  * @since   0.0.0 (2015-02-07)
  *
  * @uses    array $args
  */
+
 ?>
+
 <section class="chimplet-panel">
 	<header class="panel-heading">
 		<h3 class="panel-title"><?php esc_html_e( 'MailChimp API Management', 'chimplet' ); ?></h3>

@@ -24,8 +24,18 @@ class SettingsPage extends AdminPage
 
 	const SETTINGS_KEY = 'chimplet';
 
+	/**
+	 * @var \Mailchimp    $mc       MailChimp API Object
+	 * @var AdminNotices  $notices  AdminNotices Controller Object
+	 */
+
 	protected $mc;
 	protected $notices;
+
+	/**
+	 * @var array  $excluded_post_types  Post types to exclude when fetching Taxonomy objects
+	 * @var array  $excluded_taxonomies  Taxonomies to exclude when fetching Taxonomy objects
+	 */
 
 	public $excluded_post_types = [];
 	public $excluded_taxonomies = [];
@@ -51,9 +61,65 @@ class SettingsPage extends AdminPage
 		$this->excluded_taxonomies = [ 'post_format', 'nav_menu' ];
 
 		$this->notices = AdminNotices::get_singleton();
-		$this->notices->set_settings_errors_params( self::SETTINGS_KEY );
 
 		parent::__construct( $facade );
+	}
+
+	/**
+	 * Register settings, sections, and fields
+	 *
+	 * @version 2015-02-10
+	 * @since   0.0.0 (2015-02-09)
+	 *
+	 * @param   string    $api_key
+	 * @param   callable  $try_callback  Optional. Test MailChimp API and throw an error if it fails. Default is to use ping() method.
+	 * @return  bool
+	 */
+
+	public function mc_init( $api_key = null, $try_callback = null )
+	{
+		if ( $this->mc instanceof \Mailchimp ) {
+			return true;
+		}
+
+		if ( empty( $api_key ) ) {
+			$api_key = $this->get_option( 'mailchimp.api_key' );
+		}
+
+		try {
+
+			$this->mc = new \Mailchimp( $api_key );
+
+			if ( is_callable( $try_callback ) ) {
+
+				call_user_func( $try_callback );
+
+			}
+			else {
+
+				$ping = $this->mc->helper->ping();
+
+				if ( $ping['msg'] !== "Everything's Chimpy!" ) {
+					throw $this->castError( $ping );
+				}
+
+			}
+
+			return true;
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			$this->wp->add_settings_error(
+				self::SETTINGS_KEY,
+				'api-key-failed',
+				$e->getMessage(),
+				'error'
+			);
+
+			// @todo save that the key is invalid
+		}
+
+		return false;
 	}
 
 	/**
@@ -95,7 +161,7 @@ class SettingsPage extends AdminPage
 		);
 
 		// Add these fields when the API Key is integrated
-		if ( $this->mc ) {
+		if ( $this->mc_init() ) {
 
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-lists',
@@ -139,24 +205,9 @@ class SettingsPage extends AdminPage
 	{
 		// Validate key with MailChimp service
 		if ( isset( $settings['mailchimp']['api_key'] ) ) {
-			try {
 
-				$this->mc = new \Mailchimp( $settings['mailchimp']['api_key'] );
+			$this->mc_init( $settings['mailchimp']['api_key'] );
 
-				// Let's try a random call to see we get a valid answer or not
-				$this->mc->lists->getList();
-
-			} catch ( \Mailchimp_Error $e ) {
-
-				$this->wp->add_settings_error(
-					self::SETTINGS_KEY,
-					'api-key-failed',
-					$e->getMessage(),
-					'error'
-				);
-
-				//@todo save that the key is invalid
-			}
 		}
 
 		return $settings;
@@ -196,11 +247,11 @@ class SettingsPage extends AdminPage
 	{
 		$this->view['settings_group'] = self::SETTINGS_KEY;
 
-		if ( empty( $mailchimp_key ) ) {
-			$this->view['button_label'] = __( 'Save API Key', 'chimplet' );
+		if ( $this->mc_init() ) {
+			$this->view['button_label'] = null;
 		}
 		else {
-			$this->view['button_label'] = null;
+			$this->view['button_label'] = __( 'Save API Key', 'chimplet' );
 		}
 
 		$this->render_view( 'options-settings', $this->view );
