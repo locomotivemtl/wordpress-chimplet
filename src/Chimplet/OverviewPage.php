@@ -2,8 +2,6 @@
 
 namespace Locomotive\Chimplet;
 
-use Locomotive\Singleton;
-
 /**
  * File: Chimplet Overview Page Class
  *
@@ -19,26 +17,22 @@ use Locomotive\Singleton;
 
 class OverviewPage extends AdminPage
 {
-	use Singleton;
 
 	/**
-	 * Constructor
+	 * Before WordPress, mid-initialization
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-12
 	 * @since   0.0.0 (2015-02-07)
 	 * @access  public
-	 * @param   WP  $facade  {@see WordPress\Facade::__construct}
 	 */
 
-	public function __construct( WP $facade = null )
+	public function __before_construct()
 	{
 		$this->view['document_title'] = __( 'Chimplet Overview', 'chimplet' );
 
 		$this->view['page_title'] = __( 'Overview', 'chimplet' );
 		$this->view['menu_title'] = $this->view['page_title'];
 		$this->view['menu_slug']  = 'chimplet-overview';
-
-		parent::__construct( $facade );
 	}
 
 	/**
@@ -73,7 +67,7 @@ class OverviewPage extends AdminPage
 	/**
 	 * Append menu badge
 	 *
-	 * @version 2015-02-10
+	 * @version 2015-02-12
 	 * @since   0.0.0 (2015-02-07)
 	 */
 
@@ -81,10 +75,7 @@ class OverviewPage extends AdminPage
 	{
 		$badge = '';
 
-		$mailchimp_key = $this->get_option( 'mailchimp.api_key' );
-		// $version_info  = $this->get_version_info();
-
-		if ( empty( $mailchimp_key ) ) {
+		if ( ! $this->get_option( 'mailchimp.api_key' ) ) {
 			$badge = sprintf(
 				__( 'You need to register a %s to use %s.', 'chimplet' ),
 				__( 'MailChimp API key', 'chimplet' ),

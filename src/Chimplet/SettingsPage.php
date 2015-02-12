@@ -2,9 +2,6 @@
 
 namespace Locomotive\Chimplet;
 
-use Locomotive\Singleton;
-use Locomotive\WordPress\AdminNotices;
-
 /**
  * File: Chimplet Settings Page Class
  *
@@ -14,23 +11,14 @@ use Locomotive\WordPress\AdminNotices;
 /**
  * Class: Chimplet Settings Page
  *
- * @version 2015-02-10
+ * @version 2015-02-12
  * @since   0.0.0 (2015-02-07)
  */
 
 class SettingsPage extends AdminPage
 {
-	use Singleton;
 
 	const SETTINGS_KEY = 'chimplet';
-
-	/**
-	 * @var \Mailchimp    $mc       MailChimp API Object
-	 * @var AdminNotices  $notices  AdminNotices Controller Object
-	 */
-
-	protected $mc;
-	protected $notices;
 
 	/**
 	 * @var array  $excluded_post_types  Post types to exclude when fetching Taxonomy objects
@@ -41,15 +29,14 @@ class SettingsPage extends AdminPage
 	public $excluded_taxonomies = [];
 
 	/**
-	 * Constructor
+	 * Before WordPress, mid-initialization
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-12
 	 * @since   0.0.0 (2015-02-07)
 	 * @access  public
-	 * @param   WP  $facade  {@see WordPress\Facade::__construct}
 	 */
 
-	public function __construct( WP $facade = null )
+	public function __before_construct()
 	{
 		$this->view['document_title'] = __( 'Chimplet Settings', 'chimplet' );
 
@@ -60,10 +47,7 @@ class SettingsPage extends AdminPage
 		$this->excluded_post_types = [ 'page', 'revision', 'nav_menu_item' ];
 		$this->excluded_taxonomies = [ 'post_format', 'nav_menu' ];
 
-		$this->notices = AdminNotices::get_singleton();
 		$this->notices->set_settings_errors_params( self::SETTINGS_KEY );
-
-		parent::__construct( $facade );
 	}
 
 	/**
@@ -229,7 +213,7 @@ class SettingsPage extends AdminPage
 	public function append_to_menu()
 	{
 		$this->hook = $this->wp->add_submenu_page(
-			$this->get_menu_slug( 'OverviewPage' ),
+			$this->get_menu_slug( 'overview' ),
 			$this->view['document_title'],
 			$this->view['menu_title'],
 			apply_filters( 'chimplet/manage/capability', 'manage_options' ),

@@ -11,6 +11,7 @@ namespace Locomotive\Chimplet;
 /**
  * Trait: Static Information Handling
  *
+ * @uses    \WordPress\WP as $wp
  * @version 2015-02-10
  * @since   0.0.0 (2015-02-06)
  */
@@ -56,7 +57,7 @@ trait BaseInfo
 		}
 
 		if ( $allow_filter ) {
-			$value = apply_filters( "chimplet/info/value/{$name}", $value );
+			$value = $this->wp->apply_filters( "chimplet/info/value/{$name}", $value );
 		}
 
 		return $value;
