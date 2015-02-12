@@ -3,8 +3,10 @@
 namespace Locomotive\WordPress;
 
 /**
+ * File: WordPress Facade Class
+ *
  * Acts as a master facade class for WordPress to allow me to isolate and test
- * functionality without bootstrapping all of WordPress
+ * functionality without bootstrapping all of WordPress.
  *
  * @package  Locomotive\WordPress
  * @author   Kevin Sperrine <https://github.com/kevinsperrine>
@@ -12,35 +14,44 @@ namespace Locomotive\WordPress;
  * @link     https://github.com/kevinsperrine/wp-theme-example/blob/master/src/%7B%7BTHEME_NAMESPACE%7D%7D/Support/Facade/WordPress.php
  */
 
-class WP
+/**
+ * Class: WordPress Facade
+ *
+ * @version 2015-02-12
+ * @since   0.0.0 (2015-02-05)
+ */
+
+class Facade
 {
 
 	/**
 	 * Magic __call method that creates a facade for global WordPress functions.
 	 *
-	 * @param string $method The WordPress function you want to call.
-	 * @param mixed $arguments The arguments passed to the function
-	 *
-	 * @return mixed The returns value from the WP function
 	 * @throws Exception
 	 * @access public
 	 *
+	 * @param string $method The WordPress function you want to call.
+	 * @param mixed $arguments The arguments passed to the function
+	 *
+	 * @return mixed The return value depends on the WP function
 	 */
+
 	public function __call( $method, $arguments )
 	{
 		if ( function_exists( $method ) ) {
 			return call_user_func_array( $method, $arguments );
 		}
 
-		throw new Exception( sprintf( 'The function, "%s", does not exist.', $method ) );
+		throw new \Exception( sprintf( 'The function, "%s", does not exist.', $method ) );
 	}
 
 	/**
 	 * Facade method for returning the current $post object.
 	 *
+	 * @global $post
 	 * @access public
 	 *
-	 * @return Object The WordPress global $post object
+	 * @return Object $post The WordPress global $post object
 	 */
 
 	public function get_post()
@@ -53,9 +64,10 @@ class WP
 	/**
 	 * Returns the global $wpdb object
 	 *
+	 * @global $wpdb
 	 * @access public
 	 *
-	 * @return Wpdb WordPress's global $wpdb object
+	 * @return wpdb $wpdb WordPress's global $wpdb object
 	 */
 
 	public function get_wpdb()
@@ -68,24 +80,24 @@ class WP
 	/**
 	 * Facade method for creating new WP_Query objects
 	 *
-	 * @param mixed Either a string or array of arguments passed to WP_Query
-	 *
 	 * @access public
 	 *
+	 * @param  mixed     $args  Either a string or array of arguments passed to WP_Query
 	 * @return WP_Query
 	 */
 
 	public function new_query( $args )
 	{
-		return new WP_Query( $args );
+		return new \WP_Query( $args );
 	}
 
 	/**
 	 * Returns the current global WP_Query object
 	 *
+	 * @global $wp_query
 	 * @access public
 	 *
-	 * @return WP_Query
+	 * @return WP_Query  $wp_query The main query
 	 */
 
 	public function get_main_query()
@@ -98,9 +110,10 @@ class WP
 	/**
 	 * Returns WordPress's global $wp object.
 	 *
+	 * @global $wp
 	 * @access public
 	 *
-	 * @return WP Object
+	 * @return WP  $wp  The WordPress environment setup class
 	 */
 
 	public function get_wp()
@@ -113,9 +126,10 @@ class WP
 	/**
 	 * Returns the current global post type.
 	 *
+	 * @global $typenow
 	 * @access public
 	 *
-	 * @return string
+	 * @return string  $typenow
 	 */
 
 	public function get_typenow()

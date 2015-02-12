@@ -2,12 +2,13 @@
 
 namespace Locomotive\WordPress;
 
-use Locomotive\Singleton;
+use Locomotive\WordPress\Facade as WP;
 
 /**
  * File: WordPress Administration Notifications Class
  *
  * @package Locomotive\WordPress
+ * @author   Chauncey McAskill <https://mcaskill.ca>
  */
 
 /**
@@ -18,13 +19,18 @@ use Locomotive\Singleton;
  *
  * Based on \WordPress\WP_Error.
  *
- * @package  Locomotive\WordPress
- * @author   Chauncey McAskill <https://mcaskill.ca>
+ * @version 2015-02-12
+ * @since   0.0.0 (2015-02-06)
  */
 
 class AdminNotices
 {
-	use Singleton, Facade;
+
+	/**
+	 * @var WP  $wp  WordPress Facade
+	 */
+
+	public $wp;
 
 	/**
 	 * @var array  $types            Types of notifications
@@ -45,13 +51,13 @@ class AdminNotices
 	 *
 	 * Prepares actions and filters for commodity methods.
 	 *
-	 * @access  public
-	 * @param   WP  $facade  Allows inserting a different facade object for testing.
+	 * @access public
+	 * @param  WP  $wp  The WordPress Facade
 	 */
 
-	public function __construct( WP $facade = null )
+	public function __construct( WP $wp = null )
 	{
-		$this->set_facade( $facade );
+		$this->wp = ( $wp instanceof WP ? $wp : new WP );
 
 		if ( ! $this->wp->is_admin() ) {
 			return;
@@ -424,5 +430,3 @@ class AdminNotices
 
 
 }
-
-AdminNotices::get_singleton();
