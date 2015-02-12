@@ -175,7 +175,7 @@ class SettingsPage extends AdminPage
 			$this->get_menu_slug( 'OverviewPage' ),
 			$this->view['document_title'],
 			$this->view['menu_title'],
-			apply_filters( 'chimplet-manage-cap', 'manage_options' ),
+			apply_filters( 'chimplet/manage/capability', 'manage_options' ),
 			$this->view['menu_slug'],
 			[ $this, 'render_page' ]
 		);

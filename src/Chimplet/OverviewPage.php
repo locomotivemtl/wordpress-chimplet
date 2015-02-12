@@ -54,7 +54,7 @@ class OverviewPage extends AdminPage
 		$this->wp->add_menu_page(
 			$this->view['document_title'],
 			$this->get_info( 'name' ) . $this->append_badge(),
-			apply_filters( 'chimplet-manage-cap', 'manage_options' ),
+			apply_filters( 'chimplet/manage/capability', 'manage_options' ),
 			$this->view['menu_slug'],
 			[ $this, 'render_page' ],
 			'dashicons-email-alt',
@@ -64,7 +64,7 @@ class OverviewPage extends AdminPage
 			$this->view['menu_slug'],
 			$this->view['document_title'],
 			$this->view['page_title'],
-			apply_filters( 'chimplet-manage-cap', 'manage_options' ),
+			apply_filters( 'chimplet/manage/capability', 'manage_options' ),
 			$this->view['menu_slug'],
 			[ $this, 'render_page' ]
 		);
