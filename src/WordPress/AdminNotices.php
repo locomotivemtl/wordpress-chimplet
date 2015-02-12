@@ -2,7 +2,6 @@
 
 namespace Locomotive\WordPress;
 
-use Locomotive\Chimplet\SettingsPage;
 use Locomotive\Singleton;
 
 /**
@@ -28,16 +27,18 @@ class AdminNotices
 	use Singleton, Facade;
 
 	/**
-	 * @var array  $types        Types of notifications
-	 * @var array  $notices      Stores the list of notifications
-	 * @var array  $notice_data  Stores the list of data for notification codes.
-	 * @var bool   $updated      Whether the current queue of notifications has been saved to the database
+	 * @var array  $types            Types of notifications
+	 * @var array  $notices          Stores the list of notifications
+	 * @var array  $notice_data      Stores the list of data for notification codes.
+	 * @var bool   $updated          Whether the current queue of notifications has been saved to the database
+	 * @var array  $settings_params  Configuration for {@see settings_errors()}
 	 */
 
-	protected $types       = [];
-	protected $notices     = [];
-	protected $notice_data = [];
-	protected $updated     = false;
+	protected $types           = [];
+	protected $notices         = [];
+	protected $notice_data     = [];
+	protected $updated         = false;
+	protected $settings_params = [];
 
 	/**
 	 * Constructor
@@ -59,6 +60,29 @@ class AdminNotices
 		$this->wp->add_action( 'init',          [ $this, 'init'     ], 5 );
 		$this->wp->add_action( 'admin_notices', [ $this, 'render'   ], 5 );
 		$this->wp->add_action( 'shutdown',      [ $this, 'shutdown' ], 5 );
+	}
+
+	/**
+	 * Configure the output of settings errors registered by {@see add_settings_error()}.
+	 *
+	 * Part of the Settings API. Outputs a div for each error retrieved by
+	 * {@see get_settings_errors()}.
+	 *
+	 * @access public
+	 * @param  string   $setting         Optional slug title of a specific setting who's errors you want.
+	 * @param  boolean  $sanitize        Whether to re-sanitize the setting value before returning errors.
+	 * @param  boolean  $hide_on_update  If set to true errors will not be shown if the settings page has already been submitted.
+	 */
+
+	public function set_settings_errors_params( $setting = '', $sanitize = false, $hide_on_update = false )
+	{
+		$this->settings_params = [
+			'errors' => [
+				'setting'        => $setting,
+				'sanitize'       => $sanitize,
+				'hide_on_update' => $hide_on_update
+			]
+		];
 	}
 
 	/**
@@ -288,21 +312,29 @@ class AdminNotices
 	 * Display any notices for the administration screen
 	 *
 	 * @used-by  Action: "admin_notices"
-	 * @version  2015-02-05
+	 * @version  2015-02-12
 	 * @since    0.0.0 (2015-02-05)
 	 * @link     AdvancedCustomFields\acf_admin::admin_notices() Based on ACF method
 	 */
 
 	public function render()
 	{
-		// First show all possible settings errors
-		settings_errors( SettingsPage::SETTINGS_KEY );
+		// First, show all possible Settings API errors
+		if ( isset( $this->settings_params['errors'] ) ) {
+			// settings_errors();
+			call_user_func_array(
+				[ $this->wp, 'settings_errors' ],
+				$this->settings_params['errors']
+			);
+		}
 
-		if ( isset( $_GET['settings-updated'] ) ) : //input var okay ?>
-		<div id="message" class="updated">
+		if ( isset( $_GET['settings-updated'] ) ) { // input var okay
+		?>
+		<div role="alert" id="message" class="updated">
 			<p><strong><?php esc_html_e( 'Settings saved.' ) ?></strong></p>
 		</div>
-		<?php endif;
+		<?php
+		}
 
 		$codes = $this->get_codes();
 

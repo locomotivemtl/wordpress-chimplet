@@ -51,6 +51,7 @@ class SettingsPage extends AdminPage
 		$this->excluded_taxonomies = [ 'post_format', 'nav_menu' ];
 
 		$this->notices = AdminNotices::get_singleton();
+		$this->notices->set_settings_errors_params( self::SETTINGS_KEY );
 
 		parent::__construct( $facade );
 	}
