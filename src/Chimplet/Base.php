@@ -78,7 +78,7 @@ abstract class Base
 
 	public function is_page( $page )
 	{
-		$page_get = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : null;
+		$page_get = ( isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : null );
 		return ( isset( $page_get ) && $page_get === $page );
 	}
 

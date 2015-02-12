@@ -233,7 +233,7 @@ class Application extends Base
 	{
 		$mailchimp_key = $this->get_option( 'mailchimp.api_key' );
 
-		if ( empty( $mailchimp_key ) ) {\
+		if ( empty( $mailchimp_key ) ) {
 			printf('
 				<tr class="plugin-update-tr">
 					<td colspan="3" class="plugin-update colspanchange">
