@@ -11,6 +11,7 @@ namespace Locomotive\Chimplet;
 /**
  * Class: Abstract Base
  *
+ * @uses    \WordPress\WP as $wp
  * @version 2015-02-09
  * @since   0.0.0 (2015-02-06)
  */

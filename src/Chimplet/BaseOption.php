@@ -11,7 +11,8 @@ namespace Locomotive\Chimplet;
 /**
  * Trait: Static Options Handling
  *
- * @version 2015-02-10
+ * @uses    \WordPress\WP as $wp
+ * @version 2015-02-12
  * @since   0.0.0 (2015-02-06)
  */
 
@@ -37,7 +38,7 @@ trait BaseOption
 		}
 
 		if ( $allow_filter ) {
-			self::$options = apply_filters( 'chimplet/options/load', self::$options );
+			self::$options = $this->wp->apply_filters( 'chimplet/options/load', self::$options );
 		}
 
 		return self::$options;
@@ -62,7 +63,7 @@ trait BaseOption
 		}
 
 		if ( $allow_filter ) {
-			self::$options = apply_filters( 'chimplet/options/save', self::$options );
+			self::$options = $this->wp->apply_filters( 'chimplet/options/save', self::$options );
 		}
 
 		return $this->wp->update_option( 'chimplet', self::$options );
@@ -107,7 +108,7 @@ trait BaseOption
 		}
 
 		if ( $allow_filter ) {
-			$value = apply_filters( "chimplet/options/value/{$name}", $value );
+			$value = $this->wp->apply_filters( "chimplet/options/value/{$name}", $value );
 		}
 
 		return $value;

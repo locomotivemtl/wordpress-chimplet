@@ -2,9 +2,9 @@
 
 namespace Locomotive\Chimplet;
 
-use Locomotive\Singleton;
-use Locomotive\WordPress\Facade;
 use Locomotive\WordPress\AdminNotices;
+use Locomotive\WordPress\Facade as WP;
+use Locomotive\MailChimp\Facade as MC;
 
 /**
  * File: Chimplet Application Class
@@ -15,17 +15,30 @@ use Locomotive\WordPress\AdminNotices;
 /**
  * Class: Chimplet Application
  *
- * @version 2015-02-10
+ * @version 2015-02-13
  * @since   0.0.0 (2015-02-05)
  */
 
 class Application extends Base
 {
-	use Singleton, Facade;
 
-	protected $notices;
-	protected $overview;
-	protected $configure;
+	/**
+	 * @var MC  $mc  Facade for MailChimp
+	 * @var WP  $wp  Facade for WordPress
+	 */
+
+	public $wp;
+	public $mc;
+
+	/**
+	 * @var AdminNotices  $notices   WordPress Admin Notifications controller
+	 * @var OverviewPage  $overview  Overview Dashboard page
+	 * @var SettingsPage  $settings  Plugin Settings page
+	 */
+
+	public $notices;
+	public $overview;
+	public $settings;
 
 	/**
 	 * Chimplet Initialization
@@ -33,17 +46,19 @@ class Application extends Base
 	 * Prepares all the necessary actions, filters, and functions
 	 * for the plugin to operate.
 	 *
-	 * @version 2015-02-10
+	 * @version 2015-02-13
 	 * @since   0.0.0 (2015-02-05)
 	 * @uses    self::$information
 	 * @uses    self::$wp
+	 * @todo    Technically, the instantiated "page" classes no longer need the Singleton pattern/
 	 *
 	 * @param   string  $file  The filename of the plugin (__FILE__).
 	 */
 
 	public function initialize( $file = __FILE__ )
 	{
-		$this->set_facade();
+		$this->wp = new WP;
+		$this->mc = new MC;
 
 		if ( ! $this->wp->is_admin() ) {
 			return;
@@ -61,9 +76,11 @@ class Application extends Base
 
 		$this->verify_version();
 
-		$this->notices   = AdminNotices::get_singleton();
-		$this->overview  = OverviewPage::get_singleton();
-		$this->configure = SettingsPage::get_singleton();
+		$this->verify_mailchimp_api();
+
+		$this->notices  = new AdminNotices( $this->wp );
+		$this->overview = new OverviewPage( $this );
+		$this->settings = new SettingsPage( $this );
 
 		$this->wp->add_action( 'init', [ $this, 'wp_init' ] );
 
@@ -75,8 +92,9 @@ class Application extends Base
 	/**
 	 * Verify versions saved in Options Table
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-13
 	 * @since   0.0.0 (2015-02-09)
+	 * @todo    Return a value, maybe a constant to identify any issues.
 	 */
 
 	public function verify_version()
@@ -91,6 +109,22 @@ class Application extends Base
 		if ( empty( $options['current_version'] ) || $options['current_version'] !== $version ) {
 			$this->update_option( 'current_version', $version );
 		}
+	}
+
+	/**
+	 * Verify MailChimp API
+	 *
+	 * @version 2015-02-13
+	 * @since   0.0.0 (2015-02-13)
+	 */
+
+	public function verify_mailchimp_api()
+	{
+		if ( $this->get_option( 'mailchimp.valid' ) ) {
+			return $this->mc->is_api_key_valid( $this->get_option( 'mailchimp.api_key' ) );
+		}
+
+		return false;
 	}
 
 	/**
@@ -116,10 +150,10 @@ class Application extends Base
 					'<em>' . esc_html__( 'Chimplet', 'chimplet' ) . '</em>'
 				);
 
-				if ( ! $this->is_page( $this->configure->get_menu_slug() ) ) {
+				if ( ! $this->is_page( $this->settings->get_menu_slug() ) ) {
 					$message .= sprintf(
 						' <a href="%s">%s</a>',
-						admin_url( 'admin.php?page=' . $this->configure->get_menu_slug() ),
+						admin_url( 'admin.php?page=' . $this->settings->get_menu_slug() ),
 						esc_html__( 'Settings' )
 					);
 				}
@@ -129,7 +163,6 @@ class Application extends Base
 					$message,
 					[ 'type' => 'error' ]
 				);
-
 			}
 		}
 
@@ -212,7 +245,7 @@ class Application extends Base
 	public function plugin_meta( $plugin_meta, $plugin_file, $plugin_data, $status )
 	{
 		if ( LOCOMOTIVE_CHIMPLET_ABS === $plugin_file ) {
-			$plugin_meta[] = '<a href="' . admin_url( 'admin.php?page=' . $this->configure->get_menu_slug() ) . '">' . __( 'Settings' ) . '</a>';
+			$plugin_meta[] = '<a href="' . admin_url( 'admin.php?page=' . $this->settings->get_menu_slug() ) . '">' . __( 'Settings' ) . '</a>';
 		}
 
 		return $plugin_meta;
@@ -243,9 +276,10 @@ class Application extends Base
 				</tr>
 				',
 				sprintf( esc_html__( 'This plugin requires a %s to operate.', 'chimplet' ), '<strong>' . esc_html__( 'MailChimp API key', 'chimplet' ) . '</strong>' ),
-				admin_url( 'admin.php?page=' . $this->configure->get_menu_slug() ),
+				admin_url( 'admin.php?page=' . $this->settings->get_menu_slug() ),
 				esc_html__( 'Settings' )
 			);
 		}
 	}
+
 }

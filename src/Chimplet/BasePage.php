@@ -2,8 +2,9 @@
 
 namespace Locomotive\Chimplet;
 
-use Locomotive\WordPress\WP;
-use Locomotive\WordPress\Facade;
+use Locomotive\WordPress\AdminNotices;
+use Locomotive\WordPress\Facade as WP;
+use Locomotive\MailChimp\Facade as MC;
 
 /**
  * File: Chimplet Administration Page Class
@@ -14,16 +15,32 @@ use Locomotive\WordPress\Facade;
 /**
  * Class: Chimplet Administration Page
  *
- * @version 2015-02-09
+ * @version 2015-02-12
  * @since   0.0.0 (2015-02-07)
  */
 
-abstract class AdminPage extends Base
+abstract class BasePage extends Base
 {
-	use Facade;
+
+	/**
+	 * @var array        $view  Collection of key/value pairs to passed on to the template.
+	 * @var string|bool  $hook  The resulting page's hook suffix, or false if the user does not have the capability required.
+	 */
 
 	protected $view = [];
 	protected $hook = '';
+
+	/**
+	 * @var MC            $mc       Facade for MailChimp
+	 * @var WP            $wp       Facade for WordPress
+	 * @var Application   $app      Plugin master class
+	 * @var AdminNotices  $notices  AdminNotices Controller Object
+	 */
+
+	public $mc;
+	public $wp;
+	public $app;
+	public $notices;
 
 	/**
 	 * Constructor
@@ -31,24 +48,89 @@ abstract class AdminPage extends Base
 	 * Prepares all the necessary actions, filters, and functions
 	 * for the plugin to operate.
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-12
 	 * @since   0.0.0 (2015-02-05)
 	 * @access  public
-	 * @param WP $facade
+	 * @param   Application $app
 	 */
 
-	public function __construct( WP $facade = null )
+	public function __construct( Application $app = null )
 	{
-		$this->set_facade( $facade );
+		$this->set_app( $app );
 
 		if ( ! $this->wp->is_admin() ) {
 			return;
 		}
 
+		$this->before_wp_hooks();
+
 		$this->wp->add_action( 'admin_menu', [ $this, 'append_to_menu' ] );
 		$this->wp->add_action( 'admin_init', [ $this, 'register_settings' ] );
 
 		$this->wp->add_filter( 'pre_update_option_chimplet', [ $this, 'pre_update_option' ], 1, 2 );
+
+		$this->after_wp_hooks();
+	}
+
+	/**
+	 * During class initialization, before WordPress hooks.
+	 *
+	 * Placeholder method to be replaced in inherited class.
+	 *
+	 * @used-by self::__construct()
+	 * @version 2015-02-12
+	 * @since   0.0.0 (2015-02-12)
+	 */
+
+	protected function before_wp_hooks()
+	{
+	}
+
+	/**
+	 * During class initialization, after WordPress hooks.
+	 *
+	 * Placeholder method to be replaced in inherited class.
+	 *
+	 * @used-by self::__construct()
+	 * @version 2015-02-12
+	 * @since   0.0.0 (2015-02-12)
+	 */
+
+	protected function after_wp_hooks()
+	{
+	}
+
+	/**
+	 * Set reference to Application object, MailChimp facade, and WordPress facade
+	 *
+	 * @version 2015-02-12
+	 * @since   0.0.0 (2015-02-12)
+	 * @access  public
+	 * @param   Application $app
+	 */
+
+	public function set_app( Application $app = null )
+	{
+		if ( empty( $app ) && ! is_object( $this->app ) ) {
+			return;
+		}
+
+		if ( is_object( $app ) ) {
+			$this->app = $app;
+		}
+
+		// Shortcuts
+		if ( $this->app->mc instanceof MC ) {
+			$this->mc = &$this->app->mc;
+		}
+
+		if ( $this->app->wp instanceof WP ) {
+			$this->wp = &$this->app->wp;
+		}
+
+		if ( $this->app->notices instanceof AdminNotices ) {
+			$this->notices = &$this->app->notices;
+		}
 	}
 
 	/**
@@ -143,13 +225,9 @@ abstract class AdminPage extends Base
 			}
 		}
 		else {
-			$namespaced_slug = __NAMESPACE__ . '\\' . $page_slug;
 
-			if ( class_exists( $namespaced_slug ) ) {
-
-				$page_object = $namespaced_slug::get_singleton();
-
-				return $page_object->get_menu_slug();
+			if ( is_object( $this->app->{ $page_slug } ) ) {
+				return $this->app->{ $page_slug }->get_menu_slug();
 			}
 		}
 

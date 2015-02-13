@@ -2,9 +2,6 @@
 
 namespace Locomotive\Chimplet;
 
-use Locomotive\Singleton;
-use Locomotive\WordPress\AdminNotices;
-
 /**
  * File: Chimplet Settings Page Class
  *
@@ -14,23 +11,14 @@ use Locomotive\WordPress\AdminNotices;
 /**
  * Class: Chimplet Settings Page
  *
- * @version 2015-02-10
+ * @version 2015-02-13
  * @since   0.0.0 (2015-02-07)
  */
 
-class SettingsPage extends AdminPage
+class SettingsPage extends BasePage
 {
-	use Singleton;
 
 	const SETTINGS_KEY = 'chimplet';
-
-	/**
-	 * @var \Mailchimp    $mc       MailChimp API Object
-	 * @var AdminNotices  $notices  AdminNotices Controller Object
-	 */
-
-	protected $mc;
-	protected $notices;
 
 	/**
 	 * @var array  $excluded_post_types  Post types to exclude when fetching Taxonomy objects
@@ -41,15 +29,14 @@ class SettingsPage extends AdminPage
 	public $excluded_taxonomies = [];
 
 	/**
-	 * Constructor
+	 * Before WordPress, mid-initialization
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-12
 	 * @since   0.0.0 (2015-02-07)
 	 * @access  public
-	 * @param   WP  $facade  {@see WordPress\Facade::__construct}
 	 */
 
-	public function __construct( WP $facade = null )
+	public function before_wp_hooks()
 	{
 		$this->view['document_title'] = __( 'Chimplet Settings', 'chimplet' );
 
@@ -60,70 +47,7 @@ class SettingsPage extends AdminPage
 		$this->excluded_post_types = [ 'page', 'revision', 'nav_menu_item' ];
 		$this->excluded_taxonomies = [ 'post_format', 'nav_menu' ];
 
-		$this->notices = AdminNotices::get_singleton();
 		$this->notices->set_settings_errors_params( self::SETTINGS_KEY );
-
-		parent::__construct( $facade );
-	}
-
-	/**
-	 * Register settings, sections, and fields
-	 *
-	 * @version 2015-02-10
-	 * @since   0.0.0 (2015-02-09)
-	 *
-	 * @param   string    $api_key
-	 * @param   callable  $try_callback  Optional. Test MailChimp API and throw an error if it fails. Default is to use ping() method.
-	 * @return  bool
-	 */
-
-	public function mc_init( $api_key = null, $try_callback = null )
-	{
-		if ( $this->mc instanceof \Mailchimp ) {
-			return true;
-		}
-
-		if ( empty( $api_key ) ) {
-			$api_key = $this->get_option( 'mailchimp.api_key' );
-		}
-
-		if ( empty( $api_key ) && ! isset( $_GET['settings-updated'] ) ) {
-			return false;
-		}
-
-		try {
-
-			$this->mc = new \Mailchimp( $api_key );
-
-			if ( is_callable( $try_callback ) ) {
-
-				call_user_func( $try_callback );
-
-			}
-			else {
-
-				$ping = $this->mc->helper->ping();
-
-				if ( $ping['msg'] !== "Everything's Chimpy!" ) {
-					throw $this->castError( $ping );
-				}
-			}
-
-			return true;
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			$this->wp->add_settings_error(
-				self::SETTINGS_KEY,
-				'api-key-failed',
-				$e->getMessage(),
-				'error'
-			);
-
-			// @todo save that the key is invalid
-		}
-
-		return false;
 	}
 
 	/**
@@ -136,7 +60,7 @@ class SettingsPage extends AdminPage
 
 	public function register_settings()
 	{
-		if ( false === get_option( 'chimplet' ) ) {
+		if ( false === $this->wp->get_option( 'chimplet' ) ) {
 			$this->wp->update_option( 'chimplet', [] );
 		}
 
@@ -165,7 +89,7 @@ class SettingsPage extends AdminPage
 		);
 
 		// Add these fields when the API Key is integrated
-		if ( $this->mc_init() ) {
+		if ( true === $this->get_option( 'mailchimp.valid' ) ) {
 
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-lists',
@@ -199,6 +123,8 @@ class SettingsPage extends AdminPage
 	 * @uses    Filter: "sanitize_option_{$option_name}"
 	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-09)
+	 * @todo    Save the validity of the API key or API status
+	 *          as its own setting for easier testing.
 	 *
 	 * @param array $settings
 	 *
@@ -208,10 +134,23 @@ class SettingsPage extends AdminPage
 	public function sanitize_settings( $settings )
 	{
 		// Validate key with MailChimp service
-		if ( isset( $settings['mailchimp']['api_key'] ) ) {
+		if ( isset( $settings['mailchimp']['api_key'] ) && ! empty( $settings['mailchimp']['api_key'] ) ) {
+			$is_valid_key = $this->mc->is_api_key_valid( $settings['mailchimp']['api_key'] );
 
-			$this->mc_init( $settings['mailchimp']['api_key'] );
+			if ( $is_valid_key ) {
+				$settings['mailchimp']['valid'] = true;
+			}
+			else {
+				// Save that this the key is invalid
+				$this->wp->add_settings_error(
+					self::SETTINGS_KEY,
+					'api-key-failed',
+					sprintf( __( 'Invalid MailChimp API Key: %s' ), $settings['mailchimp']['api_key'] ),
+					'error'
+				);
 
+				$settings['mailchimp']['valid'] = false;
+			}
 		}
 
 		return $settings;
@@ -228,7 +167,7 @@ class SettingsPage extends AdminPage
 	public function append_to_menu()
 	{
 		$this->hook = $this->wp->add_submenu_page(
-			$this->get_menu_slug( 'OverviewPage' ),
+			$this->get_menu_slug( 'overview' ),
 			$this->view['document_title'],
 			$this->view['menu_title'],
 			apply_filters( 'chimplet/manage/capability', 'manage_options' ),
@@ -250,14 +189,7 @@ class SettingsPage extends AdminPage
 	public function render_page()
 	{
 		$this->view['settings_group'] = self::SETTINGS_KEY;
-
-		if ( $this->mc_init() ) {
-			$this->view['button_label'] = null;
-		}
-		else {
-			$this->view['button_label'] = __( 'Save API Key', 'chimplet' );
-		}
-
+		$this->view['button_label']   = ( $this->get_option( 'mailchimp.valid' ) ? null : __( 'Save API Key', 'chimplet' ) );
 		$this->render_view( 'options-settings', $this->view );
 	}
 
