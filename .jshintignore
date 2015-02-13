@@ -1,1 +1,4 @@
-dev-lib/.jshintignore
+**/vendor/**
+**.min.js
+**/node_modules/**
+Gruntfile.js
