@@ -21,7 +21,7 @@ use Mailchimp;
 /**
  * Class: MailChimp Facade
  *
- * @version 2015-02-12
+ * @version 2015-02-13
  * @since   0.0.0 (2015-02-12)
  */
 
@@ -33,21 +33,22 @@ class Facade
 	/**
 	 * MailChimp Initialization
 	 *
-	 * @version 2015-02-12
+	 * @version 2015-02-13
 	 * @since   2015-02-12
 	 * @access  public
-	 * @param   mixed  The arguments passed to the function
+	 * @param   string  $api_key       The MailChimp API Key to enable the API client.
+	 * @param   array   $user_optopms  Optional. Extra options for setting up the API client.
 	 * @return  void|object
 	 */
 
-	public function initialize( $apikey=null, $opts=[] )
+	public function initialize( $api_key = null, $user_options = [] )
 	{
 		if ( $this->is_initialized() ) {
 			return $this->facade;
 		}
 
 		if ( ! is_null( $api_key ) ) {
-			return $this->facade = new Mailchimp( $apikey=null, $opts=[] );
+			return $this->facade = new Mailchimp( $api_key, $user_options );
 		}
 	}
 
@@ -68,22 +69,30 @@ class Facade
 	/**
 	 * Is the api key entered by the user valid?
 	 *
-	 * @since  2015-02-12
-	 * @access public
-	 * @param  String $api_key
-	 * @return bool
+	 * @version 2015-02-13
+	 * @since   2015-02-12
+	 * @access  public
+	 * @param   string  $api_key       The MailChimp API Key to enable the API client.
+	 * @param   array   $user_optopms  Optional. Extra options for setting up the API client.
+	 * @return  bool
 	 */
 
-	public function is_api_key_valid( $api_key ) {
-		$this->facade = new Mailchimp( $api_key );
+	public function is_api_key_valid( $api_key = null, $user_options = [] )
+	{
+		$this->facade = new Mailchimp( $api_key, $user_options );
 
 		try {
+
 			$ping = $this->facade->helper->ping();
+
 			if ( "Everything's Chimpy!" === $ping['msg'] ) {
 				return true;
 			}
+
 		} catch( \Mailchimp_Error $e ) {
+
 			return false;
+
 		}
 
 		return false;

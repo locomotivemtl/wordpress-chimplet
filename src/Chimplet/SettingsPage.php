@@ -11,7 +11,7 @@ namespace Locomotive\Chimplet;
 /**
  * Class: Chimplet Settings Page
  *
- * @version 2015-02-12
+ * @version 2015-02-13
  * @since   0.0.0 (2015-02-07)
  */
 
@@ -123,6 +123,8 @@ class SettingsPage extends BasePage
 	 * @uses    Filter: "sanitize_option_{$option_name}"
 	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-09)
+	 * @todo    Save the validity of the API key or API status
+	 *          as its own setting for easier testing.
 	 *
 	 * @param array $settings
 	 *
@@ -135,7 +137,10 @@ class SettingsPage extends BasePage
 		if ( isset( $settings['mailchimp']['api_key'] ) && ! empty( $settings['mailchimp']['api_key'] ) ) {
 			$is_valid_key = $this->mc->is_api_key_valid( $settings['mailchimp']['api_key'] );
 
-			if ( ! $is_valid_key ) {
+			if ( $is_valid_key ) {
+				$settings['mailchimp']['valid'] = true;
+			}
+			else {
 				// Save that this the key is invalid
 				$this->wp->add_settings_error(
 					self::SETTINGS_KEY,
@@ -144,7 +149,6 @@ class SettingsPage extends BasePage
 					'error'
 				);
 
-				//@todo save that the API key is invalid or API down
 				$settings['mailchimp']['valid'] = false;
 			}
 		}
@@ -185,7 +189,7 @@ class SettingsPage extends BasePage
 	public function render_page()
 	{
 		$this->view['settings_group'] = self::SETTINGS_KEY;
-		$this->view['button_label']   = $this->get_option( 'mailchimp.valid' ) ? null : __( 'Save API Key', 'chimplet' );
+		$this->view['button_label']   = ( $this->get_option( 'mailchimp.valid' ) ? null : __( 'Save API Key', 'chimplet' ) );
 		$this->render_view( 'options-settings', $this->view );
 	}
 

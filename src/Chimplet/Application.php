@@ -15,7 +15,7 @@ use Locomotive\MailChimp\Facade as MC;
 /**
  * Class: Chimplet Application
  *
- * @version 2015-02-12
+ * @version 2015-02-13
  * @since   0.0.0 (2015-02-05)
  */
 
@@ -46,7 +46,7 @@ class Application extends Base
 	 * Prepares all the necessary actions, filters, and functions
 	 * for the plugin to operate.
 	 *
-	 * @version 2015-02-12
+	 * @version 2015-02-13
 	 * @since   0.0.0 (2015-02-05)
 	 * @uses    self::$information
 	 * @uses    self::$wp
@@ -76,6 +76,8 @@ class Application extends Base
 
 		$this->verify_version();
 
+		$this->verify_mailchimp_api();
+
 		$this->notices  = new AdminNotices( $this->wp );
 		$this->overview = new OverviewPage( $this );
 		$this->settings = new SettingsPage( $this );
@@ -90,8 +92,9 @@ class Application extends Base
 	/**
 	 * Verify versions saved in Options Table
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-13
 	 * @since   0.0.0 (2015-02-09)
+	 * @todo    Return a value, maybe a constant to identify any issues.
 	 */
 
 	public function verify_version()
@@ -106,6 +109,22 @@ class Application extends Base
 		if ( empty( $options['current_version'] ) || $options['current_version'] !== $version ) {
 			$this->update_option( 'current_version', $version );
 		}
+	}
+
+	/**
+	 * Verify MailChimp API
+	 *
+	 * @version 2015-02-13
+	 * @since   0.0.0 (2015-02-13)
+	 */
+
+	public function verify_mailchimp_api()
+	{
+		if ( $this->get_option( 'mailchimp.valid' ) ) {
+			return $this->mc->is_api_key_valid( $this->get_option( 'mailchimp.api_key' ) );
+		}
+
+		return false;
 	}
 
 	/**
