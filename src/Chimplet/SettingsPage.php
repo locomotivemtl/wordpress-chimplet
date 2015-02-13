@@ -320,37 +320,37 @@ class SettingsPage extends BasePage
 			<table class="wp-list-table widefat mailchimp-lists">
 				<thead>
 					<tr>
-						<th scope="col" id="chimplet-rb" class="manage-column column-rb check-column"><label class="screen-reader-text"><?php _e('Select One', 'chimplet'); ?></label></th>
-						<th scope="col" id="mailchimp-list-title" class="manage-column column-name"><?php _e('Title'); ?></th>
-						<th scope="col" id="mailchimp-list-groups" class="manage-column column-groups num"><?php _e('Groupings', 'chimplet'); ?></th>
-						<th scope="col" id="mailchimp-list-members" class="manage-column column-members num"><?php _e('Members', 'chimplet'); ?></th>
-						<th scope="col" id="mailchimp-list-rating" class="manage-column column-rating num"><?php _e('Rating'); ?></th>
-						<th scope="col" id="mailchimp-list-date" class="manage-column column-date"><?php _e('Date Created', 'chimplet'); ?></th>
+						<th scope="col" id="chimplet-rb" class="manage-column column-rb check-column"><label class="screen-reader-text"><?php esc_html_e( 'Select One', 'chimplet' ); ?></label></th>
+						<th scope="col" id="mailchimp-list-title" class="manage-column column-name"><?php esc_html_e( 'Title' ); ?></th>
+						<th scope="col" id="mailchimp-list-groups" class="manage-column column-groups num"><?php esc_html_e( 'Groupings', 'chimplet' ); ?></th>
+						<th scope="col" id="mailchimp-list-members" class="manage-column column-members num"><?php esc_html_e( 'Members', 'chimplet' ); ?></th>
+						<th scope="col" id="mailchimp-list-rating" class="manage-column column-rating num"><?php esc_html_e( 'Rating' ); ?></th>
+						<th scope="col" id="mailchimp-list-date" class="manage-column column-date"><?php esc_html_e( 'Date Created', 'chimplet' ); ?></th>
 					</tr>
 				</thead>
 				<tbody>
 <?php
 				$i = 0;
-				foreach ( $lists['data'] as $list ) {
-					$select_label = sprintf( __('Select %s'), '&ldquo;' . $list['name'] . '&rdquo;' );
-					$id = 'rb-select-' . $list['id'];
+foreach ( $lists['data'] as $list ) {
+	$select_label = sprintf( __( 'Select %s' ), '&ldquo;' . $list['name'] . '&rdquo;' );
+	$id = 'rb-select-' . $list['id'];
 ?>
-					<tr id="mailchimp-list-<?php echo $list['id']; ?>" class="mailchimp-list-<?php echo $list['id']; ?> mailchimp-list<?php echo ( $i % 2 === 0 ? ' alternate' : '' ); ?>">
-						<th scope="row" class="check-column">
-							<label class="screen-reader-text" for="<?php echo $id; ?>"><?php echo $select_label; ?></label>
-							<input type="radio" id="<?php echo $id; ?>" name="chimplet[mailchimp][list]" value="<?php echo $list['id']; ?>"<?php echo checked( $value, $list['id'] ); ?> />
-						</th>
-						<td class="column-title">
-							<strong><label for="<?php echo $id; ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo $list['name']; ?></label></strong>
-						</td>
-						<td class="column-groupings num"><?php echo $list['stats']['grouping_count']; ?></td>
-						<td class="column-members num"><?php echo $list['stats']['member_count']; ?></td>
-						<td class="column-rating num"><?php echo $list['list_rating']; ?></td>
-						<td class="column-date"><time datetime="<?php echo $list['date_created']; ?>"><?php echo date_i18n( get_option('date_format'), strtotime( $list['date_created'] ) ); ?></time></td>
-					</tr>
+	<tr id="mailchimp-list-<?php echo $list['id']; ?>" class="mailchimp-list-<?php echo $list['id']; ?> mailchimp-list<?php echo ( $i % 2 === 0 ? ' alternate' : '' ); ?>">
+		<th scope="row" class="check-column">
+			<label class="screen-reader-text" for="<?php echo $id; ?>"><?php echo $select_label; ?></label>
+			<input type="radio" id="<?php echo $id; ?>" name="chimplet[mailchimp][list]" value="<?php echo $list['id']; ?>"<?php echo checked( $value, $list['id'] ); ?> />
+		</th>
+		<td class="column-title">
+			<strong><label for="<?php echo $id; ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo $list['name']; ?></label></strong>
+		</td>
+		<td class="column-groupings num"><?php echo $list['stats']['grouping_count']; ?></td>
+		<td class="column-members num"><?php echo $list['stats']['member_count']; ?></td>
+		<td class="column-rating num"><?php echo $list['list_rating']; ?></td>
+		<td class="column-date"><time datetime="<?php echo $list['date_created']; ?>"><?php echo date_i18n( get_option( 'date_format' ), strtotime( $list['date_created'] ) ); ?></time></td>
+	</tr>
 <?php
-					$i++;
-				}
+	$i++;
+}
 ?>
 			</table>
 			<div class="tablenav bottom cf">
@@ -385,7 +385,7 @@ class SettingsPage extends BasePage
 
 		if ( empty( $list ) ) {
 
-			echo '<p class="chimplet-alert alert-error">' . __('A List must be selected and saved.', 'chimplet') . '</p>';
+			echo '<p class="chimplet-alert alert-error">' . __( 'A List must be selected and saved.', 'chimplet' ) . '</p>';
 			return;
 
 		}
@@ -397,7 +397,7 @@ class SettingsPage extends BasePage
 
 		} catch ( \Mailchimp_List_DoesNotExist $e ) {
 
-			echo '<p class="chimplet-alert alert-error">' . __('The selected List does not exist in your account.', 'chimplet') . '</p>';
+			echo '<p class="chimplet-alert alert-error">' . __( 'The selected List does not exist in your account.', 'chimplet' ) . '</p>';
 			return;
 
 		} catch ( \Mailchimp_Error $e ) {
@@ -405,104 +405,101 @@ class SettingsPage extends BasePage
 			if ( $e->getMessage() ) {
 				echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
 			} else {
-				echo '<p class="chimplet-alert alert-error">' . __('An unknown error occurred while fetching the selected Mailing List from your account.', 'chimplet') . '</p>';
+				echo '<p class="chimplet-alert alert-error">' . __( 'An unknown error occurred while fetching the selected Mailing List from your account.', 'chimplet' ) . '</p>';
 			}
 			return;
 
 		}
 
 ?>
-			<p class="description"><?php _e('Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List.', 'chimplet'); ?></p>
+			<p class="description"><?php _e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List.', 'chimplet' ); ?></p>
 
 <?php
 
 		$value = $this->get_option( 'mailchimp.terms', [] );
 
-		try {
+try {
 
-			$groups = $this->mc->lists->interestGroupings( $list['id'] );
+	$groups = $this->mc->lists->interestGroupings( $list['id'] );
 
-		} catch ( \Mailchimp_Error $e ) {
+} catch ( \Mailchimp_Error $e ) {
 
-			if ( $e->getMessage() ) {
-				echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
-			} else {
-				echo '<p class="chimplet-alert alert-error">' . __('An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet') . '</p>';
-			}
+	if ( $e->getMessage() ) {
+		echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
+	} else {
+		echo '<p class="chimplet-alert alert-error">' . __( 'An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet' ) . '</p>';
+	}
+}
 
-		}
+if ( empty( $groups ) ) {
+	$groups = [];
+}
 
-		if ( empty( $groups ) ) {
-			$groups = [];
-		}
-
-		if ( empty( $value ) ) {
-			$value = $readonly = '';
-		}
-		else {
-			$value = esc_attr( $value );
-			$readonly = ' readonly';
-		}
+if ( empty( $value ) ) {
+	$value = $readonly = '';
+}
+else {
+	$value = esc_attr( $value );
+	$readonly = ' readonly';
+}
 
 		$readonly = '';
 		$selected = '';
 
 		$taxonomies = get_taxonomies( [ 'object_type' => $this->excluded_post_types ], 'objects', 'NOT' );
 
-		if ( count( $taxonomies ) ) {
-			foreach ( $taxonomies as $taxonomy ) {
+if ( count( $taxonomies ) ) {
+	foreach ( $taxonomies as $taxonomy ) {
 
-				if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
-					continue;
-				}
+		if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
+			continue;
+		}
 
-				$terms = get_terms( $taxonomy->name );
+		$terms = get_terms( $taxonomy->name );
 
-				if ( count( $terms ) ) {
+		if ( count( $terms ) ) {
 
 ?>
-			<fieldset>
-				<legend><span class="h4"><?php echo $taxonomy->label; ?></span></legend>
-				<div class="chimplet-item-list chimplet-mc">
+	<fieldset>
+		<legend><span class="h4"><?php echo $taxonomy->label; ?></span></legend>
+		<div class="chimplet-item-list chimplet-mc">
 <?php
 
-					$id   = 'cb-select-' . $taxonomy->name . '-all';
-					$name = 'chimplet[mailchimp][terms][' . $taxonomy->name . '][]';
+			$id   = 'cb-select-' . $taxonomy->name . '-all';
+			$name = 'chimplet[mailchimp][terms][' . $taxonomy->name . '][]';
 ?>
 
-					<label for="<?php echo $id; ?>">
-						<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="all">
-						<span><?php _e('Select All/None', 'chimplet'); ?></span>
-					</label>
-
-<?php
-
-					foreach ( $terms as $term ) {
-						$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
-						$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( empty( $value[ $taxonomy->name ] ) ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
-
-?>
-
-					<label for="<?php echo $id; ?>">
-						<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="<?php echo $term->term_id; ?>"<?php echo checked( $match ); ?>>
-						<span><?php echo $term->name; ?></span>
-					</label>
+			<label for="<?php echo $id; ?>">
+				<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="all">
+				<span><?php _e( 'Select All/None', 'chimplet' ); ?></span>
+			</label>
 
 <?php
 
-					}
+foreach ( $terms as $term ) {
+	$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
+	$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( empty( $value[ $taxonomy->name ] ) ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
 
 ?>
-				</div>
-			</fieldset>
+
+<label for="<?php echo $id; ?>">
+	<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="<?php echo $term->term_id; ?>"<?php echo checked( $match ); ?>>
+	<span><?php echo $term->name; ?></span>
+</label>
 
 <?php
 
-				}
+}
 
-			}
+?>
+		</div>
+	</fieldset>
+
+<?php
 
 		}
+	}
+}
 
 	}
 

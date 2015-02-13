@@ -12,13 +12,13 @@
  * Domain Path: /languages/
  */
 
-if ( ! defined('ABSPATH') ) wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+if ( ! defined( 'ABSPATH' ) ) { wp_die( __( 'Cheatin&#8217; uh?' ), 403 ); }
 
 require 'vendor/autoload.php';
 
 define( 'LOCOMOTIVE_CHIMPLET_ABS', plugin_basename( __FILE__ ) );
 define( 'LOCOMOTIVE_CHIMPLET_DIR', plugin_dir_path( __FILE__ ) );
-define( 'LOCOMOTIVE_CHIMPLET_URL', plugin_dir_url(  __FILE__ ) );
+define( 'LOCOMOTIVE_CHIMPLET_URL', plugin_dir_url( __FILE__ ) );
 
 $chimplet = new Locomotive\Chimplet\Application;
 
