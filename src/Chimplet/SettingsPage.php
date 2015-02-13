@@ -185,8 +185,7 @@ class SettingsPage extends BasePage
 	public function render_page()
 	{
 		$this->view['settings_group'] = self::SETTINGS_KEY;
-		$this->view['button_label']   = __( 'Save', 'chimplet' );
-
+		$this->view['button_label']   = $this->get_option( 'mailchimp.valid' ) ? null : __( 'Save API Key', 'chimplet' );
 		$this->render_view( 'options-settings', $this->view );
 	}
 

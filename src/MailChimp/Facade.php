@@ -40,14 +40,14 @@ class Facade
 	 * @return  void|object
 	 */
 
-	public function initialize()
+	public function initialize( $apikey=null, $opts=[] )
 	{
 		if ( $this->is_initialized() ) {
 			return $this->facade;
 		}
 
-		if ( func_num_args() ) {
-			return $this->facade = new Mailchimp( func_get_args() );
+		if ( ! is_null( $api_key ) ) {
+			return $this->facade = new Mailchimp( $apikey=null, $opts=[] );
 		}
 	}
 
