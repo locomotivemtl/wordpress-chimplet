@@ -121,3 +121,24 @@
 		}
 
 }
+
+.chimplet-sync {
+
+	&.dashicons {
+		font-size: 16px;
+		line-height: 1.4;
+	}
+
+	&.dashicons-no {
+		color: #AAA;
+	}
+
+	&.dashicons-yes {
+		color: #6CC644;
+	}
+
+}
+
+.chimplet-wrap legend .chimplet-sync.dashicons {
+	line-height: 1.3;
+}

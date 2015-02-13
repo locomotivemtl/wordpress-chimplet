@@ -381,7 +381,7 @@ foreach ( $lists['data'] as $list ) {
 
 	public function render_mailchimp_field_terms( $args )
 	{
-		$list  = $this->get_option( 'mailchimp.list' );
+		$list = $this->get_option( 'mailchimp.list' );
 
 		if ( empty( $list ) ) {
 
@@ -418,9 +418,11 @@ foreach ( $lists['data'] as $list ) {
 
 		$value = $this->get_option( 'mailchimp.terms', [] );
 
+		$groupings = [];
+
 		try {
 
-			$groups = $this->mc->lists->interestGroupings( $list['id'] );
+			$groupings = $this->mc->lists->interestGroupings( $list['id'] );
 
 		} catch ( \Mailchimp_Error $e ) {
 
@@ -429,10 +431,6 @@ foreach ( $lists['data'] as $list ) {
 			} else {
 				echo '<p class="chimplet-alert alert-error">' . __( 'An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet' ) . '</p>';
 			}
-		}
-
-		if ( empty( $groups ) ) {
-			$groups = [];
 		}
 
 		$selected = '';
@@ -446,13 +444,28 @@ foreach ( $lists['data'] as $list ) {
 					continue;
 				}
 
+				$taxonomy_in_grouping = null;
+				$is_taxonomy_synced   = false;
+				$grouping_status      = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Grouping isn’t synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
+
+				if ( count( $groupings ) ) {
+					foreach ( $groupings as $grouping_key => $grouping ) {
+						if ( $taxonomy->label === $grouping['name'] ) {
+							$taxonomy_in_grouping = &$groupings[ $grouping_key ];
+							$is_taxonomy_synced   = true;
+							$grouping_status      = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Grouping is synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
+							break;
+						}
+					}
+				}
+
 				$terms = get_terms( $taxonomy->name );
 
 				if ( count( $terms ) ) {
 
 ?>
 	<fieldset>
-		<legend><span class="h4"><?php echo $taxonomy->label; ?></span></legend>
+		<legend><span class="h4"><?php echo $taxonomy->label . $grouping_status; ?></span></legend>
 		<div class="chimplet-item-list chimplet-mc">
 <?php
 
@@ -473,11 +486,27 @@ foreach ( $lists['data'] as $list ) {
 						$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
 						$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
 
+						$term_in_group  = null;
+						$is_term_synced = false;
+						$group_status   = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Group isn’t synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
+
+						if ( isset( $taxonomy_in_grouping['groups'] ) && count( $taxonomy_in_grouping['groups'] ) ) {
+							foreach ( $taxonomy_in_grouping['groups'] as $group_key => $group ) {
+								if ( $term->name === $group['name'] ) {
+									$term_in_group  = &$taxonomy_in_grouping['groups'][ $groupi_key ];
+									$is_term_synced = true;
+									$group_status   = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Group is synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
+									break;
+								}
+							}
+						}
+
 ?>
 
 			<label for="<?php echo $id; ?>">
 				<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="<?php echo $term->term_id; ?>"<?php echo checked( $match ); ?>>
 				<span><?php echo $term->name; ?></span>
+				<?php echo $group_status; ?>
 			</label>
 
 <?php
