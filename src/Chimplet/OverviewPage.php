@@ -26,13 +26,12 @@ class OverviewPage extends BasePage
 	 * @access  public
 	 */
 
-	public function __before_construct()
+	public function before_wp_hooks()
 	{
 		$this->view['document_title'] = __( 'Chimplet Overview', 'chimplet' );
-
-		$this->view['page_title'] = __( 'Overview', 'chimplet' );
-		$this->view['menu_title'] = $this->view['page_title'];
-		$this->view['menu_slug']  = 'chimplet-overview';
+		$this->view['page_title']     = __( 'Overview', 'chimplet' );
+		$this->view['menu_title']     = $this->view['page_title'];
+		$this->view['menu_slug']      = 'chimplet-overview';
 	}
 
 	/**

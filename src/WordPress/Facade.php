@@ -27,7 +27,7 @@ class Facade
 	/**
 	 * Magic __call method that creates a facade for global WordPress functions.
 	 *
-	 * @throws Exception
+	 * @throws \Exception
 	 * @access public
 	 *
 	 * @param string $method The WordPress function you want to call.

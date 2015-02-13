@@ -36,7 +36,7 @@ class SettingsPage extends BasePage
 	 * @access  public
 	 */
 
-	public function __before_construct()
+	public function before_wp_hooks()
 	{
 		$this->view['document_title'] = __( 'Chimplet Settings', 'chimplet' );
 
@@ -60,7 +60,7 @@ class SettingsPage extends BasePage
 
 	public function register_settings()
 	{
-		if ( false === get_option( 'chimplet' ) ) {
+		if ( false === $this->wp->get_option( 'chimplet' ) ) {
 			$this->wp->update_option( 'chimplet', [] );
 		}
 
@@ -89,7 +89,7 @@ class SettingsPage extends BasePage
 		);
 
 		// Add these fields when the API Key is integrated
-		if ( $this->app->mc_init() ) {
+		if ( true === $this->get_option( 'mailchimp.valid' ) ) {
 
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-lists',
@@ -132,10 +132,21 @@ class SettingsPage extends BasePage
 	public function sanitize_settings( $settings )
 	{
 		// Validate key with MailChimp service
-		if ( isset( $settings['mailchimp']['api_key'] ) ) {
+		if ( isset( $settings['mailchimp']['api_key'] ) && ! empty( $settings['mailchimp']['api_key'] ) ) {
+			$is_valid_key = $this->mc->is_api_key_valid( $settings['mailchimp']['api_key'] );
 
-			$this->app->mc_init( $settings['mailchimp']['api_key'] );
+			if ( ! $is_valid_key ) {
+				// Save that this the key is invalid
+				$this->wp->add_settings_error(
+					self::SETTINGS_KEY,
+					'api-key-failed',
+					sprintf( __( 'Invalid MailChimp API Key: %s' ), $settings['mailchimp']['api_key'] ),
+					'error'
+				);
 
+				//@todo save that the API key is invalid or API down
+				$settings['mailchimp']['valid'] = false;
+			}
 		}
 
 		return $settings;
@@ -174,13 +185,7 @@ class SettingsPage extends BasePage
 	public function render_page()
 	{
 		$this->view['settings_group'] = self::SETTINGS_KEY;
-
-		if ( $this->app->mc_init() ) {
-			$this->view['button_label'] = null;
-		}
-		else {
-			$this->view['button_label'] = __( 'Save API Key', 'chimplet' );
-		}
+		$this->view['button_label']   = __( 'Save', 'chimplet' );
 
 		$this->render_view( 'options-settings', $this->view );
 	}

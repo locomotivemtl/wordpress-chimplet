@@ -62,14 +62,14 @@ abstract class BasePage extends Base
 			return;
 		}
 
-		$this->__before_construct();
+		$this->before_wp_hooks();
 
 		$this->wp->add_action( 'admin_menu', [ $this, 'append_to_menu' ] );
 		$this->wp->add_action( 'admin_init', [ $this, 'register_settings' ] );
 
 		$this->wp->add_filter( 'pre_update_option_chimplet', [ $this, 'pre_update_option' ], 1, 2 );
 
-		$this->__after_construct();
+		$this->after_wp_hooks();
 	}
 
 	/**
@@ -82,7 +82,7 @@ abstract class BasePage extends Base
 	 * @since   0.0.0 (2015-02-12)
 	 */
 
-	public function __before_construct()
+	protected function before_wp_hooks()
 	{
 	}
 
@@ -96,7 +96,7 @@ abstract class BasePage extends Base
 	 * @since   0.0.0 (2015-02-12)
 	 */
 
-	public function __after_construct()
+	protected function after_wp_hooks()
 	{
 	}
 
@@ -121,15 +121,15 @@ abstract class BasePage extends Base
 
 		// Shortcuts
 		if ( $this->app->mc instanceof MC ) {
-			$this->mc = & $this->app->mc;
+			$this->mc = &$this->app->mc;
 		}
 
 		if ( $this->app->wp instanceof WP ) {
-			$this->wp = & $this->app->wp;
+			$this->wp = &$this->app->wp;
 		}
 
 		if ( $this->app->notices instanceof AdminNotices ) {
-			$this->notices = & $this->app->notices;
+			$this->notices = &$this->app->notices;
 		}
 	}
 

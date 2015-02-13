@@ -27,8 +27,8 @@ use Mailchimp;
 
 class Facade
 {
-	public  static $is_initialized = false;
-	private static $__facade;
+	public  $is_initialized = false;
+	private $facade;
 
 	/**
 	 * MailChimp Initialization
@@ -42,21 +42,12 @@ class Facade
 
 	public function initialize()
 	{
+		if ( $this->is_initialized() ) {
+			return $this->facade;
+		}
+
 		if ( func_num_args() ) {
-
-			$reflect = new ReflectionClass( 'Mailchimp' );
-
-			static::$__facade = $reflect->newInstanceArgs( func_get_args() );
-
-		}
-		else {
-
-			static::$__facade = new Mailchimp;
-
-		}
-
-		if ( static::$__facade instanceof Mailchimp ) {
-			return static::$__facade;
+			return $this->facade = new Mailchimp( func_get_args() );
 		}
 	}
 
@@ -71,14 +62,38 @@ class Facade
 
 	public function is_initialized()
 	{
-		return ( static::$__facade instanceof Mailchimp );
+		return ( $this->facade instanceof Mailchimp );
+	}
+
+	/**
+	 * Is the api key entered by the user valid?
+	 *
+	 * @since  2015-02-12
+	 * @access public
+	 * @param  String $api_key
+	 * @return bool
+	 */
+
+	public function is_api_key_valid( $api_key ) {
+		$this->facade = new Mailchimp( $api_key );
+
+		try {
+			$ping = $this->facade->helper->ping();
+			if ( "Everything's Chimpy!" === $ping['msg'] ) {
+				return true;
+			}
+		} catch( \Mailchimp_Error $e ) {
+			return false;
+		}
+
+		return false;
 	}
 
 	/**
 	 * Magic __call method that creates a facade for
 	 * the chosen MailChimp API client.
 	 *
-	 * @throws Exception
+	 * @throws \Exception
 	 * @access public
 	 *
 	 * @param string $method The MailChimp API function you want to call.
@@ -89,18 +104,18 @@ class Facade
 
 	public function __call( $method, $arguments )
 	{
-		if ( method_exists( static::$__facade, $method ) ) {
-			return call_user_func_array( [ static::$__facade, $method ], $arguments );
+		if ( method_exists( $this->facade, $method ) ) {
+			return call_user_func_array( [ $this->facade, $method ], $arguments );
 		}
 
-		throw new \Exception( sprintf( 'The function, "%s::%s", does not exist.', get_class( static::$__facade ), $method ) );
+		throw new \Exception( sprintf( 'The function, "%s::%s", does not exist.', get_class( $this->facade ), $method ) );
 	}
 
 	/**
 	 * Magic __get method that creates a facade for
 	 * the chosen MailChimp API client.
 	 *
-	 * @throws Exception
+	 * @throws \Exception
 	 * @access public
 	 *
 	 * @param string $property The MailChimp API property you want to get.
@@ -110,11 +125,11 @@ class Facade
 
 	public function __get( $property )
 	{
-		if ( property_exists( static::$__facade, $property ) ) {
-			return static::$__facade->{ $property };
+		if ( property_exists( $this->facade, $property ) ) {
+			return $this->facade->{ $property };
 		}
 
-		throw new \Exception( sprintf( 'The property, "%s::\$%s", does not exist.', get_class( static::$__facade ), $property ) );
+		throw new \Exception( sprintf( 'The property, "%s::\$%s", does not exist.', get_class( $this->facade ), $property ) );
 	}
 
 }

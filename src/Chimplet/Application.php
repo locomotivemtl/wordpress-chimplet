@@ -109,68 +109,6 @@ class Application extends Base
 	}
 
 	/**
-	 * MailChimp Initialization
-	 *
-	 * @version 2015-02-12
-	 * @since   0.0.0 (2015-02-12)
-	 *
-	 * @param   string    $api_key
-	 * @param   callable  $try_callback  Optional. Test MailChimp API and throw an error if it fails. Default is to use ping() method.
-	 * @param   array     $user_options
-	 * @return  bool
-	 */
-
-	public function mc_init( $api_key = null, $try_callback = null, $user_options = [] )
-	{
-		if ( $this->mc->is_initialized() ) {
-			return true;
-		}
-
-		if ( empty( $api_key ) ) {
-			$api_key = $this->get_option( 'mailchimp.api_key' );
-		}
-
-		if ( empty( $api_key ) && ! isset( $_GET['settings-updated'] ) ) {
-			return false;
-		}
-
-		try {
-
-			$this->mc->initialize( $api_key, $user_options );
-
-			if ( is_callable( $try_callback ) ) {
-
-				call_user_func( $try_callback );
-
-			}
-			else {
-
-				$ping = $this->mc->helper->ping();
-
-				if ( $ping['msg'] !== "Everything's Chimpy!" ) {
-					throw $this->castError( $ping );
-				}
-
-			}
-
-			return true;
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			$this->wp->add_settings_error(
-				self::SETTINGS_KEY,
-				'api-key-failed',
-				$e->getMessage(),
-				'error'
-			);
-
-			// @todo save that the key is invalid
-		}
-
-		return false;
-	}
-
-	/**
 	 * WordPress Initialization
 	 *
 	 * @used-by Action: "init"
@@ -206,9 +144,7 @@ class Application extends Base
 					$message,
 					[ 'type' => 'error' ]
 				);
-
 			}
-
 		}
 
 		$this->register_assets();
