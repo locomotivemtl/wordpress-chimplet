@@ -203,6 +203,8 @@ abstract class BasePage extends Base
 
 	public function enqueue_assets()
 	{
+		$this->wp->wp_enqueue_script( 'chimplet-common' );
+
 		$this->wp->wp_enqueue_style( 'chimplet-global' );
 	}
 

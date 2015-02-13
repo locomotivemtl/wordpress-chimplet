@@ -172,16 +172,25 @@ class Application extends Base
 	/**
 	 * Register Assets
 	 *
-	 * @version 2015-02-09
+	 * @version 2015-02-13
 	 * @since   0.0.0 (2015-02-06)
 	 */
 
 	public function register_assets()
 	{
-		$scripts = [];
+		$min = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min' );
+
+		$scripts = [
+			[
+				'handle' => 'chimplet-common',
+				'src'    => $this->get_asset( 'scripts/dist/common' . $min . '.js' ),
+				'deps'   => [ 'jquery' ],
+				'foot'   => true
+			]
+		];
 
 		foreach ( $scripts as $script ) {
-			wp_register_script( $script['handle'], $script['src'], $script['deps'], $this->get_info( 'version' ) );
+			wp_register_script( $script['handle'], $script['src'], $script['deps'], $this->get_info( 'version' ), $script['foot'] );
 		}
 
 		$styles = [

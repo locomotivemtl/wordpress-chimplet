@@ -66,9 +66,11 @@ module.exports = function(grunt) {
 		// concat: Concatenate files
 		concat: {
 			plugin: {
-				files: {
-					'assets/scripts/dist/all.js': 'assets/scripts/src/*.js'
-				}
+				src: [
+					'assets/scripts/src/chimplet/utilities.js',
+					'assets/scripts/src/chimplet/toggle-checkboxes.js'
+				],
+				dest: 'assets/scripts/dist/common.js'
 			}
 		},
 
@@ -76,7 +78,7 @@ module.exports = function(grunt) {
 		uglify: {
 			plugin: {
 				files: {
-					'assets/scripts/dist/*.min.js': 'assets/scripts/dist/*.js'
+					'assets/scripts/dist/common.min.js': 'assets/scripts/dist/common.js'
 				}
 			}
 		},

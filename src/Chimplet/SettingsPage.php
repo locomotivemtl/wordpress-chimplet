@@ -371,7 +371,7 @@ foreach ( $lists['data'] as $list ) {
 	 * Display a terms from all taxonomies
 	 *
 	 * @used-by Function: add_settings_field
-	 * @version 2015-02-11
+	 * @version 2015-02-13
 	 * @since   0.0.0 (2015-02-11)
 	 * @todo    Support all taxonomies
 	 * @todo    Add badges to indicate already synced groups
@@ -418,46 +418,37 @@ foreach ( $lists['data'] as $list ) {
 
 		$value = $this->get_option( 'mailchimp.terms', [] );
 
-try {
+		try {
 
-	$groups = $this->mc->lists->interestGroupings( $list['id'] );
+			$groups = $this->mc->lists->interestGroupings( $list['id'] );
 
-} catch ( \Mailchimp_Error $e ) {
+		} catch ( \Mailchimp_Error $e ) {
 
-	if ( $e->getMessage() ) {
-		echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
-	} else {
-		echo '<p class="chimplet-alert alert-error">' . __( 'An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet' ) . '</p>';
-	}
-}
+			if ( $e->getMessage() ) {
+				echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
+			} else {
+				echo '<p class="chimplet-alert alert-error">' . __( 'An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet' ) . '</p>';
+			}
+		}
 
-if ( empty( $groups ) ) {
-	$groups = [];
-}
+		if ( empty( $groups ) ) {
+			$groups = [];
+		}
 
-if ( empty( $value ) ) {
-	$value = $readonly = '';
-}
-else {
-	$value = esc_attr( $value );
-	$readonly = ' readonly';
-}
-
-		$readonly = '';
 		$selected = '';
 
 		$taxonomies = get_taxonomies( [ 'object_type' => $this->excluded_post_types ], 'objects', 'NOT' );
 
-if ( count( $taxonomies ) ) {
-	foreach ( $taxonomies as $taxonomy ) {
+		if ( count( $taxonomies ) ) {
+			foreach ( $taxonomies as $taxonomy ) {
 
-		if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
-			continue;
-		}
+				if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
+					continue;
+				}
 
-		$terms = get_terms( $taxonomy->name );
+				$terms = get_terms( $taxonomy->name );
 
-		if ( count( $terms ) ) {
+				if ( count( $terms ) ) {
 
 ?>
 	<fieldset>
@@ -467,29 +458,31 @@ if ( count( $taxonomies ) ) {
 
 			$id   = 'cb-select-' . $taxonomy->name . '-all';
 			$name = 'chimplet[mailchimp][terms][' . $taxonomy->name . '][]';
+			$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( 'all', $value[ $taxonomy->name ] ) );
+
 ?>
 
 			<label for="<?php echo $id; ?>">
-				<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="all">
+				<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="all"<?php echo checked( $match ); ?>>
 				<span><?php _e( 'Select All/None', 'chimplet' ); ?></span>
 			</label>
 
 <?php
 
-foreach ( $terms as $term ) {
-	$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
-	$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( empty( $value[ $taxonomy->name ] ) ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
+					foreach ( $terms as $term ) {
+						$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
+						$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
 
 ?>
 
-<label for="<?php echo $id; ?>">
-	<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="<?php echo $term->term_id; ?>"<?php echo checked( $match ); ?>>
-	<span><?php echo $term->name; ?></span>
-</label>
+			<label for="<?php echo $id; ?>">
+				<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="<?php echo $term->term_id; ?>"<?php echo checked( $match ); ?>>
+				<span><?php echo $term->name; ?></span>
+			</label>
 
 <?php
 
-}
+					}
 
 ?>
 		</div>
@@ -497,9 +490,11 @@ foreach ( $terms as $term ) {
 
 <?php
 
+				}
+
+			}
+
 		}
-	}
-}
 
 	}
 
