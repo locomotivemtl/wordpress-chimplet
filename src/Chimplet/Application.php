@@ -131,7 +131,6 @@ class Application extends Base
 				);
 
 			}
-
 		}
 
 		$this->register_assets();
