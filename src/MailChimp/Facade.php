@@ -37,7 +37,7 @@ class Facade
 	 * @since   2015-02-12
 	 * @access  public
 	 * @param   string  $api_key       The MailChimp API Key to enable the API client.
-	 * @param   array   $user_optopms  Optional. Extra options for setting up the API client.
+	 * @param   array   $user_options  Optional. Extra options for setting up the API client.
 	 * @return  void|object
 	 */
 
@@ -73,7 +73,7 @@ class Facade
 	 * @since   2015-02-12
 	 * @access  public
 	 * @param   string  $api_key       The MailChimp API Key to enable the API client.
-	 * @param   array   $user_optopms  Optional. Extra options for setting up the API client.
+	 * @param   array   $user_options  Optional. Extra options for setting up the API client.
 	 * @return  bool
 	 */
 
@@ -88,7 +88,6 @@ class Facade
 			if ( "Everything's Chimpy!" === $ping['msg'] ) {
 				return true;
 			}
-
 		} catch( \Mailchimp_Error $e ) {
 
 			return false;

@@ -75,13 +75,18 @@ class OverviewPage extends BasePage
 		$badge = '';
 
 		if ( ! $this->get_option( 'mailchimp.api_key' ) ) {
-			$badge = sprintf(
+			$title = sprintf(
 				__( 'You need to register a %s to use %s.', 'chimplet' ),
 				__( 'MailChimp API key', 'chimplet' ),
 				__( 'Chimplet', 'chimplet' )
 			);
 
-			$badge = ' ' . '<span class="update-plugins dashicons" title="' . $badge . '"><span class="dashicons-admin-network"></span></span>';
+			$badge = sprintf( ' <span class="update-plugins dashicons" title="%s"><span class="dashicons-admin-network"></span></span>', esc_attr( $title ) );
+		}
+		else if ( ! $this->get_option( 'mailchimp.valid' ) ) {
+			$title = __( 'You need a valid API key for Chimplet to work', 'chimplet' );
+
+			$badge = sprintf( ' <span class="update-plugins" title="%s"><span class="plugin-count">%s</span></span>', esc_attr( $title ), esc_html( 'error', 'chimplet' ) );
 		}
 
 		return $badge;

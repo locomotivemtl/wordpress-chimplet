@@ -89,7 +89,7 @@ class SettingsPage extends BasePage
 		);
 
 		// Add these fields when the API Key is integrated
-		if ( true === $this->get_option( 'mailchimp.valid' ) ) {
+		if ( $this->get_option( 'mailchimp.valid' ) ) {
 
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-lists',
@@ -303,10 +303,19 @@ class SettingsPage extends BasePage
 
 			if ( 'select' === $args['control'] ) {
 
-				echo '<select name="list" id="' . $args['label_for'] . '" name="chimplet[mailchimp][list]"' . $readonly . '>';
+				printf(
+					'<select name="list" id="%s" name="chimplet[mailchimp][list]" %s>',
+					esc_attr( $args['label_for'] ),
+					esc_attr( $readonly )
+				);
 
 				foreach ( $lists['data'] as $list ) {
-					echo '<option value="' . $list['id'] . '"' . selected( $value, $list['id'] ) . '>' . $list['name'] . '</option>';
+					printf(
+						'<option value="%s" %s>%s</option>',
+						esc_attr( $list['id'] ),
+						selected( $value, $list['id'] ),
+						esc_html( $list['name'] )
+					);
 				}
 
 				echo '</select>';
@@ -329,29 +338,29 @@ class SettingsPage extends BasePage
 					</tr>
 				</thead>
 				<tbody>
-<?php
+				<?php
 				$i = 0;
-foreach ( $lists['data'] as $list ) {
-	$select_label = sprintf( __( 'Select %s' ), '&ldquo;' . $list['name'] . '&rdquo;' );
-	$id = 'rb-select-' . $list['id'];
-?>
-	<tr id="mailchimp-list-<?php echo $list['id']; ?>" class="mailchimp-list-<?php echo $list['id']; ?> mailchimp-list<?php echo ( $i % 2 === 0 ? ' alternate' : '' ); ?>">
-		<th scope="row" class="check-column">
-			<label class="screen-reader-text" for="<?php echo $id; ?>"><?php echo $select_label; ?></label>
-			<input type="radio" id="<?php echo $id; ?>" name="chimplet[mailchimp][list]" value="<?php echo $list['id']; ?>"<?php echo checked( $value, $list['id'] ); ?> />
-		</th>
-		<td class="column-title">
-			<strong><label for="<?php echo $id; ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo $list['name']; ?></label></strong>
-		</td>
-		<td class="column-groupings num"><?php echo $list['stats']['grouping_count']; ?></td>
-		<td class="column-members num"><?php echo $list['stats']['member_count']; ?></td>
-		<td class="column-rating num"><?php echo $list['list_rating']; ?></td>
-		<td class="column-date"><time datetime="<?php echo $list['date_created']; ?>"><?php echo date_i18n( get_option( 'date_format' ), strtotime( $list['date_created'] ) ); ?></time></td>
-	</tr>
-<?php
-	$i++;
-}
-?>
+				foreach ( $lists['data'] as $list ) :
+					$select_label = sprintf( __( 'Select %s' ), '&ldquo;' . $list['name'] . '&rdquo;' ); //xss ok
+					$id = 'rb-select-' . $list['id'];
+				?>
+					<tr id="mailchimp-list-<?php echo esc_attr( $list['id'] ); ?>" class="mailchimp-list-<?php echo esc_attr( $list['id'] ); ?> mailchimp-list<?php echo ( $i % 2 === 0 ? ' alternate' : '' ); //xss ok ?>">
+						<th scope="row" class="check-column">
+							<label class="screen-reader-text" for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $select_label ); ?></label>
+							<input type="radio" id="<?php echo esc_attr( $id ); ?>" name="chimplet[mailchimp][list]" value="<?php echo esc_attr( $list['id'] ); ?>"<?php echo checked( $value, $list['id'] ); ?> />
+						</th>
+						<td class="column-title">
+							<strong><label for="<?php echo esc_attr( $id ); ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo esc_html( $list['name'] ); ?></label></strong>
+						</td>
+						<td class="column-groupings num"><?php echo esc_html( $list['stats']['grouping_count'] ); ?></td>
+						<td class="column-members num"><?php echo esc_html( $list['stats']['member_count'] ); ?></td>
+						<td class="column-rating num"><?php echo esc_html( $list['list_rating'] ); ?></td>
+						<td class="column-date"><time datetime="<?php echo esc_attr( $list['date_created'] ); ?>"><?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $list['date_created'] ) ) ); ?></time></td>
+					</tr>
+				<?php
+					$i++;
+				endforeach;
+				?>
 			</table>
 			<div class="tablenav bottom cf">
 				<div class="alignleft tablenav-information">
@@ -361,8 +370,7 @@ foreach ( $lists['data'] as $list ) {
 			<table class="form-table">
 				<tr>
 					<td>
-<?php
-
+			<?php
 			}
 		}
 	}
@@ -385,7 +393,7 @@ foreach ( $lists['data'] as $list ) {
 
 		if ( empty( $list ) ) {
 
-			echo '<p class="chimplet-alert alert-error">' . __( 'A List must be selected and saved.', 'chimplet' ) . '</p>';
+			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html__( 'A List must be selected and saved.', 'chimplet' ) );
 			return;
 
 		}
@@ -397,24 +405,18 @@ foreach ( $lists['data'] as $list ) {
 
 		} catch ( \Mailchimp_List_DoesNotExist $e ) {
 
-			echo '<p class="chimplet-alert alert-error">' . __( 'The selected List does not exist in your account.', 'chimplet' ) . '</p>';
+			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html__( 'The selected List does not exist in your account.', 'chimplet' ) );
 			return;
 
 		} catch ( \Mailchimp_Error $e ) {
 
-			if ( $e->getMessage() ) {
-				echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
-			} else {
-				echo '<p class="chimplet-alert alert-error">' . __( 'An unknown error occurred while fetching the selected Mailing List from your account.', 'chimplet' ) . '</p>';
-			}
+			$this->display_inline_error( $e->getMessage(), __( 'An unknown error occurred while fetching the selected Mailing List from your account.', 'chimplet' ) );
 			return;
 
 		}
-
-?>
-			<p class="description"><?php _e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List.', 'chimplet' ); ?></p>
-
-<?php
+		?>
+		<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List.', 'chimplet' ); ?></p>
+		<?php
 
 		$value = $this->get_option( 'mailchimp.terms', [] );
 
@@ -426,33 +428,26 @@ foreach ( $lists['data'] as $list ) {
 
 		} catch ( \Mailchimp_Error $e ) {
 
-			if ( $e->getMessage() ) {
-				echo '<p class="chimplet-alert alert-warning">' . $e->getMessage() . '</p>';
-			} else {
-				echo '<p class="chimplet-alert alert-error">' . __( 'An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet' ) . '</p>';
-			}
-		}
+			$this->display_inline_error( $e->getMessage(), __( 'An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet' ) );
 
-		$selected = '';
+		}
 
 		$taxonomies = get_taxonomies( [ 'object_type' => $this->excluded_post_types ], 'objects', 'NOT' );
 
-		if ( count( $taxonomies ) ) {
-			foreach ( $taxonomies as $taxonomy ) {
+		if ( count( $taxonomies ) ) :
+			foreach ( $taxonomies as $taxonomy ) :
 
 				if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
 					continue;
 				}
 
 				$taxonomy_in_grouping = null;
-				$is_taxonomy_synced   = false;
 				$grouping_status      = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Grouping isn’t synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
 
 				if ( count( $groupings ) ) {
 					foreach ( $groupings as $grouping_key => $grouping ) {
 						if ( $taxonomy->label === $grouping['name'] ) {
 							$taxonomy_in_grouping = &$groupings[ $grouping_key ];
-							$is_taxonomy_synced   = true;
 							$grouping_status      = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Grouping is synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
 							break;
 						}
@@ -461,70 +456,65 @@ foreach ( $lists['data'] as $list ) {
 
 				$terms = get_terms( $taxonomy->name );
 
-				if ( count( $terms ) ) {
+				if ( count( $terms ) ) : ?>
+				<fieldset>
+					<legend><span class="h4"><?php echo $taxonomy->label . $grouping_status; //xss ok ?></span></legend>
+					<div class="chimplet-item-list chimplet-mc">
+						<?php
+						$id   = 'cb-select-' . $taxonomy->name . '-all';
+						$name = 'chimplet[mailchimp][terms][' . $taxonomy->name . '][]';
+						$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( 'all', $value[ $taxonomy->name ] ) );
+						?>
+						<label for="<?php echo esc_attr( $id ); ?>">
+							<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_html( $id ); ?>" value="all"<?php checked( $match ); ?>>
+							<span><?php _e( 'Select All/None', 'chimplet' ); ?></span>
+						</label>
+						<?php
+						foreach ( $terms as $term ) :
+							$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
+							$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
+							$term_in_group  = null;
+							$group_status   = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Group isn’t synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
 
-?>
-	<fieldset>
-		<legend><span class="h4"><?php echo $taxonomy->label . $grouping_status; ?></span></legend>
-		<div class="chimplet-item-list chimplet-mc">
-<?php
-
-			$id   = 'cb-select-' . $taxonomy->name . '-all';
-			$name = 'chimplet[mailchimp][terms][' . $taxonomy->name . '][]';
-			$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( 'all', $value[ $taxonomy->name ] ) );
-
-?>
-
-			<label for="<?php echo $id; ?>">
-				<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="all"<?php echo checked( $match ); ?>>
-				<span><?php _e( 'Select All/None', 'chimplet' ); ?></span>
-			</label>
-
-<?php
-
-					foreach ( $terms as $term ) {
-						$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
-						$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
-
-						$term_in_group  = null;
-						$is_term_synced = false;
-						$group_status   = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Group isn’t synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
-
-						if ( isset( $taxonomy_in_grouping['groups'] ) && count( $taxonomy_in_grouping['groups'] ) ) {
-							foreach ( $taxonomy_in_grouping['groups'] as $group_key => $group ) {
-								if ( $term->name === $group['name'] ) {
-									$term_in_group  = &$taxonomy_in_grouping['groups'][ $groupi_key ];
-									$is_term_synced = true;
-									$group_status   = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Group is synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
-									break;
+							if ( isset( $taxonomy_in_grouping['groups'] ) && count( $taxonomy_in_grouping['groups'] ) ) {
+								foreach ( $taxonomy_in_grouping['groups'] as $group_key => $group ) {
+									if ( $term->name === $group['name'] ) {
+										$term_in_group  = &$taxonomy_in_grouping['groups'][ $group_key ];
+										$group_status   = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Group is synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
+										break;
+									}
 								}
 							}
-						}
+						?>
+						<label for="<?php echo esc_attr( $id ); ?>">
+							<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $id ); ?>" value="<?php echo esc_attr( $term->term_id ); ?>"<?php checked( $match ); ?>>
+							<span><?php echo esc_html( $term->name ); ?></span>
+							<?php echo $group_status; //xss ok ?>
+						</label>
+						<?php endforeach; ?>
+					</div>
+				</fieldset>
+				<?php
+				endif;
+			endforeach;
+		endif;
+	}
 
-?>
-
-			<label for="<?php echo $id; ?>">
-				<input type="checkbox" name="<?php echo $name; ?>" id="<?php echo $id; ?>" value="<?php echo $term->term_id; ?>"<?php echo checked( $match ); ?>>
-				<span><?php echo $term->name; ?></span>
-				<?php echo $group_status; ?>
-			</label>
-
-<?php
-
-					}
-
-?>
-		</div>
-	</fieldset>
-
-<?php
-
-				}
-
-			}
-
+	/**
+	 * Display error message or a fallback if there isn't one
+	 *
+	 * @version 2015-02-15
+	 * @access private
+	 * @param $message
+	 * @param $fallback_message
+	 */
+	private function display_inline_error( $message, $fallback_message ) {
+		if ( $message ) {
+			printf( '<p class="chimplet-alert alert-warning">%s</p>', esc_html( $message ) );
+		} else {
+			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html( $fallback_message ) );
 		}
-
+		return;
 	}
 
 }

@@ -139,28 +139,37 @@ class Application extends Base
 
 	public function wp_init()
 	{
-		if ( $this->is_related_page() ) {
+		if ( $this->is_related_page() && ! isset( $_GET['settings-updated'] ) ) {
 
 			$mailchimp_key = $this->get_option( 'mailchimp.api_key' );
+			$settings_link = '';
 
-			if ( empty( $mailchimp_key ) && $this->notices instanceof AdminNotices && ! isset( $_GET['settings-updated'] ) ) {
+			if ( ! $this->is_page( $this->settings->get_menu_slug() ) ) {
+				$settings_link = sprintf(
+					' <a href="%s">%s</a>',
+					admin_url( 'admin.php?page=' . $this->settings->get_menu_slug() ),
+					esc_html__( 'Settings' )
+				);
+			}
+
+			if ( empty( $mailchimp_key ) ) {
 				$message = sprintf(
 					__( 'You need to register a %s to use %s.', 'chimplet' ),
 					'<strong>' . esc_html__( 'MailChimp API key', 'chimplet' ) . '</strong>',
 					'<em>' . esc_html__( 'Chimplet', 'chimplet' ) . '</em>'
 				);
 
-				if ( ! $this->is_page( $this->settings->get_menu_slug() ) ) {
-					$message .= sprintf(
-						' <a href="%s">%s</a>',
-						admin_url( 'admin.php?page=' . $this->settings->get_menu_slug() ),
-						esc_html__( 'Settings' )
-					);
-				}
-
 				$this->notices->add(
 					'chimplet/mailchimp/api-key-missing',
-					$message,
+					$message . $settings_link,
+					[ 'type' => 'error' ]
+				);
+			}
+
+			if ( ! $this->get_option( 'mailchimp.valid' ) ) {
+				$this->notices->add(
+					'chimplet/mailchimp/invalid-api-key',
+					sprintf( __( 'Invalid MailChimp API Key: %s.' ), $mailchimp_key ) . ' ' . esc_html( 'Please go to ', 'chimplet' ) . $settings_link, // xss ok
 					[ 'type' => 'error' ]
 				);
 			}

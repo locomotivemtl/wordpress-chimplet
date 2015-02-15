@@ -128,7 +128,7 @@ abstract class Base
 		if ( file_exists( $path ) ) {
 			?>
 
-			<div class="<?php echo implode( ' ', $classes ); //xss ok ?>">
+			<div class="<?php echo implode( ' ', array_map( 'esc_attr', $classes ) ); //xss ok ?>">
 
 				<h2>
 					<strong class="screen-reader-text"><?php esc_html_e( 'Chimplet', 'chimplet' ); ?>: </strong>
