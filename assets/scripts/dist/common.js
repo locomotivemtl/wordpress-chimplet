@@ -12,6 +12,7 @@ String.prototype.escapeSelector = function ( find ) {
 	return this.replace(find, '\\$1');
 };
 
+/* global jQuery */
 
 /**
  * Toggle Checkboxes
@@ -20,7 +21,7 @@ String.prototype.escapeSelector = function ( find ) {
  * @author Locomotive
  */
 
-+function ($) {
+(function ($) {
 	'use strict';
 
 	var Checkbox = {
@@ -54,4 +55,4 @@ String.prototype.escapeSelector = function ( find ) {
 
 	$('.chimplet-wrap').on( 'change.chimplet.toggle-checkboxes', ':checkbox[name$="[]"]', Checkbox.toggle );
 
-}(jQuery);
+}(jQuery));

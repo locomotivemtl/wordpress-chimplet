@@ -1,3 +1,4 @@
+/* global jQuery */
 
 /**
  * Toggle Checkboxes
@@ -6,7 +7,7 @@
  * @author Locomotive
  */
 
-+function ($) {
+(function ($) {
 	'use strict';
 
 	var Checkbox = {
@@ -40,4 +41,4 @@
 
 	$('.chimplet-wrap').on( 'change.chimplet.toggle-checkboxes', ':checkbox[name$="[]"]', Checkbox.toggle );
 
-}(jQuery);
+}(jQuery));
