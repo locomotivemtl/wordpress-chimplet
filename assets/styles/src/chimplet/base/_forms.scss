@@ -18,9 +18,19 @@
 // Styles
 // ==========================================================================
 
-.chimplet-wrap legend {
+.chimplet-wrap {
+  h2 {
+	margin-bottom: 10px;
+  }
+
+  legend {
 	margin  : 0;
 	padding : 0;
 
 	-webkit-margin-collapse: separate;
+  }
+
+  p.chimplet-alert {
+	color: #A00;
+  }
 }

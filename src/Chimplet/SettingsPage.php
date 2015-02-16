@@ -113,19 +113,25 @@ class SettingsPage extends BasePage
 					'chimplet-section-mailchimp-api'
 				);
 
+				$this->wp->add_settings_field(
+					'chimplet-field-mailchimp-user-roles',
+					__( 'Select User Roles', 'chimplet' ),
+					[ $this, 'render_mailchimp_field_user_roles' ],
+					$this->view['menu_slug'],
+					'chimplet-section-mailchimp-api'
+				);
+
 			}
 		}
 	}
 
 	/**
-	 * Sanitize setting values and validate MailChimp key
+	 * Sanitize all settings values and handles group sync and API key validation
 	 *
 	 * @uses    Filter: "sanitize_option_{$option_name}"
 	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-09)
-	 * @todo    Save the validity of the API key or API status
-	 *          as its own setting for easier testing.
-	 *
+	 * @todo sanitize all settings manually
 	 * @param array $settings
 	 *
 	 * @return array
@@ -144,13 +150,76 @@ class SettingsPage extends BasePage
 				// Save that this the key is invalid
 				$this->wp->add_settings_error(
 					self::SETTINGS_KEY,
-					'api-key-failed',
+					'mailchimp-api-key-failed',
 					sprintf( __( 'Invalid MailChimp API Key: %s' ), $settings['mailchimp']['api_key'] ),
 					'error'
 				);
 
 				$settings['mailchimp']['valid'] = false;
 			}
+		}
+
+		if ( isset( $settings['mailchimp']['list'] ) ) {
+			$list = $this->mc->get_list_by_id( $settings['mailchimp']['list'] );
+
+			if ( $list instanceof \Mailchimp_Error ) {
+				$this->wp->add_settings_error(
+					self::SETTINGS_KEY,
+					'mailchimp-invalid-list',
+					$list->getMessage(),
+					'error'
+				);
+
+				unset( $settings['mailchimp']['list'] );
+
+				if ( isset( $settings['mailchimp']['terms'] ) ) {
+					unset( $settings['mailchimp']['terms'] );
+				}
+			}
+		}
+
+		// Sync taxonomy with MailChimp groups
+		if ( isset( $settings['mailchimp']['terms'] ) && ! empty( $settings['mailchimp']['terms'] ) ) {
+
+			// Create the interest grouping if it's not already there
+			$grouping = $this->mc->get_grouping_by_name( 'Interest' );
+
+			$local_groups = [];
+			foreach ( $settings['mailchimp']['terms'] as $tax => $terms ) {
+
+				foreach ( $terms as $term_id ) {
+
+					$term = $this->wp->get_term_by( 'id', $term_id, $tax );
+
+					if ( $term ) {
+
+						$local_groups[] = $term->name;
+
+					}
+				}
+			}
+
+			// Update groups
+			if ( $grouping ) {
+
+				$this->mc->handle_grouping_integrity( $local_groups, $grouping['groups'], $grouping['id'] );
+
+			}
+			else {
+				// Create new grouping with default groups
+				$grouping_id = $this->mc->add_grouping( 'Interest', 'checkboxes', $local_groups );
+
+				if ( ! $grouping_id ) {
+
+					unset( $settings['mailchimp']['terms'] );
+
+				}
+			}
+		}
+
+		// User roles grouping
+		if ( isset( $settings['mailchimp']['users_roles'] ) && ! empty( $settings['mailchimp']['users_roles'] ) ) {
+			//@todo create grouping for user role
 		}
 
 		return $settings;
@@ -270,18 +339,17 @@ class SettingsPage extends BasePage
 	public function render_mailchimp_field_list( $args )
 	{
 		$value = $this->get_option( 'mailchimp.list' );
+		$lists = $this->mc->get_all_lists();
+		$total = $this->mc->get_current_list_total_results();
 
-		try {
-
-			$lists = $this->mc->lists->getList();
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			if ( $e->getMessage() ) {
-				echo '<p class="chimplet-alert alert-error">' . esc_html( $e->getMessage() ) . '</p>';
+		if ( $lists instanceof \Mailchimp_Error ) {
+			if ( $lists->getMessage() ) {
+				echo '<p class="chimplet-alert alert-error">' . esc_html( $lists->getMessage() ) . '</p>';
 			} else {
 				echo '<p class="chimplet-alert alert-error">' . esc_html__( 'An unknown error occurred while fetching the Mailing Lists from your account.', 'chimplet' ) . '</p>';
 			}
+
+			$lists = [];
 		}
 
 		if ( empty( $value ) ) {
@@ -295,7 +363,7 @@ class SettingsPage extends BasePage
 		$readonly = '';
 		$selected = '';
 
-		if ( ! empty( $lists['data'] ) ) {
+		if ( ! empty( $lists ) ) {
 
 			if ( ! isset( $args['control'] ) ) {
 				$args['control'] = 'radio-table';
@@ -340,7 +408,7 @@ class SettingsPage extends BasePage
 				<tbody>
 				<?php
 				$i = 0;
-				foreach ( $lists['data'] as $list ) :
+				foreach ( $lists as $list ) :
 					$select_label = sprintf( __( 'Select %s' ), '&ldquo;' . $list['name'] . '&rdquo;' ); //xss ok
 					$id = 'rb-select-' . $list['id'];
 				?>
@@ -364,7 +432,7 @@ class SettingsPage extends BasePage
 			</table>
 			<div class="tablenav bottom cf">
 				<div class="alignleft tablenav-information">
-					<span class="displaying-num"><?php printf( _n( '1 list', '%s lists', $lists['total'], 'chimplet' ), $lists['total'] ); ?></span>
+					<span class="displaying-num"><?php printf( esc_html( _n( '1 list', '%s lists', $total, 'chimplet' ) ), $total ); ?></span>
 				</div>
 			</div>
 			<table class="form-table">
@@ -381,8 +449,6 @@ class SettingsPage extends BasePage
 	 * @used-by Function: add_settings_field
 	 * @version 2015-02-13
 	 * @since   0.0.0 (2015-02-11)
-	 * @todo    Support all taxonomies
-	 * @todo    Add badges to indicate already synced groups
 	 *
 	 * @param  array  $args
 	 */
@@ -398,24 +464,22 @@ class SettingsPage extends BasePage
 
 		}
 
-		try {
+		$list = $this->mc->get_list_by_id( $list );
 
-			$list = $this->mc->lists->getList( [ 'list_id' => $list ] );
-			$list = reset( $list['data'] );
-
-		} catch ( \Mailchimp_List_DoesNotExist $e ) {
+		if ( $list instanceof \Mailchimp_List_DoesNotExist ) {
 
 			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html__( 'The selected List does not exist in your account.', 'chimplet' ) );
 			return;
 
-		} catch ( \Mailchimp_Error $e ) {
+		}
+		else if ( $list instanceof \Mailchimp_Error ) {
 
-			$this->display_inline_error( $e->getMessage(), __( 'An unknown error occurred while fetching the selected Mailing List from your account.', 'chimplet' ) );
+			$this->display_inline_error( $list->getMessage(), __( 'An unknown error occurred while fetching the selected Mailing List from your account.', 'chimplet' ) );
 			return;
 
 		}
 		?>
-		<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List.', 'chimplet' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List. (Maximum of 60 groups)', 'chimplet' ); ?></p>
 		<?php
 
 		$value = $this->get_option( 'mailchimp.terms', [] );
@@ -498,6 +562,19 @@ class SettingsPage extends BasePage
 				endif;
 			endforeach;
 		endif;
+	}
+
+	/**
+	 * Render user groups that needs to be synchonize with MailChimp
+	 *
+	 * @todo synchonize user roles to be mapped as groups
+	 * @access public
+	 * @param $args
+	 *
+	 * @return void
+	 */
+	public function render_mailchimp_field_user_roles( $args ) {
+
 	}
 
 	/**
