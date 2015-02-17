@@ -103,24 +103,31 @@ class SettingsPage extends BasePage
 			);
 
 			// Add these fields when the List is selected
-			if ( $this->get_option( 'mailchimp.list' ) ) {
+			if ( $list = $this->get_option( 'mailchimp.list' ) ) {
 
-				$this->wp->add_settings_field(
-					'chimplet-field-mailchimp-categories',
-					__( 'Select Taxonomy Terms', 'chimplet' ),
-					[ $this, 'render_mailchimp_field_terms' ],
-					$this->view['menu_slug'],
-					'chimplet-section-mailchimp-api'
-				);
+				$list = $this->mc->get_list_by_id( $list );
 
-				$this->wp->add_settings_field(
-					'chimplet-field-mailchimp-user-roles',
-					__( 'Select User Roles', 'chimplet' ),
-					[ $this, 'render_mailchimp_field_user_roles' ],
-					$this->view['menu_slug'],
-					'chimplet-section-mailchimp-api'
-				);
+				if ( ! $list instanceof \Mailchimp_Error ) {
 
+					$this->wp->add_settings_field(
+						'chimplet-field-mailchimp-categories',
+						__( 'Select Taxonomy Terms', 'chimplet' ),
+						[ $this, 'render_mailchimp_field_terms' ],
+						$this->view['menu_slug'],
+						'chimplet-section-mailchimp-api',
+						[ 'list' => $list ]
+					);
+
+					$this->wp->add_settings_field(
+						'chimplet-field-mailchimp-user-roles',
+						__( 'Select User Roles', 'chimplet' ),
+						[ $this, 'render_mailchimp_field_user_roles' ],
+						$this->view['menu_slug'],
+						'chimplet-section-mailchimp-api',
+						[ 'list' => $list ]
+					);
+
+				}
 			}
 		}
 	}
@@ -173,7 +180,9 @@ class SettingsPage extends BasePage
 				unset( $settings['mailchimp']['list'] );
 
 				if ( isset( $settings['mailchimp']['terms'] ) ) {
+
 					unset( $settings['mailchimp']['terms'] );
+
 				}
 			}
 		}
@@ -181,11 +190,12 @@ class SettingsPage extends BasePage
 		// Sync taxonomy with MailChimp groups
 		if ( isset( $settings['mailchimp']['terms'] ) && ! empty( $settings['mailchimp']['terms'] ) ) {
 
-			// Create the interest grouping if it's not already there
-			$grouping = $this->mc->get_grouping_by_name( 'Interest' );
-
-			$local_groups = [];
 			foreach ( $settings['mailchimp']['terms'] as $tax => $terms ) {
+
+				// Use the tax label in mailchimp as it is cleaner
+				$tax_label    = get_taxonomy( $tax )->label;
+				$grouping     = $this->mc->get_grouping_by_name( $tax_label );
+				$local_groups = [];
 
 				foreach ( $terms as $term_id ) {
 
@@ -197,29 +207,45 @@ class SettingsPage extends BasePage
 
 					}
 				}
-			}
 
-			// Update groups
-			if ( $grouping ) {
+				// Update groups
+				if ( $grouping ) {
 
-				$this->mc->handle_grouping_integrity( $local_groups, $grouping['groups'], $grouping['id'] );
+					$this->mc->handle_grouping_integrity( $local_groups, $grouping['groups'], $grouping['id'] );
 
-			}
-			else {
-				// Create new grouping with default groups
-				$grouping_id = $this->mc->add_grouping( 'Interest', 'checkboxes', $local_groups );
+				}
+				else {
+					// Create new grouping with default groups
+					$grouping_id = $this->mc->add_grouping( $tax_label, 'checkboxes', $local_groups );
 
-				if ( ! $grouping_id ) {
+					if ( ! $grouping_id ) {
 
-					unset( $settings['mailchimp']['terms'] );
+						unset( $settings['mailchimp']['terms'][ $tax ] );
 
+					}
 				}
 			}
 		}
 
 		// User roles grouping
-		if ( isset( $settings['mailchimp']['users_roles'] ) && ! empty( $settings['mailchimp']['users_roles'] ) ) {
-			//@todo create grouping for user role
+		if ( isset( $settings['mailchimp']['user_roles'] ) && ! empty( $settings['mailchimp']['user_roles'] ) ) {
+			// Create the interest grouping if it's not already there
+			$grouping = $this->mc->get_grouping_by_name( 'User Roles' );
+
+			/*$local_groups = [];
+			foreach ( $settings['mailchimp']['users_roles'] as $role ) {
+
+				foreach ( $terms as $term_id ) {
+
+					$term = $this->wp->get_term_by( 'id', $term_id, $tax );
+
+					if ( $term ) {
+
+						$local_groups[] = $term->name;
+
+					}
+				}
+			}*/
 		}
 
 		return $settings;
@@ -455,113 +481,77 @@ class SettingsPage extends BasePage
 
 	public function render_mailchimp_field_terms( $args )
 	{
-		$list = $this->get_option( 'mailchimp.list' );
-
-		if ( empty( $list ) ) {
-
-			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html__( 'A List must be selected and saved.', 'chimplet' ) );
-			return;
-
-		}
-
-		$list = $this->mc->get_list_by_id( $list );
-
-		if ( $list instanceof \Mailchimp_List_DoesNotExist ) {
-
-			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html__( 'The selected List does not exist in your account.', 'chimplet' ) );
-			return;
-
-		}
-		else if ( $list instanceof \Mailchimp_Error ) {
-
-			$this->display_inline_error( $list->getMessage(), __( 'An unknown error occurred while fetching the selected Mailing List from your account.', 'chimplet' ) );
-			return;
-
-		}
 		?>
 		<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List. (Maximum of 60 groups)', 'chimplet' ); ?></p>
 		<?php
 
-		$value = $this->get_option( 'mailchimp.terms', [] );
+		$local_grouping = $this->get_option( 'mailchimp.terms', [] );
+		$taxonomies     = get_taxonomies( [ 'object_type' => $this->excluded_post_types ], 'objects', 'NOT' );
 
-		$groupings = [];
-
-		try {
-
-			$groupings = $this->mc->lists->interestGroupings( $list['id'] );
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			$this->display_inline_error( $e->getMessage(), __( 'An unknown error occurred while fetching the Interest Groupings from the selected Mailing List.', 'chimplet' ) );
-
+		if ( empty( $taxonomies ) ) {
+			return;
 		}
 
-		$taxonomies = get_taxonomies( [ 'object_type' => $this->excluded_post_types ], 'objects', 'NOT' );
+		foreach ( $taxonomies as $taxonomy ) :
 
-		if ( count( $taxonomies ) ) :
-			foreach ( $taxonomies as $taxonomy ) :
+			if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
+				continue;
+			}
 
-				if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
-					continue;
-				}
+			$taxonomy_in_grouping = null;
+			$grouping_status      = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Grouping isn’t synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
 
-				$taxonomy_in_grouping = null;
-				$grouping_status      = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Grouping isn’t synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
+			if ( $grouping = $this->mc->get_grouping_by_name( $taxonomy->label ) ) {
+				$taxonomy_in_grouping = $grouping;
+				$grouping_status      = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Grouping is synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
+			}
 
-				if ( count( $groupings ) ) {
-					foreach ( $groupings as $grouping_key => $grouping ) {
-						if ( $taxonomy->label === $grouping['name'] ) {
-							$taxonomy_in_grouping = &$groupings[ $grouping_key ];
-							$grouping_status      = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Grouping is synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
-							break;
-						}
-					}
-				}
+			$terms = get_terms( $taxonomy->name );
 
-				$terms = get_terms( $taxonomy->name );
+			if ( empty( $terms ) ) {
+				continue;
+			}
 
-				if ( count( $terms ) ) : ?>
-				<fieldset>
-					<legend><span class="h4"><?php echo $taxonomy->label . $grouping_status; //xss ok ?></span></legend>
-					<div class="chimplet-item-list chimplet-mc">
-						<?php
-						$id   = 'cb-select-' . $taxonomy->name . '-all';
-						$name = 'chimplet[mailchimp][terms][' . $taxonomy->name . '][]';
-						$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( 'all', $value[ $taxonomy->name ] ) );
-						?>
-						<label for="<?php echo esc_attr( $id ); ?>">
-							<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_html( $id ); ?>" value="all"<?php checked( $match ); ?>>
-							<span><?php _e( 'Select All/None', 'chimplet' ); ?></span>
-						</label>
-						<?php
-						foreach ( $terms as $term ) :
-							$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
-							$match = ( empty( $value[ $taxonomy->name ] ) || ! is_array( $value[ $taxonomy->name ] ) ? false : in_array( $term->term_id, $value[ $taxonomy->name ] ) );
-							$term_in_group  = null;
-							$group_status   = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Group isn’t synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
+			?>
+			<fieldset>
+				<legend><span class="h4"><?php echo $taxonomy->label . $grouping_status; //xss ok ?></span></legend>
+				<div class="chimplet-item-list chimplet-mc">
+					<?php
+					$id   = 'cb-select-' . $taxonomy->name . '-all';
+					$name = 'chimplet[mailchimp][terms][' . $taxonomy->name . '][]';
+					$match = ( empty( $local_grouping[ $taxonomy->name ] ) || ! is_array( $local_grouping[ $taxonomy->name ] ) ? false : in_array( 'all', $local_grouping[ $taxonomy->name ] ) );
+					?>
+					<label for="<?php echo esc_attr( $id ); ?>">
+						<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_html( $id ); ?>" value="all"<?php checked( $match ); ?>>
+						<span><?php _e( 'Select All/None', 'chimplet' ); ?></span>
+					</label>
+					<?php
+					foreach ( $terms as $term ) :
+						$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
+						$match = ( empty( $local_grouping[ $taxonomy->name ] ) || ! is_array( $local_grouping[ $taxonomy->name ] ) ? false : in_array( $term->term_id, $local_grouping[ $taxonomy->name ] ) );
+						$term_in_group  = null;
+						$group_status   = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Group isn’t synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
 
-							if ( isset( $taxonomy_in_grouping['groups'] ) && count( $taxonomy_in_grouping['groups'] ) ) {
-								foreach ( $taxonomy_in_grouping['groups'] as $group_key => $group ) {
-									if ( $term->name === $group['name'] ) {
-										$term_in_group  = &$taxonomy_in_grouping['groups'][ $group_key ];
-										$group_status   = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Group is synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
-										break;
-									}
+						if ( isset( $taxonomy_in_grouping['groups'] ) && count( $taxonomy_in_grouping['groups'] ) ) {
+							foreach ( $taxonomy_in_grouping['groups'] as $group_key => $group ) {
+								if ( $term->name === $group['name'] ) {
+									$term_in_group  = &$taxonomy_in_grouping['groups'][ $group_key ];
+									$group_status   = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Group is synced with MailChimp Grouping.', 'chimplet' ) ) . '"></span>';
+									break;
 								}
 							}
-						?>
-						<label for="<?php echo esc_attr( $id ); ?>">
-							<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $id ); ?>" value="<?php echo esc_attr( $term->term_id ); ?>"<?php checked( $match ); ?>>
-							<span><?php echo esc_html( $term->name ); ?></span>
-							<?php echo $group_status; //xss ok ?>
-						</label>
-						<?php endforeach; ?>
-					</div>
-				</fieldset>
-				<?php
-				endif;
-			endforeach;
-		endif;
+						}
+					?>
+					<label for="<?php echo esc_attr( $id ); ?>">
+						<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" id="<?php echo esc_attr( $id ); ?>" value="<?php echo esc_attr( $term->term_id ); ?>"<?php checked( $match ); ?>>
+						<span><?php echo esc_html( $term->name ); ?></span>
+						<?php echo $group_status; //xss ok ?>
+					</label>
+					<?php endforeach; ?>
+				</div>
+			</fieldset>
+			<?php
+		endforeach;
 	}
 
 	/**
@@ -573,7 +563,23 @@ class SettingsPage extends BasePage
 	 *
 	 * @return void
 	 */
+
 	public function render_mailchimp_field_user_roles( $args ) {
+		$list = $args['list'];
+		?>
+		<p class="description"><?php esc_html_e( 'Select one or more roles to be mapped has hidden mailchimp groups (These counts towards the 60 groups limit)', 'chimplet' ); ?></p>
+		<?php
+
+		$local_roles = $this->get_option( 'mailchimp.user_roles', [] );
+
+
+
+		$roles = $this->wp->get_editable_roles();
+
+		if ( empty( $roles ) ) {
+			return;
+		}
+
 
 	}
 

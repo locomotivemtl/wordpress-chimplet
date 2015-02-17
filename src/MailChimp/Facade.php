@@ -29,6 +29,7 @@ class Facade
 	public  $is_initialized = false;
 	private $facade;
 	private $current_list;
+	private $current_list_groupings;
 	private $all_lists;
 
 	/**
@@ -110,6 +111,9 @@ class Facade
 
 			$list = $this->facade->lists->getList( [ 'list_id' => $list_id ] );
 			$list = $this->current_list = reset( $list['data'] );
+
+			// Reset groupings for current list
+			$this->current_list_groupings = null;
 			return $list;
 
 		} catch ( \Mailchimp_List_DoesNotExist $e ) {
@@ -151,7 +155,36 @@ class Facade
 	 * @return int|bool
 	 */
 	public function get_current_list_total_results() {
+
 		return isset( $this->all_lists ) ? (int) $this->all_lists['total'] : 0;
+
+	}
+
+	/**
+	 * Return all groupings found in the list
+	 */
+
+	public function get_all_groupings() {
+
+		if ( isset( $this->current_list_groupings ) ) {
+
+			return $this->current_list_groupings;
+
+		}
+
+		try {
+
+			return $this->current_list_groupings = $this->facade->lists->interestGroupings( $this->current_list['id'] );
+
+		} catch ( \Mailchimp_List_InvalidOption $e ) {
+
+			// There is no grouping present
+			if ( 211 === $e->getCode() ) {
+
+				return false;
+
+			}
+		}
 	}
 
 	/**
@@ -160,23 +193,19 @@ class Facade
 	 * @param $name Grouping name
 	 * @return bool|array
 	 */
+
 	public function get_grouping_by_name( $name ) {
-		try {
 
-			$groupings = $this->facade->lists->interestGroupings( $this->current_list['id'] );
+		if ( $groupings = $this->get_all_groupings() ) {
 
-		} catch ( \Mailchimp_List_InvalidOption $e ) {
+			foreach ( $groupings as $key => $grouping ) {
 
-			// There is no grouping present
-			if ( 211 === $e->getCode() ) {
-				return false;
-			}
-		}
+				if ( $name === $grouping['name'] ) {
 
-		foreach ( $groupings as $key => $grouping ) {
-			if ( $name === $grouping['name'] ) {
-				return $grouping;
-				break;
+					return $grouping;
+
+					break;
+				}
 			}
 		}
 
