@@ -188,10 +188,21 @@ class SettingsPage extends BasePage
 			}
 		}
 
+		// For comparison purposes
+		$old_option = $this->get_option( 'mailchimp.terms' );
+
+		if ( ! $old_option ) {
+			$old_option = [];
+		}
+
 		// Sync taxonomy with MailChimp groups
 		if ( isset( $settings['mailchimp']['terms'] ) && ! empty( $settings['mailchimp']['terms'] ) ) {
+			$save_values  = &$settings['mailchimp']['terms'];
 
-			foreach ( $settings['mailchimp']['terms'] as $tax => $terms ) {
+			// Computing the difference between old options grouping and what is being save
+			foreach ( $old_option as $key => &$value ) { $value = []; }
+
+			foreach ( array_merge( $save_values, $old_option ) as $tax => $terms ) {
 
 				// Use the tax label in mailchimp as it is cleaner
 				$terms        = array_map( 'sanitize_text_field', $terms );
@@ -218,23 +229,17 @@ class SettingsPage extends BasePage
 					$local_groups,
 					$grouping,
 					$tax_label,
-					$settings['mailchimp']['terms']
+					$save_values
 				);
+
 			}
 		}
 		else {
-			// Means there is no more terms grouping
-			// Get the grouping we had before and delete
-			$grouping = $this->get_option( 'mailchimp.terms' );
+			foreach ( $old_option as $tax => $terms ) {
 
-			if ( $grouping ) {
+				$tax_label = get_taxonomy( $tax )->label;
+				$this->mc->delete_grouping( $tax_label );
 
-				foreach ( $grouping as $tax => $terms ) {
-
-					$tax_label = get_taxonomy( $tax )->label;
-					$this->mc->delete_grouping( $tax_label );
-
-				}
 			}
 		}
 
@@ -281,6 +286,11 @@ class SettingsPage extends BasePage
 	 * @param string $group_type
 	 */
 	private function add_or_update_grouping( $local_groups, $grouping, $grouping_name, &$to_unset, $group_type = 'checkboxes' ) {
+		if ( empty( $local_groups ) ) {
+			$this->mc->delete_grouping( $grouping_name );
+			return;
+		}
+
 		if ( $grouping ) {
 
 			$this->mc->handle_grouping_integrity( $local_groups, $grouping['groups'], $grouping['id'] );
