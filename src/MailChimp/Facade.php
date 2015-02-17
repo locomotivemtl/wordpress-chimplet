@@ -190,11 +190,11 @@ class Facade
 	/**
 	 * If a grouping doesn't exist create one, otherwise return the already created one
 	 *
-	 * @param $name Grouping name
+	 * @param string $name Grouping name
 	 * @return bool|array
 	 */
 
-	public function get_grouping_by_name( $name ) {
+	public function get_grouping( $name ) {
 
 		if ( $groupings = $this->get_all_groupings() ) {
 
@@ -233,6 +233,32 @@ class Facade
 
 		}
 
+	}
+
+	/**
+	 * Completely remove grouping
+	 *
+	 * @param string $name
+	 * @return bool
+	 */
+
+	public function delete_grouping( $name ) {
+		try {
+
+			$grouping_id = $this->get_grouping( $name )['id'];
+
+			if ( $grouping_id ) {
+
+				return $this->facade->lists->interestGroupingDel( $grouping_id );
+
+			}
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+		return false;
 	}
 
 	/**
