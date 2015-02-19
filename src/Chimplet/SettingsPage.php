@@ -179,12 +179,7 @@ class SettingsPage extends BasePage
 				);
 
 				unset( $settings['mailchimp']['list'] );
-
-				if ( isset( $settings['mailchimp']['terms'] ) ) {
-
-					unset( $settings['mailchimp']['terms'] );
-
-				}
+				unset( $settings['mailchimp']['terms'] );
 			}
 		}
 
@@ -197,12 +192,12 @@ class SettingsPage extends BasePage
 
 		// Sync taxonomy with MailChimp groups
 		if ( isset( $settings['mailchimp']['terms'] ) && ! empty( $settings['mailchimp']['terms'] ) ) {
-			$save_values  = &$settings['mailchimp']['terms'];
+			$tax_to_save  = &$settings['mailchimp']['terms'];
 
 			// Computing the difference between old options grouping and what is being save
 			foreach ( $old_option as $key => &$value ) { $value = []; }
 
-			foreach ( array_merge( $save_values, $old_option ) as $tax => $terms ) {
+			foreach ( array_merge( $tax_to_save, $old_option ) as $tax => $terms ) {
 
 				// Use the tax label in mailchimp as it is cleaner
 				$terms        = array_map( 'sanitize_text_field', $terms );
@@ -219,9 +214,7 @@ class SettingsPage extends BasePage
 					$term = $this->wp->get_term_by( 'id', $term_id, $tax );
 
 					if ( $term ) {
-
 						$local_groups[] = $term->name;
-
 					}
 				}
 
@@ -229,7 +222,7 @@ class SettingsPage extends BasePage
 					$local_groups,
 					$grouping,
 					$tax_label,
-					$save_values
+					$tax_to_save
 				);
 
 			}
@@ -248,29 +241,20 @@ class SettingsPage extends BasePage
 			isset( $settings['mailchimp']['user_roles'] )
 			&& is_array( $settings['mailchimp']['user_roles'] )
 		) {
+			// Make sure we got a valid role from the role list
+			$roles_to_save = array_diff( $settings['mailchimp']['user_roles'], ['all'] );
+			$roles_key     = array_keys( $this->wp->get_editable_roles() );
+			$role_diff     = array_diff( $roles_to_save, $roles_key );
 
-			// Create the interest grouping if it's not already there
-			$grouping      = $this->mc->get_grouping( self::USER_ROLE_GROUPING );
-			$local_groups  = array_map( 'sanitize_text_field',  $settings['mailchimp']['user_roles'] );
-
-			if ( isset( $local_groups['all'] ) ) {
-				unset( $local_groups['all'] );
+			if ( count( $role_diff ) > 0 ) {
+				unset( $settings['mailchimp']['user_roles'] );
+				$this->wp->add_settings_error(
+					self::SETTINGS_KEY,
+					'chimplet-invalid-user-roles',
+					__( 'Impossible to save specified user roles', 'chimplet' ),
+					'error'
+				);
 			}
-
-			$this->add_or_update_grouping(
-				$local_groups,
-				$grouping,
-				self::USER_ROLE_GROUPING,
-				$settings['mailchimp']['user_roles'],
-				'hidden'
-			);
-
-		}
-		else {
-
-			// Means there is no more user grouping
-			$this->mc->delete_grouping( self::USER_ROLE_GROUPING );
-
 		}
 
 		return $settings;
@@ -631,7 +615,7 @@ class SettingsPage extends BasePage
 
 	public function render_mailchimp_field_user_roles( $args ) {
 		?>
-		<p class="description"><?php esc_html_e( 'Select one or more roles to be mapped has hidden mailchimp groups (These counts towards the 60 groups limit)', 'chimplet' ); ?></p>
+		<p class="description"><?php esc_html_e( 'All users of the chosen roles will be synced with MailChimp.', 'chimplet' ); ?></p>
 		<?php
 
 		$local_roles = $this->get_option( 'mailchimp.user_roles', [] );
