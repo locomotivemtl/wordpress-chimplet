@@ -19,7 +19,7 @@ class SettingsPage extends BasePage
 {
 
 	const SETTINGS_KEY = 'chimplet';
-	const USER_ROLE_GROUPING = 'User Roles';
+	const USER_ROLE_MERGE_VAR = 'WP_ROLE';
 
 	/**
 	 * @var array  $excluded_post_types  Post types to exclude when fetching Taxonomy objects
@@ -236,7 +236,7 @@ class SettingsPage extends BasePage
 			}
 		}
 
-		// User roles grouping
+		// User roles list fields
 		if (
 			isset( $settings['mailchimp']['user_roles'] )
 			&& is_array( $settings['mailchimp']['user_roles'] )
@@ -254,6 +254,27 @@ class SettingsPage extends BasePage
 					__( 'Impossible to save specified user roles', 'chimplet' ),
 					'error'
 				);
+			}
+			else {
+				// Let's add the role as a list field if not already present
+				$merge_var_options = [
+					'field_type' => 'dropdown',
+					'public'     => false,
+					'show'       => false,
+					'choices'    => $roles_to_save
+				];
+
+				$success = $this->mc->handle_merge_var_integrity( self::USER_ROLE_MERGE_VAR, 'WordPress role', $merge_var_options );
+
+				if ( ! $success ) {
+					unset( $settings['mailchimp']['user_roles'] );
+					$this->wp->add_settings_error(
+						self::SETTINGS_KEY,
+						'chimplet-user-roles-sync-problem',
+						__( 'Impossible to save user roles with MailChimp merge fields', 'chimplet' ),
+						'error'
+					);
+				}
 			}
 		}
 
@@ -615,7 +636,7 @@ class SettingsPage extends BasePage
 
 	public function render_mailchimp_field_user_roles( $args ) {
 		?>
-		<p class="description"><?php esc_html_e( 'All users of the chosen roles will be synced with MailChimp.', 'chimplet' ); ?></p>
+		<p class="description"><?php esc_html_e( 'All users of the chosen roles will be synced with MailChimp and added as WP_ROLE merge field.', 'chimplet' ); ?></p>
 		<?php
 
 		$local_roles = $this->get_option( 'mailchimp.user_roles', [] );
@@ -628,8 +649,8 @@ class SettingsPage extends BasePage
 			$roles_key = array_keys( $roles );
 		}
 
-		$grouping       = $this->mc->get_grouping( self::USER_ROLE_GROUPING );
-		$grouping_names = isset( $grouping['groups'] ) ? $this->wp->wp_list_pluck( $grouping['groups'], 'name' ) : [];
+		$merge_var         = $this->mc->get_merge_var( self::USER_ROLE_MERGE_VAR );
+		$merge_var_choices = isset( $merge_var['choices'] ) ?  $merge_var['choices'] : [];
 		?>
 		<fieldset>
 			<div class="chimplet-item-list chimplet-mc">
@@ -651,11 +672,11 @@ class SettingsPage extends BasePage
 					$name  = "chimplet[mailchimp][user_roles][$role]";
 					$match = in_array( $role, $local_roles );
 
-					$is_synced = in_array( $role, $grouping_names );
+					$is_synced = in_array( $role, $merge_var_choices );
 					$group_status = sprintf(
 						'<span class="chimplet-sync dashicons dashicons-%s" title="%s"></span>',
 						$is_synced ? 'yes' : 'no',
-						$is_synced ? esc_attr__( 'Role is synced with MailChimp Grouping.', 'chimplet' ) : esc_attr__( "Role isn't synced with MailChimp Grouping.", 'chimplet' )
+						$is_synced ? esc_attr__( 'Role is synced with MailChimp merge var.', 'chimplet' ) : esc_attr__( "Role isn't synced with MailChimp merge var field.", 'chimplet' )
 					);
 				?>
 				<label for="<?php echo esc_attr( $id ); ?>">
