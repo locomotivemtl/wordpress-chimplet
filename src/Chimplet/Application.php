@@ -165,8 +165,7 @@ class Application extends Base
 					[ 'type' => 'error' ]
 				);
 			}
-
-			if ( ! $this->get_option( 'mailchimp.valid' ) ) {
+			else if ( ! $this->get_option( 'mailchimp.valid' ) ) {
 				$this->notices->add(
 					'chimplet/mailchimp/invalid-api-key',
 					sprintf( __( 'Invalid MailChimp API Key: %s.' ), $mailchimp_key ) . ' ' . esc_html( 'Please go to ', 'chimplet' ) . $settings_link, // xss ok
