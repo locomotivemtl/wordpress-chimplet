@@ -197,7 +197,7 @@ class SettingsPage extends BasePage
 			// Computing the difference between old options grouping and what is being save
 			foreach ( $old_option as $key => &$value ) { $value = []; }
 
-			foreach ( array_merge( $tax_to_save, $old_option ) as $tax => $terms ) {
+			foreach ( array_merge( $old_option, $tax_to_save ) as $tax => $terms ) {
 
 				// Use the tax label in mailchimp as it is cleaner
 				$terms        = array_map( 'sanitize_text_field', $terms );
