@@ -350,6 +350,43 @@ class Facade
 	}
 
 	/**
+	 * Create all segments necessary
+	 *
+	 * @param array $segments an array of segments
+	 * @return bool
+	 */
+	public function create_segments_from_groups( $segments ) {
+
+		foreach ( $segments as $segment ) {
+
+			try {
+
+				$result = $this->facade->lists->segmentTest( $this->current_list['id'], $segment );
+
+				if ( $result ) {
+
+					// Try adding the segment
+					$args = [
+						'type'         => 'saved',
+						'name'         => md5( $segment['conditions'][0]['value'] ), // 100 byte max so md5 it is
+						'segment_opts' => $segment
+					];
+					$this->facade->lists->segmentAdd( $this->current_list['id'], $args );
+
+				}
+			} catch ( \Mailchimp_Error $e ) {
+
+				continue;
+
+			}
+
+		}
+
+	}
+
+	public function create_campaign_from_segments() {}
+
+	/**
 	 * Function to get all merge vars affected to the current list
 	 *
 	 * @return bool

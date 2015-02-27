@@ -171,6 +171,7 @@ class SettingsPage extends BasePage
 			$list = $this->mc->get_list_by_id( $settings['mailchimp']['list'] );
 
 			if ( $list instanceof \Mailchimp_Error ) {
+
 				$this->wp->add_settings_error(
 					self::SETTINGS_KEY,
 					'mailchimp-invalid-list',
@@ -178,11 +179,38 @@ class SettingsPage extends BasePage
 					'error'
 				);
 
-				unset( $settings['mailchimp']['list'] );
-				unset( $settings['mailchimp']['terms'] );
+				$list = null;
+
 			}
 		}
 
+		// No need to continue further if we don't have list...
+		if ( ! $list ) {
+			return;
+		}
+
+		// Do we have any taxonomies?
+		if ( isset( $settings['mailchimp']['terms'] ) ) {
+
+			$this->save_taxonomy_terms( $settings['mailchimp']['terms'] );
+
+		}
+
+		if ( isset( $settings['mailchimp']['user_roles'] ) ) {
+
+			$this->save_user_roles( $settings['mailchimp']['user_roles'] );
+
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Handle saving and sanitization related to taxonomy
+	 *
+	 * @param array $tax_to_save
+	 */
+	private function save_taxonomy_terms( &$tax_to_save ) {
 		// For comparison purposes
 		$old_option = $this->get_option( 'mailchimp.terms' );
 
@@ -190,70 +218,120 @@ class SettingsPage extends BasePage
 			$old_option = [];
 		}
 
-		// Sync taxonomy with MailChimp groups
-		if ( isset( $settings['mailchimp']['terms'] ) && ! empty( $settings['mailchimp']['terms'] ) ) {
-			$tax_to_save  = &$settings['mailchimp']['terms'];
+		// Sync taxonomy with MailChimp groups only if it didn't change
+		if ( $tax_to_save !== $old_option ) {
 
-			// Computing the difference between old options grouping and what is being save
-			foreach ( $old_option as $key => &$value ) { $value = []; }
+			if ( ! empty( $tax_to_save )	) {
 
-			foreach ( array_merge( $old_option, $tax_to_save ) as $tax => $terms ) {
+				// Computing the difference between old options grouping and what is being save
+				foreach ( $old_option as $key => &$value ) { $value = []; }
 
-				// Use the tax label in mailchimp as it is cleaner
-				$terms        = array_map( 'sanitize_text_field', $terms );
-				$tax_label    = get_taxonomy( $tax )->label;
-				$grouping     = $this->mc->get_grouping( $tax_label );
-				$local_groups = [];
+				foreach ( array_merge( $old_option, $tax_to_save ) as $tax => $terms ) {
 
-				foreach ( $terms as $term_id ) {
+					// Use the tax label in mailchimp as it is cleaner
+					$terms        = array_map( 'sanitize_text_field', $terms );
+					$tax_label    = get_taxonomy( $tax )->label;
+					$grouping     = $this->mc->get_grouping( $tax_label );
+					$local_groups = [];
 
-					if ( 'all' === $term_id ) {
-						continue;
+					foreach ( $terms as $term_id ) {
+
+						if ( 'all' === $term_id ) {
+							continue;
+						}
+
+						$term = $this->wp->get_term_by( 'id', $term_id, $tax );
+
+						if ( $term ) {
+							$local_groups[] = $term->name;
+						}
 					}
 
-					$term = $this->wp->get_term_by( 'id', $term_id, $tax );
+					// Add or update grouping
+					$this->add_or_update_grouping(
+						$local_groups,
+						$grouping,
+						$tax_label,
+						$tax_to_save
+					);
 
-					if ( $term ) {
-						$local_groups[] = $term->name;
+					// Add or update segments related to grouping
+					// We cannot cross reference grouping. This might limit power set.
+					$segments = $this->generate_group_power_set( $local_groups );
+
+					foreach ( $segments as &$segment ) {
+						$diff = array_diff( $local_groups, $segment );
+
+						// Here we setup some option for the segment
+						$segment = [
+							'match' => 'all',
+							'conditions' => [
+								[
+									'field' => 'interests-' . $grouping['id'],
+									'op'    => 'all',
+									'value' => implode( ',', $segment ),
+								]
+							],
+						];
+
+						if ( count( $diff ) > 0 ) {
+
+							$segment['conditions'][] = [
+								'field' => 'interests-' . $grouping['id'],
+								'op'    => 'none',
+								'value' => implode( ',', $diff ),
+							];
+
+						}
 					}
+
+					// Create segments
+					$this->mc->create_segments_from_groups( $segments );
 				}
+			}
+			else {
 
-				$this->add_or_update_grouping(
-					$local_groups,
-					$grouping,
-					$tax_label,
-					$tax_to_save
-				);
+				foreach ( $old_option as $tax => $terms ) {
 
+					$tax_label = get_taxonomy( $tax )->label;
+					$this->mc->delete_grouping( $tax_label );
+
+				}
 			}
 		}
-		else {
-			foreach ( $old_option as $tax => $terms ) {
+	}
 
-				$tax_label = get_taxonomy( $tax )->label;
-				$this->mc->delete_grouping( $tax_label );
+	/**
+	 * Save user roles
+	 *
+	 * @param array $roles
+	 */
+	private function save_user_roles( &$roles ) {
+		// For comparison purposes
+		$old_option = $this->get_option( 'mailchimp.user_roles' );
 
-			}
+		if ( ! $old_option ) {
+			$old_option = [];
 		}
 
 		// User roles list fields
-		if (
-			isset( $settings['mailchimp']['user_roles'] )
-			&& is_array( $settings['mailchimp']['user_roles'] )
-		) {
+		if ( is_array( $roles ) && $roles !== $old_option ) {
 			// Make sure we got a valid role from the role list
-			$roles_to_save = array_diff( $settings['mailchimp']['user_roles'], ['all'] );
+			$roles_to_save = array_diff( $roles, ['all'] );
 			$roles_key     = array_keys( $this->wp->get_editable_roles() );
 			$role_diff     = array_diff( $roles_to_save, $roles_key );
 
 			if ( count( $role_diff ) > 0 ) {
-				unset( $settings['mailchimp']['user_roles'] );
+
+				unset( $roles );
+
 				$this->wp->add_settings_error(
 					self::SETTINGS_KEY,
 					'chimplet-invalid-user-roles',
 					__( 'Impossible to save specified user roles', 'chimplet' ),
 					'error'
 				);
+
 			}
 			else {
 				// Let's add the role as a list field if not already present
@@ -261,24 +339,30 @@ class SettingsPage extends BasePage
 					'field_type' => 'dropdown',
 					'public'     => false,
 					'show'       => false,
+					'req'        => true,
 					'choices'    => $roles_to_save
 				];
 
-				$success = $this->mc->handle_merge_var_integrity( self::USER_ROLE_MERGE_VAR, 'WordPress role', $merge_var_options );
+				$success = $this->mc->handle_merge_var_integrity(
+					self::USER_ROLE_MERGE_VAR,
+					'WordPress role',
+					$merge_var_options
+				);
 
 				if ( ! $success ) {
-					unset( $settings['mailchimp']['user_roles'] );
+
+					unset( $roles );
+
 					$this->wp->add_settings_error(
 						self::SETTINGS_KEY,
 						'chimplet-user-roles-sync-problem',
 						__( 'Impossible to save user roles with MailChimp merge fields', 'chimplet' ),
 						'error'
 					);
+
 				}
 			}
 		}
-
-		return $settings;
 	}
 
 	/**
@@ -292,8 +376,11 @@ class SettingsPage extends BasePage
 	 */
 	private function add_or_update_grouping( $local_groups, $grouping, $grouping_name, &$to_unset, $group_type = 'checkboxes' ) {
 		if ( empty( $local_groups ) ) {
+
 			$this->mc->delete_grouping( $grouping_name );
+
 			return;
+
 		}
 
 		if ( $grouping ) {
@@ -311,6 +398,30 @@ class SettingsPage extends BasePage
 
 			}
 		}
+	}
+
+	/**
+	 * Generate all combination for segments using power set algorithm
+	 *
+	 * @param array $array
+	 * @return array
+	 */
+	private function generate_group_power_set( $array ) {
+		$results = [ [] ];
+
+		foreach ( $array as $element ) {
+
+			foreach ( $results as $combination ) {
+
+				array_push( $results, array_merge( [ $element ], $combination ) );
+
+			}
+		}
+
+		// Removing the empty array of the beginning
+		array_shift( $results );
+
+		return $results;
 	}
 
 	/**
@@ -544,7 +655,7 @@ class SettingsPage extends BasePage
 	public function render_mailchimp_field_terms( $args )
 	{
 		?>
-		<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List. (Maximum of 60 groups)', 'chimplet' ); ?></p>
+		<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List. (Maximum of 60 groups). We will also create automatic segmentation using power sets for these groups.', 'chimplet' ); ?></p>
 		<?php
 
 		$local_grouping = $this->get_option( 'mailchimp.terms', [] );
