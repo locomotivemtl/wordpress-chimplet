@@ -357,7 +357,6 @@ class Facade
 	 */
 	public function create_campaign( $campaign ) {
 
-
 		try {
 
 			$result = $this->facade->lists->segmentTest( $this->current_list['id'], $campaign['segment_opts'] );
