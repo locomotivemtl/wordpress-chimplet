@@ -352,39 +352,52 @@ class Facade
 	/**
 	 * Create all segments necessary
 	 *
-	 * @param array $segments an array of segments
-	 * @return bool
+	 * @param $campaign
+	 * @return bool|array
 	 */
-	public function create_segments_from_groups( $segments ) {
+	public function create_campaign( $campaign ) {
 
-		foreach ( $segments as $segment ) {
 
-			try {
+		try {
 
-				$result = $this->facade->lists->segmentTest( $this->current_list['id'], $segment );
+			$result = $this->facade->lists->segmentTest( $this->current_list['id'], $campaign['segment_opts'] );
 
-				if ( $result ) {
+			if ( $result ) {
 
-					// Try adding the segment
-					$args = [
-						'type'         => 'saved',
-						'name'         => md5( $segment['conditions'][0]['value'] ), // 100 byte max so md5 it is
-						'segment_opts' => $segment
-					];
-					$this->facade->lists->segmentAdd( $this->current_list['id'], $args );
+				// Add the campaigns
+				list( $type, $options, $content, $segment_opts, $type_opts ) = array_values( $campaign );
+				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
 
-				}
-			} catch ( \Mailchimp_Error $e ) {
-
-				continue;
+				return $campaign['data'];
 
 			}
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+	}
+
+	/**
+	 * Retrieve user template in MailChimp
+	 *
+	 * @return array
+	 */
+	public function get_user_template() {
+
+		try {
+
+			$templates = $this->facade->templates->getList( [ 'user' => true ], [ 'include_drag_and_drop' => true ] );
+
+			return $templates['user'];
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return [];
 
 		}
 
 	}
-
-	public function create_campaign_from_segments() {}
 
 	/**
 	 * Function to get all merge vars affected to the current list

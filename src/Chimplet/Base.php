@@ -140,4 +140,22 @@ abstract class Base
 			<?php
 		}
 	}
+
+	/**
+	 *  Render a section for the settings page
+	 *
+	 * @param string $template
+	 * @param array $args
+	 */
+
+	public function render_section( $template, $args = [] ) {
+
+		$path = $this->get_path( "assets/views/section-{$template}.php" );
+
+		if ( file_exists( $path ) ) {
+
+			include $path;
+
+		}
+	}
 }
