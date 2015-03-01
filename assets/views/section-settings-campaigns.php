@@ -6,7 +6,7 @@ $options = $this->get_option( 'mailchimp.campaigns', [] );
 <p class="description"><?php esc_html_e( 'This plugin can automate the creation of rss campaigns using power sets of interest grouping.', 'chimplet' ); // @todo link to more explanation ?></p>
 <fieldset>
 		<legend><span class="h4"><?php esc_html_e( 'General', 'chimplet' ); ?></span></legend>
-		<div class="chimplet-item-list chimplet-mc">
+		<div class="chimplet-mc">
 			<?php
 			$id          = 'mailchimp-campaigns-automage';
 			$field_name  = 'chimplet[mailchimp][campaigns]';
@@ -23,7 +23,7 @@ $options = $this->get_option( 'mailchimp.campaigns', [] );
 </fieldset>
 <fieldset>
 	<legend><span class="h4"><?php esc_html_e( 'Frequency', 'chimplet' ); ?></span></legend>
-	<div class="chimplet-item-list chimplet-mc">
+	<div class="chimplet-mc">
 		<?php
 		$id    = 'mailchimp-campaigns-frequency';
 		$frequencies = [
@@ -33,18 +33,19 @@ $options = $this->get_option( 'mailchimp.campaigns', [] );
 		];
 
 		printf(
-			'<select id="%s" name="%s">',
+			'<select id="%s" name="%s" autocomplete="off">',
 			esc_attr( $id ),
 			esc_attr( $field_name ) . '[frequency]'
 		);
 
-		$options['frequency'] = is_array( $options['frequency'] ) ? $options['frequency'] : [];
+		$options['frequency'] = isset( $options['frequency'] ) ? $options['frequency'] : '';
 
 		foreach ( $frequencies as $key => $name ) {
+			$key = $key;
 			printf(
-				'<option value="%s" %s>%s</option>',
+				'<option value="%s"%s>%s</option>',
 				esc_attr( $key ),
-				selected( true, in_array( $key, $options['frequency'] ) ),
+				selected( $key, $options['frequency'], false ),
 				esc_html( $name )
 			);
 		}
@@ -55,7 +56,7 @@ $options = $this->get_option( 'mailchimp.campaigns', [] );
 </fieldset>
 <fieldset>
 	<legend><span class="h4"><?php esc_html_e( 'RSS template in MailChimp', 'chimplet' ); ?></span></legend>
-	<div class="chimplet-item-list chimplet-mc">
+	<div class="chimplet-mc">
 		<?php
 		$id    = 'mailchimp-campaigns-frequency';
 		$templates = $this->mc->get_user_template();
@@ -64,7 +65,7 @@ $options = $this->get_option( 'mailchimp.campaigns', [] );
 			esc_html_e( 'No template found.', 'chimplet' );
 		} else {
 			printf(
-				'<select id="%s" name="%s">',
+				'<select id="%s" name="%s" autocomplete="off">',
 				esc_attr( $id ),
 				esc_attr( $field_name ) . '[template]'
 			);
@@ -73,9 +74,9 @@ $options = $this->get_option( 'mailchimp.campaigns', [] );
 
 			foreach ( $templates as $template ) {
 				printf(
-					'<option value="%s" %s>%s</option>',
+					'<option value="%s"%s>%s</option>',
 					esc_attr( $template['id'] ),
-					selected( $options['template'], $template['id'] ),
+					selected( $options['template'], $template['id'], false ),
 					esc_html( $template['name'] )
 				);
 			}

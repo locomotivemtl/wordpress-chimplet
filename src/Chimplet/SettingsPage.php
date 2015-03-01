@@ -211,48 +211,66 @@ class SettingsPage extends BasePage
 		}
 
 		// We have new segments we add a corresponding campaigns
-		if ( $segments && isset( $settings['mailchimp']['campaigns']['automate'] ) ) {
+		if ( isset( $settings['mailchimp']['campaigns']['automate'] ) ) {
 
-			// Create RSS driven campaign using template and frequency specified
-			$segments  = apply_filters( 'chimplet/campaigns/segments', $segments );
-			$folder_id = $this->mc->get_campaign_folder_id( apply_filters( 'chimplet/campaigns/folder', 'Chimplet' ) );
+			// Here we compare old campaign settings to the new one
+			if ( ! $segments ) {
+				$old_options = $this->get_option( 'mailchimp.campaigns' );
 
-			foreach ( $segments as $segment ) {
-				// From core
-				$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
-				if ( 'www.' == substr( $sitename, 0, 4 ) ) {
-					$sitename = substr( $sitename, 4 );
+				if ( $old_options !== $settings['mailchimp']['campaigns'] ) {
+					// Delete all campaigns saved and recreate segments
+					$this->delete_active_campaigns();
+
+					$segments = $this->handle_segment_and_grouping( $this->get_option( 'mailchimp.terms' ) );
 				}
+			}
 
-				$campaign = [
-					'type'    => apply_filters( 'chimplet/campaigns/type', 'rss' ),
-					'options' => apply_filters( 'chimplet/campaigns/options', [
-						'list_id'     => $list['id'],
-						'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
-						'from_email'  => apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
-						'from_name'   => apply_filters( 'wp_mail_from_name', 'Chimplet' ),
-						'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
-					] ),
-					'content' => apply_filters( 'chimplet/campaigns/content', [
-						'url' => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
-					] ),
-					'segment_opts' => $segment,
-					'type_opts' => apply_filters( 'chimplet/campaigns/type/opts', [
-						'rss' => [
-							'url'      => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
-							'schedule' => $settings['mailchimp']['campaigns']['frequency']
-						]
-					] ),
-				];
+			if ( $segments ) {
+				// Create RSS driven campaign using template and frequency specified
+				$segments  = apply_filters( 'chimplet/campaigns/segments', $segments );
+				$folder_id = $this->mc->get_campaign_folder_id( apply_filters( 'chimplet/campaigns/folder', 'Chimplet' ) );
 
-				if ( is_int( $folder_id ) ) {
-					$campaign['options']['folder_id'] = $folder_id;
-				}
+				// Only one taxonomy for now
+				// @todo what do we do with all other segments from other tax?
+				$segments = array_shift( $segments );
 
-				$campaign = $this->mc->create_campaign( $campaign );
+				foreach ( $segments as $segment ) {
+					// From core
+					$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
+					if ( 'www.' == substr( $sitename, 0, 4 ) ) {
+						$sitename = substr( $sitename, 4 );
+					}
 
-				if ( $campaign ) {
-					$settings['mailchimp']['campaigns']['active'][] = $campaign['id'];
+					$campaign = [
+						'type'    => apply_filters( 'chimplet/campaigns/type', 'rss' ),
+						'options' => apply_filters( 'chimplet/campaigns/options', [
+							'list_id'     => $list['id'],
+							'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
+							'from_email'  => apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
+							'from_name'   => apply_filters( 'wp_mail_from_name', 'Chimplet' ),
+							'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
+						] ),
+						'content' => apply_filters( 'chimplet/campaigns/content', [
+							'url' => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
+						] ),
+						'segment_opts' => $segment,
+						'type_opts' => apply_filters( 'chimplet/campaigns/type/opts', [
+							'rss' => [
+								'url'      => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
+								'schedule' => $settings['mailchimp']['campaigns']['frequency']
+							]
+						] ),
+					];
+
+					if ( is_int( $folder_id ) ) {
+						$campaign['options']['folder_id'] = $folder_id;
+					}
+
+					$campaign = $this->mc->create_campaign( $campaign );
+
+					if ( $campaign ) {
+						$settings['mailchimp']['campaigns']['active'][] = $campaign['id'];
+					}
 				}
 			}
 		}
@@ -279,78 +297,14 @@ class SettingsPage extends BasePage
 
 			// Here we have some new terms so we need to delete previously set campaigns
 			// otherwise we won't be able to delete any groups because of active campaigns
-			if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
-				foreach ( $active_campaigns as $cid ) {
-					$this->mc->delete_campaign( $cid );
-				}
-			}
+			$this->delete_active_campaigns();
 
 			if ( ! empty( $tax_to_save )	) {
 
 				// Computing the difference between old options grouping and what is being save
 				foreach ( $old_option as $key => &$value ) { $value = []; }
 
-				foreach ( array_merge( $old_option, $tax_to_save ) as $tax => $terms ) {
-
-					// Use the tax label in mailchimp as it is cleaner
-					$terms        = array_map( 'sanitize_text_field', $terms );
-					$tax_label    = get_taxonomy( $tax )->label;
-					$grouping     = $this->mc->get_grouping( $tax_label );
-					$local_groups = [];
-
-					foreach ( $terms as $term_id ) {
-
-						if ( 'all' === $term_id ) {
-							continue;
-						}
-
-						$term = $this->wp->get_term_by( 'id', $term_id, $tax );
-
-						if ( $term ) {
-							$local_groups[] = $term->name;
-						}
-					}
-
-					// Add or update grouping
-					$this->add_or_update_grouping(
-						$local_groups,
-						$grouping,
-						$tax_label,
-						$tax_to_save
-					);
-
-					// Add or update segments related to grouping
-					// We cannot cross reference grouping. This might limit power set.
-					$segments = $this->generate_group_power_set( $local_groups );
-
-					foreach ( $segments as &$segment ) {
-						$diff = array_diff( $local_groups, $segment );
-
-						// Here we setup some option for the segment
-						$segment = [
-							'match' => 'all',
-							'conditions' => [
-								[
-									'field' => 'interests-' . $grouping['id'],
-									'op'    => 'all',
-									'value' => implode( ',', $segment ),
-								]
-							],
-						];
-
-						if ( count( $diff ) > 0 ) {
-
-							$segment['conditions'][] = [
-								'field' => 'interests-' . $grouping['id'],
-								'op'    => 'none',
-								'value' => implode( ',', $diff ),
-							];
-
-						}
-					}
-
-					return $segments;
-				}
+				return $this->handle_segment_and_grouping( array_merge( $old_option, $tax_to_save ) );
 			}
 			else {
 
@@ -364,6 +318,108 @@ class SettingsPage extends BasePage
 		}
 
 		return false;
+	}
+
+	/**
+	 * Create grouping and related segments
+	 *
+	 * @param $options
+	 * @return array
+	 */
+	private function handle_segment_and_grouping( $options ) {
+
+		$segments = [];
+
+		foreach ( $options as $tax => $terms ) {
+
+			// Use the tax label in mailchimp as it is cleaner
+			$terms        = array_map( 'sanitize_text_field', $terms );
+			$tax_label    = get_taxonomy( $tax )->label;
+			$grouping     = $this->mc->get_grouping( $tax_label );
+			$local_groups = [];
+
+			foreach ( $terms as $term_id ) {
+
+				if ( 'all' === $term_id ) {
+					continue;
+				}
+
+				$term = $this->wp->get_term_by( 'id', $term_id, $tax );
+
+				if ( $term ) {
+					$local_groups[] = $term->name;
+				}
+			}
+
+			// Add or update grouping
+			$this->add_or_update_grouping(
+				$local_groups,
+				$grouping,
+				$tax_label,
+				$tax_to_save
+			);
+
+			// Add or update segments related to grouping
+			// We cannot cross reference grouping. This might limit power set.
+			$segments[] = $this->generate_segments( $local_groups, $grouping );
+
+		}
+
+		return $segments;
+	}
+
+	/**
+	 * We established that we needed to clear the campaigns we created.
+	 */
+	private function delete_active_campaigns() {
+
+		if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
+			foreach ( $active_campaigns as $cid ) {
+				$this->mc->delete_campaign( $cid );
+			}
+		}
+
+	}
+
+	/**
+	 * Generate segments using groups and grouping
+	 *
+	 * @param $groups
+	 * @param $grouping
+	 * @return array
+	 */
+	private function generate_segments( $groups, $grouping ) {
+
+		$segments = $this->generate_group_power_set( $groups );
+
+		foreach ( $segments as &$segment ) {
+			$diff = array_diff( $groups, $segment );
+
+			// Here we setup some option for the segment
+			$segment = [
+				'match' => 'all',
+				'conditions' => [
+					[
+						'field' => 'interests-' . $grouping['id'],
+						'op'    => 'all',
+						'value' => implode( ',', $segment ),
+					]
+				],
+			];
+
+			if ( count( $diff ) > 0 ) {
+
+				$segment['conditions'][] = [
+					'field' => 'interests-' . $grouping['id'],
+					'op'    => 'none',
+					'value' => implode( ',', $diff ),
+				];
+
+			}
+		}
+
+		return $segments;
+
 	}
 
 	/**
