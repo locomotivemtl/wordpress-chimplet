@@ -212,14 +212,12 @@ class SettingsPage extends BasePage
 
 		// We have new segments we add a corresponding campaigns
 		if ( $segments && isset( $settings['mailchimp']['campaigns']['automate'] ) ) {
-			// Is there old campaigns we need to delete before??
-			// @todo
 
 			// Create RSS driven campaign using template and frequency specified
-			$segments  = apply_filters( 'chimplet-generated-campaigns-segment', $segments );
+			$segments  = apply_filters( 'chimplet/campaigns/segments', $segments );
+			$folder_id = $this->mc->get_campaign_folder_id( apply_filters( 'chimplet/campaigns/folder', 'Chimplet' ) );
 
 			foreach ( $segments as $segment ) {
-
 				// From core
 				$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
 				if ( 'www.' == substr( $sitename, 0, 4 ) ) {
@@ -227,30 +225,34 @@ class SettingsPage extends BasePage
 				}
 
 				$campaign = [
-					'type'    => apply_filters( 'chimplet-campaigns-type', 'rss' ),
-					'options' => apply_filters( 'chimplet-campaigns-options', [
-						'list_id' => $list['id'],
-						'subject' => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
-						'from_email' => apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
-						'from_name'  => apply_filters( 'wp_mail_from_name', 'Chimplet' ),
+					'type'    => apply_filters( 'chimplet/campaigns/type', 'rss' ),
+					'options' => apply_filters( 'chimplet/campaigns/options', [
+						'list_id'     => $list['id'],
+						'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
+						'from_email'  => apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
+						'from_name'   => apply_filters( 'wp_mail_from_name', 'Chimplet' ),
 						'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
 					] ),
-					'content' => apply_filters( 'chimplet-campaigns-content', [
-						'url' => apply_filters( 'chimplet-campaigns-rss-url', bloginfo( 'rss2_url' ) ),
+					'content' => apply_filters( 'chimplet/campaigns/content', [
+						'url' => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
 					] ),
 					'segment_opts' => $segment,
-					'type_opts' => apply_filters( 'chimplet-campaigns-type-opts', [
+					'type_opts' => apply_filters( 'chimplet/campaigns/type/opts', [
 						'rss' => [
-							'url' => apply_filters( 'chimplet-campaigns-rss-url', bloginfo( 'rss2_url' ) ),
+							'url'      => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
 							'schedule' => $settings['mailchimp']['campaigns']['frequency']
 						]
 					] ),
 				];
 
+				if ( is_int( $folder_id ) ) {
+					$campaign['options']['folder_id'] = $folder_id;
+				}
+
 				$campaign = $this->mc->create_campaign( $campaign );
 
 				if ( $campaign ) {
-					$settings['mailchimp']['campaigns']['active_campaigns'][] = $campaign['id'];
+					$settings['mailchimp']['campaigns']['active'][] = $campaign['id'];
 				}
 			}
 		}
@@ -260,20 +262,28 @@ class SettingsPage extends BasePage
 
 	/**
 	 * Handle saving and sanitization related to taxonomy
+	 * Since it's impossible to delete grouping that are used by campaign
+	 * we need to handle the campaign deletion associated
 	 *
 	 * @param array $tax_to_save
 	 * @return array|bool
 	 */
 	private function save_taxonomy_terms( &$tax_to_save ) {
 		// For comparison purposes
-		$old_option = $this->get_option( 'mailchimp.terms' );
-
-		if ( ! $old_option ) {
+		if ( ! $old_option = $this->get_option( 'mailchimp.terms' ) ) {
 			$old_option = [];
 		}
 
 		// Sync taxonomy with MailChimp groups only if it didn't change
 		if ( $tax_to_save !== $old_option ) {
+
+			// Here we have some new terms so we need to delete previously set campaigns
+			// otherwise we won't be able to delete any groups because of active campaigns
+			if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
+				foreach ( $active_campaigns as $cid ) {
+					$this->mc->delete_campaign( $cid );
+				}
+			}
 
 			if ( ! empty( $tax_to_save )	) {
 

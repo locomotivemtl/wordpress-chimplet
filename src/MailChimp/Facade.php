@@ -350,6 +350,55 @@ class Facade
 	}
 
 	/**
+	 * Get a folder ID by name or create the folder if it doesn't exist
+	 *
+	 * @param $name
+	 * @return bool|int
+	 */
+
+	public function get_campaign_folder_id( $name ) {
+
+		if ( empty( $name ) ) {
+			return false;
+		}
+
+		try {
+
+			$folders = $this->facade->folders->getList( 'campaign' );
+
+			foreach ( $folders as $folder ) {
+				if ( $folder['name'] === $name ) {
+					return $folder['folder_id'];
+				}
+			}
+
+			return $this->create_campaign_folder( $name );
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+
+	public function create_campaign_folder( $folder_name = '' ) {
+
+		try {
+
+			return $this->facade->folders->add( $folder_name, 'campaign' );
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+
+	/**
 	 * Create all segments necessary
 	 *
 	 * @param $campaign
@@ -367,7 +416,10 @@ class Facade
 				list( $type, $options, $content, $segment_opts, $type_opts ) = array_values( $campaign );
 				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
 
-				return $campaign['data'];
+				// @todo should we send them immediately?
+				// $this->facade->campaigns->send( $campaign['id'] );
+
+				return $campaign;
 
 			}
 		} catch ( \Mailchimp_Error $e ) {
@@ -375,6 +427,28 @@ class Facade
 			return false;
 
 		}
+	}
+
+
+	/**
+	 * Delete a campaign using a campaign ID
+	 *
+	 * @param $campaign_id
+	 * @return bool
+	 */
+
+	public function delete_campaign( $campaign_id ) {
+
+		try {
+
+			$this->facade->campaigns->delete( $campaign_id );
+
+		} catch( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
 	}
 
 	/**
