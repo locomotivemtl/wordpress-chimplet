@@ -599,9 +599,12 @@ class SettingsPage extends BasePage
 							esc_attr__( 'Term isn’t synced with MailChimp Grouping.', 'chimplet' )
 						);
 
+						$is_synced = false;
+
 						if ( isset( $taxonomy_in_grouping['groups'] ) ) {
 							$grouping_names = $this->wp->wp_list_pluck( $taxonomy_in_grouping['groups'], 'name' );
-							if ( in_array( $term->name, $grouping_names ) ) {
+							$is_synced = in_array( $term->name, $grouping_names );
+							if ( $is_synced ) {
 								$group_status = sprintf(
 									'<span class="chimplet-sync dashicons dashicons-yes" title="%s"></span>',
 									esc_attr__( 'Term is synced with MailChimp Grouping.', 'chimplet' )
@@ -613,7 +616,7 @@ class SettingsPage extends BasePage
 						<input type="checkbox"
 							   name="<?php echo esc_attr( $name ); ?>"
 							   id="<?php echo esc_attr( $id ); ?>"
-							   value="<?php echo esc_attr( $term->term_id ); ?>" <?php checked( $match ); ?>>
+							   value="<?php echo esc_attr( $term->term_id ); ?>" <?php checked( $match || $is_synced ); ?>>
 						<span><?php echo esc_html( $term->name ); ?></span>
 						<?php echo $group_status; //xss ok ?>
 					</label>
@@ -669,7 +672,7 @@ class SettingsPage extends BasePage
 				<?php
 				foreach ( $roles_key as $role ) :
 					$id    = "cb-select-user-roles-$role";
-					$name  = "chimplet[mailchimp][user_roles][$role]";
+					$name  = "chimplet[mailchimp][user_roles][]";
 					$match = in_array( $role, $local_roles );
 
 					$is_synced = in_array( $role, $merge_var_choices );
@@ -683,7 +686,7 @@ class SettingsPage extends BasePage
 					<input type="checkbox"
 						   name="<?php echo esc_attr( $name ); ?>"
 						   id="<?php echo esc_attr( $id ); ?>"
-						   value="<?php echo esc_attr( $role ); ?>" <?php checked( $match ); ?>>
+						   value="<?php echo esc_attr( $role ); ?>" <?php checked( $match || $is_synced ); ?>>
 					<span><?php echo esc_html( $roles[ $role ]['name'] ); ?></span>
 					<?php echo $group_status; //xss ok ?>
 				</label>
