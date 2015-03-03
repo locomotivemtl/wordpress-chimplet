@@ -774,7 +774,7 @@ class SettingsPage extends BasePage
 				<?php
 				foreach ( $roles_key as $role ) :
 					$id    = "cb-select-user-roles-$role";
-					$name  = "chimplet[mailchimp][user_roles][]";
+					$name  = 'chimplet[mailchimp][user_roles][]';
 					$match = in_array( $role, $local_roles );
 
 					$is_synced = in_array( $role, $merge_var_choices );
@@ -796,7 +796,7 @@ class SettingsPage extends BasePage
 			</div>
 		</fieldset>
 		<?php
-	}
+}
 
 	/**
 	 * Display error message or a fallback if there isn't one
@@ -808,12 +808,12 @@ class SettingsPage extends BasePage
 	 */
 	private function display_inline_error( $message, $fallback_message )
 	{
-		if ( $message ) {
-			printf( '<p class="chimplet-alert alert-warning">%s</p>', esc_html( $message ) );
-		} else {
-			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html( $fallback_message ) );
-		}
+	if ( $message ) {
+		printf( '<p class="chimplet-alert alert-warning">%s</p>', esc_html( $message ) );
+	} else {
+		printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html( $fallback_message ) );
+	}
 		return;
 	}
 
-}
+	}
