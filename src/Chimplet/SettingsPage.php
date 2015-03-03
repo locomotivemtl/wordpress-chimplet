@@ -2,11 +2,11 @@
 
 namespace Locomotive\Chimplet;
 
-	/**
-	 * File: Chimplet Settings Page Class
-	 *
-	 * @package Locomotive\Chimplet
-	 */
+/**
+ * File: Chimplet Settings Page Class
+ *
+ * @package Locomotive\Chimplet
+ */
 
 /**
  * Class: Chimplet Settings Page
@@ -495,7 +495,6 @@ class SettingsPage extends BasePage
 	 * @param mixed $to_unset
 	 * @param string $group_type
 	 */
-
 	private function add_or_update_grouping( $local_groups, $grouping, $grouping_name, &$to_unset, $group_type = 'checkboxes' ) {
 		if ( empty( $local_groups ) ) {
 
@@ -651,88 +650,7 @@ class SettingsPage extends BasePage
 
 	public function render_mailchimp_field_terms_section( $args )
 	{
-		?>
-		<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List. (Maximum of 60 groups)', 'chimplet' ); ?></p>
-		<?php
-
-		$local_grouping = $this->get_option( 'mailchimp.terms', [] );
-		$taxonomies     = get_taxonomies( [ 'object_type' => $this->excluded_post_types ], 'objects', 'NOT' );
-
-		if ( empty( $taxonomies ) ) {
-			return;
-		}
-
-		foreach ( $taxonomies as $taxonomy ) :
-
-			if ( in_array( $taxonomy->name, $this->excluded_taxonomies ) ) {
-				continue;
-			}
-
-			$taxonomy_in_grouping = null;
-			$grouping_status      = '<span class="chimplet-sync dashicons dashicons-no" title="' . esc_attr( __( 'Grouping isn’t synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
-
-			if ( $grouping = $this->mc->get_grouping( $taxonomy->label ) ) {
-				$taxonomy_in_grouping = $grouping;
-				$grouping_status      = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Grouping is synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
-			}
-
-			$terms = get_terms( $taxonomy->name );
-
-			if ( empty( $terms ) ) {
-				continue;
-			}
-
-			?>
-			<fieldset>
-				<legend><span class="h4"><?php echo $taxonomy->label . $grouping_status; //xss ok ?></span></legend>
-				<div class="chimplet-item-list chimplet-mc">
-					<?php
-					$id    = "cb-select-$taxonomy->name-all";
-					$name  = "chimplet[mailchimp][terms][$taxonomy->name][]";
-					$match = ( empty( $local_grouping[ $taxonomy->name ] ) || ! is_array( $local_grouping[ $taxonomy->name ] ) ? false : in_array( 'all', $local_grouping[ $taxonomy->name ] ) );
-					?>
-					<label for="<?php echo esc_attr( $id ); ?>">
-						<input type="checkbox"
-							   name="<?php echo esc_attr( $name ); ?>"
-							   id="<?php echo esc_html( $id ); ?>"
-							   value="all" <?php checked( $match ); ?>>
-						<span><?php esc_html_e( 'Select All/None', 'chimplet' ); ?></span>
-					</label>
-					<?php
-					foreach ( $terms as $term ) :
-						$id    = 'cb-select-' . $taxonomy->name . '-' . $term->term_id;
-						$match = ( empty( $local_grouping[ $taxonomy->name ] ) || ! is_array( $local_grouping[ $taxonomy->name ] ) ? false : in_array( $term->term_id, $local_grouping[ $taxonomy->name ] ) );
-						$group_status = sprintf(
-							'<span class="chimplet-sync dashicons dashicons-no" title="%s"></span>',
-							esc_attr__( 'Term isn’t synced with MailChimp Grouping.', 'chimplet' )
-						);
-
-						$is_synced = false;
-
-						if ( isset( $taxonomy_in_grouping['groups'] ) ) {
-							$grouping_names = $this->wp->wp_list_pluck( $taxonomy_in_grouping['groups'], 'name' );
-							$is_synced = in_array( $term->name, $grouping_names );
-							if ( $is_synced ) {
-								$group_status = sprintf(
-									'<span class="chimplet-sync dashicons dashicons-yes" title="%s"></span>',
-									esc_attr__( 'Term is synced with MailChimp Grouping.', 'chimplet' )
-								);
-							}
-						}
-					?>
-					<label for="<?php echo esc_attr( $id ); ?>">
-						<input type="checkbox"
-							   name="<?php echo esc_attr( $name ); ?>"
-							   id="<?php echo esc_attr( $id ); ?>"
-							   value="<?php echo esc_attr( $term->term_id ); ?>" <?php checked( $match || $is_synced ); ?>>
-						<span><?php echo esc_html( $term->name ); ?></span>
-						<?php echo $group_status; //xss ok ?>
-					</label>
-					<?php endforeach; ?>
-				</div>
-			</fieldset>
-			<?php
-		endforeach;
+		$this->render_section( 'settings-terms', $args );
 	}
 
 	/**
@@ -755,49 +673,10 @@ class SettingsPage extends BasePage
 	 * @param array $args
 	 */
 
-		$merge_var         = $this->mc->get_merge_var( self::USER_ROLE_MERGE_VAR );
-		$merge_var_choices = isset( $merge_var['choices'] ) ?  $merge_var['choices'] : [];
-		?>
-		<fieldset>
-			<div class="chimplet-item-list chimplet-mc">
-				<?php
-				$id    = 'cb-select-user-roles-all';
-				$name  = 'chimplet[mailchimp][user_roles][]';
-				$match = in_array( 'all', $local_roles );
-				?>
-				<label for="cb-select-user-roles-all">
-					<input type="checkbox"
-						   name="<?php echo esc_attr( $name ); ?>"
-						   id="<?php echo esc_html( $id ); ?>"
-						   value="all" <?php checked( $match ); ?>>
-					<span><?php esc_html_e( 'Select All/None', 'chimplet' ); ?></span>
-				</label>
-				<?php
-				foreach ( $roles_key as $role ) :
-					$id    = "cb-select-user-roles-$role";
-					$name  = 'chimplet[mailchimp][user_roles][]';
-					$match = in_array( $role, $local_roles );
-
-					$is_synced = in_array( $role, $merge_var_choices );
-					$group_status = sprintf(
-						'<span class="chimplet-sync dashicons dashicons-%s" title="%s"></span>',
-						$is_synced ? 'yes' : 'no',
-						$is_synced ? esc_attr__( 'Role is synced with MailChimp merge var.', 'chimplet' ) : esc_attr__( "Role isn't synced with MailChimp merge var field.", 'chimplet' )
-					);
-				?>
-				<label for="<?php echo esc_attr( $id ); ?>">
-					<input type="checkbox"
-						   name="<?php echo esc_attr( $name ); ?>"
-						   id="<?php echo esc_attr( $id ); ?>"
-						   value="<?php echo esc_attr( $role ); ?>" <?php checked( $match || $is_synced ); ?>>
-					<span><?php echo esc_html( $roles[ $role ]['name'] ); ?></span>
-					<?php echo $group_status; //xss ok ?>
-				</label>
-				<?php endforeach; ?>
-			</div>
-		</fieldset>
-		<?php
-}
+	public function render_mailchimp_campaigns_field_section( $args )
+	{
+		$this->render_section( 'settings-campaigns', $args );
+	}
 
 	/**
 	 * Display error message or a fallback if there isn't one
@@ -809,12 +688,12 @@ class SettingsPage extends BasePage
 	 */
 	private function display_inline_error( $message, $fallback_message )
 	{
-	if ( $message ) {
-		printf( '<p class="chimplet-alert alert-warning">%s</p>', esc_html( $message ) );
-	} else {
-		printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html( $fallback_message ) );
-	}
+		if ( $message ) {
+			printf( '<p class="chimplet-alert alert-warning">%s</p>', esc_html( $message ) );
+		} else {
+			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html( $fallback_message ) );
+		}
 		return;
 	}
 
-	}
+}
