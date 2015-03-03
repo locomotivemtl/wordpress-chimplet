@@ -2,11 +2,11 @@
 
 namespace Locomotive\Chimplet;
 
-/**
- * File: Chimplet Settings Page Class
- *
- * @package Locomotive\Chimplet
- */
+	/**
+	 * File: Chimplet Settings Page Class
+	 *
+	 * @package Locomotive\Chimplet
+	 */
 
 /**
  * Class: Chimplet Settings Page
@@ -495,6 +495,7 @@ class SettingsPage extends BasePage
 	 * @param mixed $to_unset
 	 * @param string $group_type
 	 */
+
 	private function add_or_update_grouping( $local_groups, $grouping, $grouping_name, &$to_unset, $group_type = 'checkboxes' ) {
 		if ( empty( $local_groups ) ) {
 
