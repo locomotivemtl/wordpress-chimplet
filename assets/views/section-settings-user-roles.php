@@ -1,6 +1,19 @@
-<?php use Locomotive\Chimplet\SettingsPage; ?>
+<?php
+
+/**
+ * File: Chimplet User Role Settings
+ *
+ * @package Locomotive\Chimplet\Views
+ * @version 2015-03-03
+ * @since   0.0.0 (2015-02-28)
+ */
+
+use Locomotive\Chimplet\SettingsPage;
+
+?>
 
 <p class="description"><?php esc_html_e( 'All users of the chosen roles will be synced with MailChimp and added as WP_ROLE merge field.', 'chimplet' ); ?></p>
+
 <?php
 
 $local_roles = $this->get_option( 'mailchimp.user_roles', [] );
@@ -17,7 +30,7 @@ $merge_var         = $this->mc->get_merge_var( SettingsPage::USER_ROLE_MERGE_VAR
 $merge_var_choices = isset( $merge_var['choices'] ) ?  $merge_var['choices'] : [];
 ?>
 <fieldset>
-	<div class="chimplet-item-list chimplet-mc">
+	<div class="chimplet-item-list chimplet-mc chimplet-1/3">
 		<?php
 		$id    = 'cb-select-user-roles-all';
 		$name  = 'chimplet[mailchimp][user_roles][]';

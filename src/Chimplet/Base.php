@@ -137,6 +137,7 @@ abstract class Base
 				<?php include $path; ?>
 
 			</div>
+
 			<?php
 		}
 	}
@@ -158,4 +159,23 @@ abstract class Base
 
 		}
 	}
+
+	/**
+	 *  Render a section for the settings page
+	 *
+	 * @param string $template
+	 * @param array $args
+	 */
+
+	public function render_field( $template, $args = [] ) {
+
+		$path = $this->get_path( "assets/views/field-{$template}.php" );
+
+		if ( file_exists( $path ) ) {
+
+			include $path;
+
+		}
+	}
+
 }

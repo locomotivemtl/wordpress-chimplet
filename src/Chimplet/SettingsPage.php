@@ -52,19 +52,15 @@ class SettingsPage extends BasePage
 	}
 
 	/**
-	 * Register settings, sections, and fields
+	 * Register settings and sections
 	 *
 	 * @used-by Action: "admin_init"
-	 * @version 2015-02-10
-	 * @since   0.0.0 (2015-02-09)
+	 * @version 2015-03-03
+	 * @since   0.0.0 (2015-03-03)
 	 */
 
-	public function register_settings()
+	public function register_sections()
 	{
-		if ( false === $this->wp->get_option( 'chimplet' ) ) {
-			$this->wp->update_option( 'chimplet', [] );
-		}
-
 		$this->wp->register_setting(
 			self::SETTINGS_KEY,
 			self::SETTINGS_KEY,
@@ -73,10 +69,42 @@ class SettingsPage extends BasePage
 
 		$this->wp->add_settings_section(
 			'chimplet-section-mailchimp-api',
-			null,
-			[ $this, 'render_mailchimp_section' ],
+			__( 'API Management', 'chimplet' ),
+			[
+				'before' => [ $this, 'render_mailchimp_section' ],
+				'after'  => ( $this->get_option( 'mailchimp.api_key' ) ? null : [ $this, 'render_submit_button' ] )
+			],
 			$this->view['menu_slug']
 		);
+
+		$this->wp->add_settings_section(
+			'chimplet-section-mailchimp-lists',
+			__( 'List Management', 'chimplet' ),
+			null,
+			$this->view['menu_slug']
+		);
+
+		$this->wp->add_settings_section(
+			'chimplet-section-mailchimp-campaigns',
+			__( 'Campaign Management', 'chimplet' ),
+			null,
+			$this->view['menu_slug']
+		);
+	}
+
+	/**
+	 * Register settings and fields
+	 *
+	 * @used-by Action: "admin_init"
+	 * @version 2015-03-03
+	 * @since   0.0.0 (2015-02-09)
+	 */
+
+	public function register_settings()
+	{
+		if ( false === $this->wp->get_option( 'chimplet' ) ) {
+			$this->wp->update_option( 'chimplet', [] );
+		}
 
 		$this->wp->add_settings_field(
 			'chimplet-field-mailchimp-api_key',
@@ -97,9 +125,10 @@ class SettingsPage extends BasePage
 				__( 'Select Mailing List', 'chimplet' ),
 				[ $this, 'render_mailchimp_field_list_section' ],
 				$this->view['menu_slug'],
-				'chimplet-section-mailchimp-api',
+				'chimplet-section-mailchimp-lists',
 				[
-					'control' => 'radio-table' // Choices: select, radio-table
+					'layout'   => 'custom',
+					'control'  => 'radio-table' // Choices: select, radio-table
 				]
 			);
 
@@ -115,7 +144,7 @@ class SettingsPage extends BasePage
 						__( 'Select Taxonomy Terms', 'chimplet' ),
 						[ $this, 'render_mailchimp_field_terms_section' ],
 						$this->view['menu_slug'],
-						'chimplet-section-mailchimp-api',
+						'chimplet-section-mailchimp-lists',
 						[ 'list' => $list ]
 					);
 
@@ -124,21 +153,46 @@ class SettingsPage extends BasePage
 						__( 'Select User Roles', 'chimplet' ),
 						[ $this, 'render_mailchimp_field_user_roles_section' ],
 						$this->view['menu_slug'],
-						'chimplet-section-mailchimp-api',
+						'chimplet-section-mailchimp-lists',
 						[ 'list' => $list ]
 					);
 
 					$this->wp->add_settings_field(
-						'chimplet-field-mailchimp-campaigns',
-						__( 'Select Campaigns Settings', 'chimplet' ),
-						[ $this, 'render_mailchimp_campaigns_field_section' ],
+						'chimplet-field-mailchimp-campaign-automation',
+						__( 'Automation', 'chimplet' ),
+						[ $this, 'render_mailchimp_field_campaign_automation' ],
 						$this->view['menu_slug'],
-						'chimplet-section-mailchimp-api',
-						[ 'list' => $list ]
+						'chimplet-section-mailchimp-campaigns',
+						[
+							'label_for' => 'chimplet-field-mailchimp-campaign-automation'
+						]
 					);
 
+					// Add these fields when Campaign Automation is enabled
+					if ( $this->get_option( 'mailchimp.campaigns.automate' ) ) {
+
+						$this->wp->add_settings_field(
+							'chimplet-field-mailchimp-campaign-schedule',
+							__( 'Schedule', 'chimplet' ),
+							[ $this, 'render_mailchimp_field_campaign_schedule' ],
+							$this->view['menu_slug'],
+							'chimplet-section-mailchimp-campaigns'
+						);
+
+						$this->wp->add_settings_field(
+							'chimplet-field-mailchimp-campaign-template',
+							__( 'RSS Template', 'chimplet' ),
+							[ $this, 'render_mailchimp_field_campaign_template' ],
+							$this->view['menu_slug'],
+							'chimplet-section-mailchimp-campaigns'
+						);
+
+					}
+
 				}
+
 			}
+
 		}
 	}
 
@@ -577,18 +631,36 @@ class SettingsPage extends BasePage
 
 	public function render_page()
 	{
-
 		$this->view['settings_group'] = self::SETTINGS_KEY;
-		$this->view['button_label']   = ( $this->get_option( 'mailchimp.valid' ) ? null : __( 'Save API Key', 'chimplet' ) );
-		$this->render_view( 'options-settings', $this->view );
 
+		$this->render_view( 'options-settings', $this->view );
 	}
 
 	/**
-	 * Display the MailChimp API Settings Section
+	 * Display the "Save Changes" button
+	 *
+	 * @version 2015-03-03
+	 * @since   0.0.0 (2015-03-03)
+	 *
+	 * @param array $args
+	 */
+
+	public function render_submit_button( $args = [] )
+	{
+		$defaults = [
+			'text' => ( $this->get_option( 'mailchimp.valid' ) ? null : __( 'Save API Key', 'chimplet' ) )
+		];
+
+		$args = wp_parse_args( $args, $defaults );
+
+		call_user_func_array( [ $this->wp, 'submit_button' ], $args );
+	}
+
+	/**
+	 * Display the MailChimp API Section
 	 *
 	 * @used-by Function: add_settings_section
-	 * @version 2015-02-09
+	 * @version 2015-03-03
 	 * @since   0.0.0 (2015-02-09)
 	 *
 	 * @param  array  $args
@@ -596,10 +668,7 @@ class SettingsPage extends BasePage
 
 	public function render_mailchimp_section( $args )
 	{
-
-		$options = $this->get_options();
-		$this->render_section( 'settings-mailchimp', $options );
-
+		$this->render_section( 'settings-mailchimp', $this->get_options() );
 	}
 
 	/**
@@ -668,20 +737,69 @@ class SettingsPage extends BasePage
 	}
 
 	/**
-	 * Used to render campaigns specific settings
+	 * Render campaigns automation setting
 	 *
+	 * @todo Link to more explanation
 	 * @param array $args
 	 */
 
-	public function render_mailchimp_campaigns_field_section( $args )
+	public function render_mailchimp_field_campaign_automation( $args )
 	{
-		$this->render_section( 'settings-campaigns', $args );
+		$options = $this->get_option( 'mailchimp.campaigns', [] );
+
+		$match = ( empty( $options['automate'] ) || ! is_array( $options ) ) ? false : array_key_exists( 'automate', $options );
+
+		echo '<fieldset>';
+
+		$field  = '<label for="%1$s">';
+		$field .= '<input type="checkbox" id="%1$s" name="%2$s" value="%3$s"' . checked( $match, true, false ) . '/>' . ' ';
+		$field .= '<span>%4$s</span>';
+		$field .= '</label>';
+
+		printf(
+			$field,
+			esc_attr( $args['label_for'] ),
+			esc_attr( 'chimplet[mailchimp][campaigns][automate]' ),
+			esc_attr( 'on' ),
+			esc_html__( 'Automate creation of Campaigns', 'chimplet' )
+		);
+
+		echo '<p class="description">' . esc_html__( 'Chimplet can automate the creation of RSS Campaigns using power sets of interest groupings.', 'chimplet' ) . '</p>';
+		echo '</fieldset>';
+	}
+
+	/**
+	 * Render campaign scheduling settings
+	 *
+	 * @access public
+	 * @param $args
+	 *
+	 * @return void
+	 */
+
+	public function render_mailchimp_field_campaign_schedule( $args )
+	{
+		$this->render_field( 'settings-schedule', $args );
+	}
+
+	/**
+	 * Render campaign templating settings
+	 *
+	 * @access public
+	 * @param $args
+	 *
+	 * @return void
+	 */
+
+	public function render_mailchimp_field_campaign_template( $args )
+	{
+		$this->render_field( 'settings-template', $args );
 	}
 
 	/**
 	 * Display error message or a fallback if there isn't one
 	 *
-	 * @version 2015-02-15
+	 * @version 2015-03-03
 	 * @access private
 	 * @param $message
 	 * @param $fallback_message
@@ -693,7 +811,6 @@ class SettingsPage extends BasePage
 		} else {
 			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html( $fallback_message ) );
 		}
-		return;
 	}
 
 }

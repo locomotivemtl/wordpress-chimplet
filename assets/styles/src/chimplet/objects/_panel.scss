@@ -120,6 +120,33 @@
 			text-shadow     : none;
 		}
 
+	.form-table:first-child {
+		margin-top: 0;
+
+		> tr:first-child > *,
+		> tbody > tr:first-child > * {
+			padding-top: 0;
+		}
+	}
+
+	.wp-list-table caption {
+		padding-top: 0;
+	}
+
+	/**
+	 * 1. Assume we are spanning the whole layout-table.
+	 */
+
+	.form-table > tbody > tr > th[colspan] { /* [1] */
+		padding-right  : 0;
+		padding-bottom : 0;
+	}
+
+	.form-table > tbody > tr > td[colspan] { /* [1] */
+		padding-left  : 0;
+		padding-right : 0;
+	}
+
 }
 
 .chimplet-sync {

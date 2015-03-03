@@ -1,11 +1,11 @@
 <?php
 
 /**
- * File: Chimplet Campaign Settings
+ * File: Chimplet Campaign Scheduling Settings
  *
  * @package Locomotive\Chimplet\Views
  * @version 2015-03-03
- * @since   0.0.0 (2015-02-28)
+ * @since   0.0.0 (2015-03-03)
  */
 
 $options = $this->get_option( 'mailchimp.campaigns', [] );
@@ -107,38 +107,5 @@ $field_name = 'chimplet[mailchimp][campaigns]';
 
 		?>
 		</div>
-	</div>
-</fieldset>
-
-<fieldset>
-	<legend><span class="h4"><?php esc_html_e( 'RSS Template in MailChimp', 'chimplet' ); ?></span></legend>
-	<div class="chimplet-mc chimplet-1/3">
-		<?php
-		$id    = 'mailchimp-campaigns-frequency';
-		$templates = $this->mc->get_user_template();
-
-		if ( empty( $templates ) ) {
-			esc_html_e( 'No template found.', 'chimplet' );
-		} else {
-			printf(
-				'<select id="%s" name="%s" autocomplete="off">',
-				esc_attr( $id ),
-				esc_attr( $field_name ) . '[template]'
-			);
-
-			$options['template'] = ! empty( $options['template'] ) ? $options['template'] : '';
-
-			foreach ( $templates as $template ) {
-				printf(
-					'<option value="%s"%s>%s</option>',
-					esc_attr( $template['id'] ),
-					selected( $options['template'], $template['id'], false ),
-					esc_html( $template['name'] )
-				);
-			}
-
-			echo '</select>';
-		}
-		?>
 	</div>
 </fieldset>

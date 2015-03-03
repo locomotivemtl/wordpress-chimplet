@@ -1,7 +1,16 @@
 <?php
 
+/**
+ * File: Chimplet MailChimp Integration Guidance
+ *
+ * @package Locomotive\Chimplet\Views
+ * @version 2015-03-03
+ * @since   0.0.0 (2015-02-28)
+ */
+
 if ( empty( $args['mailchimp']['api_key'] ) ) {
-	?>
+
+?>
 	<p><?php _e( 'To integrate your blog with your MailChimp account, you need to generate an API key.', 'chimplet' ); ?></p>
 	<aside class="panel-assistance inset">
 		<p><?php
@@ -19,10 +28,13 @@ if ( empty( $args['mailchimp']['api_key'] ) ) {
 	</aside>
 	<p><?php esc_html_e( 'Once the API Key is integrated with Chimplet, you will be provided with additional options.', 'chimplet' ); ?></p>
 <?php
+
 }
 else {
+
 	?>
 	<p><?php esc_html_e( 'With an integrated API Key, additional options are provided below.', 'chimplet' ); ?></p>
 	<p><?php esc_html_e( 'Removing the API Key will disable Chimplet’s data synchronization features and no longer provides access to your account to manage your subscribers and campaigns. This does not delete any data from your MailChimp nor does it disable Post Category feeds and the active RSS-Driven Campaigns.', 'chimplet' ); ?></p>
 <?php
+
 }

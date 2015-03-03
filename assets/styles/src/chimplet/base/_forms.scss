@@ -19,18 +19,37 @@
 // ==========================================================================
 
 .chimplet-wrap {
-  h2 {
-	margin-bottom: 10px;
-  }
 
-  legend {
-	margin  : 0;
-	padding : 0;
+	h2 {
+		margin-bottom: 10px;
+	}
 
-	-webkit-margin-collapse: separate;
-  }
+	legend {
+		margin  : 0;
+		padding : 0;
 
-  p.chimplet-alert {
-	color: #A00;
-  }
+		-webkit-margin-collapse: separate;
+	}
+
+	.description + fieldset {
+		margin-top: 1.33em;
+
+		> legend:first-child > span {
+			margin-top: 0;
+		}
+
+	}
+
+	input[type="radio"],
+	input[type="checkbox"] {
+		-webkit-user-select: none;
+		-moz-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+	}
+
+	.chimplet-alert {
+		color: #A00;
+	}
+
 }
