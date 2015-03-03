@@ -134,7 +134,6 @@ class Application extends Base
 	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-05)
 	 * @link    AdvancedCustomFields\acf::wp_init() Based on ACF method
-	 * @todo    Register assets, post types, taxonomies
 	 */
 
 	public function wp_init()

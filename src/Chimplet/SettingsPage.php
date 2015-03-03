@@ -81,7 +81,7 @@ class SettingsPage extends BasePage
 		$this->wp->add_settings_field(
 			'chimplet-field-mailchimp-api_key',
 			__( 'API Key', 'chimplet' ),
-			[ $this, 'render_mailchimp_field_api_key' ],
+			[ $this, 'render_mailchimp_field_api_key_section' ],
 			$this->view['menu_slug'],
 			'chimplet-section-mailchimp-api',
 			[
@@ -95,7 +95,7 @@ class SettingsPage extends BasePage
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-lists',
 				__( 'Select Mailing List', 'chimplet' ),
-				[ $this, 'render_mailchimp_field_list' ],
+				[ $this, 'render_mailchimp_field_list_section' ],
 				$this->view['menu_slug'],
 				'chimplet-section-mailchimp-api',
 				[
@@ -113,7 +113,7 @@ class SettingsPage extends BasePage
 					$this->wp->add_settings_field(
 						'chimplet-field-mailchimp-categories',
 						__( 'Select Taxonomy Terms', 'chimplet' ),
-						[ $this, 'render_mailchimp_field_terms' ],
+						[ $this, 'render_mailchimp_field_terms_section' ],
 						$this->view['menu_slug'],
 						'chimplet-section-mailchimp-api',
 						[ 'list' => $list ]
@@ -122,7 +122,16 @@ class SettingsPage extends BasePage
 					$this->wp->add_settings_field(
 						'chimplet-field-mailchimp-user-roles',
 						__( 'Select User Roles', 'chimplet' ),
-						[ $this, 'render_mailchimp_field_user_roles' ],
+						[ $this, 'render_mailchimp_field_user_roles_section' ],
+						$this->view['menu_slug'],
+						'chimplet-section-mailchimp-api',
+						[ 'list' => $list ]
+					);
+
+					$this->wp->add_settings_field(
+						'chimplet-field-mailchimp-campaigns',
+						__( 'Select Campaigns Settings', 'chimplet' ),
+						[ $this, 'render_mailchimp_campaigns_field_section' ],
 						$this->view['menu_slug'],
 						'chimplet-section-mailchimp-api',
 						[ 'list' => $list ]
@@ -139,7 +148,6 @@ class SettingsPage extends BasePage
 	 * @uses    Filter: "sanitize_option_{$option_name}"
 	 * @version 2015-02-09
 	 * @since   0.0.0 (2015-02-09)
-	 * @todo sanitize all settings manually
 	 * @param array $settings
 	 *
 	 * @return array
@@ -171,6 +179,7 @@ class SettingsPage extends BasePage
 			$list = $this->mc->get_list_by_id( $settings['mailchimp']['list'] );
 
 			if ( $list instanceof \Mailchimp_Error ) {
+
 				$this->wp->add_settings_error(
 					self::SETTINGS_KEY,
 					'mailchimp-invalid-list',
@@ -178,82 +187,272 @@ class SettingsPage extends BasePage
 					'error'
 				);
 
-				unset( $settings['mailchimp']['list'] );
-				unset( $settings['mailchimp']['terms'] );
+				$list = null;
+
 			}
 		}
 
+		// No need to continue further if we don't have list...
+		if ( ! $list ) {
+			return;
+		}
+
+		// Do we have any taxonomies?
+		if ( isset( $settings['mailchimp']['terms'] ) ) {
+
+			$segments = $this->save_taxonomy_terms( $settings['mailchimp']['terms'] );
+
+		}
+
+		if ( isset( $settings['mailchimp']['user_roles'] ) ) {
+
+			$this->save_user_roles( $settings['mailchimp']['user_roles'] );
+
+		}
+
+		// We have new segments we add a corresponding campaigns
+		if ( isset( $settings['mailchimp']['campaigns']['automate'] ) ) {
+
+			// Here we compare old campaign settings to the new one
+			if ( ! $segments ) {
+				$old_options = $this->get_option( 'mailchimp.campaigns' );
+
+				if ( $old_options !== $settings['mailchimp']['campaigns'] ) {
+					// Delete all campaigns saved and recreate segments
+					$this->delete_active_campaigns();
+
+					$segments = $this->handle_segment_and_grouping( $this->get_option( 'mailchimp.terms' ) );
+				}
+			}
+
+			if ( $segments ) {
+				// Create RSS driven campaign using template and frequency specified
+				$segments  = apply_filters( 'chimplet/campaigns/segments', $segments );
+				$folder_id = $this->mc->get_campaign_folder_id( apply_filters( 'chimplet/campaigns/folder', 'Chimplet' ) );
+
+				// Only one taxonomy for now
+				// @todo what do we do with all other segments from other tax?
+				$segments = array_shift( $segments );
+
+				foreach ( $segments as $segment ) {
+					// From core
+					$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
+					if ( 'www.' == substr( $sitename, 0, 4 ) ) {
+						$sitename = substr( $sitename, 4 );
+					}
+
+					$campaign = [
+						'type'    => apply_filters( 'chimplet/campaigns/type', 'rss' ),
+						'options' => apply_filters( 'chimplet/campaigns/options', [
+							'list_id'     => $list['id'],
+							'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
+							'from_email'  => apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
+							'from_name'   => apply_filters( 'wp_mail_from_name', 'Chimplet' ),
+							'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
+						] ),
+						'content' => apply_filters( 'chimplet/campaigns/content', [
+							'url' => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
+						] ),
+						'segment_opts' => $segment,
+						'type_opts' => apply_filters( 'chimplet/campaigns/type/opts', [
+							'rss' => [
+								'url'      => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
+								'schedule' => $settings['mailchimp']['campaigns']['frequency']
+							]
+						] ),
+					];
+
+					if ( is_int( $folder_id ) ) {
+						$campaign['options']['folder_id'] = $folder_id;
+					}
+
+					$campaign = $this->mc->create_campaign( $campaign );
+
+					if ( $campaign ) {
+						$settings['mailchimp']['campaigns']['active'][] = $campaign['id'];
+					}
+				}
+			}
+		}
+
+		return $settings;
+	}
+
+	/**
+	 * Handle saving and sanitization related to taxonomy
+	 * Since it's impossible to delete grouping that are used by campaign
+	 * we need to handle the campaign deletion associated
+	 *
+	 * @param array $tax_to_save
+	 * @return array|bool
+	 */
+	private function save_taxonomy_terms( &$tax_to_save ) {
 		// For comparison purposes
-		$old_option = $this->get_option( 'mailchimp.terms' );
+		if ( ! $old_option = $this->get_option( 'mailchimp.terms' ) ) {
+			$old_option = [];
+		}
+
+		// Sync taxonomy with MailChimp groups only if it didn't change
+		if ( $tax_to_save !== $old_option ) {
+
+			// Here we have some new terms so we need to delete previously set campaigns
+			// otherwise we won't be able to delete any groups because of active campaigns
+			$this->delete_active_campaigns();
+
+			if ( ! empty( $tax_to_save )	) {
+
+				// Computing the difference between old options grouping and what is being save
+				foreach ( $old_option as $key => &$value ) { $value = []; }
+
+				return $this->handle_segment_and_grouping( array_merge( $old_option, $tax_to_save ) );
+			}
+			else {
+
+				foreach ( $old_option as $tax => $terms ) {
+
+					$tax_label = get_taxonomy( $tax )->label;
+					$this->mc->delete_grouping( $tax_label );
+
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Create grouping and related segments
+	 *
+	 * @param $options
+	 * @return array
+	 */
+	private function handle_segment_and_grouping( $options ) {
+
+		$segments = [];
+
+		foreach ( $options as $tax => $terms ) {
+
+			// Use the tax label in mailchimp as it is cleaner
+			$terms        = array_map( 'sanitize_text_field', $terms );
+			$tax_label    = get_taxonomy( $tax )->label;
+			$grouping     = $this->mc->get_grouping( $tax_label );
+			$local_groups = [];
+
+			foreach ( $terms as $term_id ) {
+
+				if ( 'all' === $term_id ) {
+					continue;
+				}
+
+				$term = $this->wp->get_term_by( 'id', $term_id, $tax );
+
+				if ( $term ) {
+					$local_groups[] = $term->name;
+				}
+			}
+
+			// Add or update grouping
+			$this->add_or_update_grouping(
+				$local_groups,
+				$grouping,
+				$tax_label,
+				$tax_to_save
+			);
+
+			// Add or update segments related to grouping
+			// We cannot cross reference grouping. This might limit power set.
+			$segments[] = $this->generate_segments( $local_groups, $grouping );
+
+		}
+
+		return $segments;
+	}
+
+	/**
+	 * We established that we needed to clear the campaigns we created.
+	 */
+	private function delete_active_campaigns() {
+
+		if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
+			foreach ( $active_campaigns as $cid ) {
+				$this->mc->delete_campaign( $cid );
+			}
+		}
+
+	}
+
+	/**
+	 * Generate segments using groups and grouping
+	 *
+	 * @param $groups
+	 * @param $grouping
+	 * @return array
+	 */
+	private function generate_segments( $groups, $grouping ) {
+
+		$segments = $this->generate_group_power_set( $groups );
+
+		foreach ( $segments as &$segment ) {
+			$diff = array_diff( $groups, $segment );
+
+			// Here we setup some option for the segment
+			$segment = [
+				'match' => 'all',
+				'conditions' => [
+					[
+						'field' => 'interests-' . $grouping['id'],
+						'op'    => 'all',
+						'value' => implode( ',', $segment ),
+					]
+				],
+			];
+
+			if ( count( $diff ) > 0 ) {
+
+				$segment['conditions'][] = [
+					'field' => 'interests-' . $grouping['id'],
+					'op'    => 'none',
+					'value' => implode( ',', $diff ),
+				];
+
+			}
+		}
+
+		return $segments;
+
+	}
+
+	/**
+	 * Save user roles
+	 *
+	 * @param array $roles
+	 */
+	private function save_user_roles( &$roles ) {
+		// For comparison purposes
+		$old_option = $this->get_option( 'mailchimp.user_roles' );
 
 		if ( ! $old_option ) {
 			$old_option = [];
 		}
 
-		// Sync taxonomy with MailChimp groups
-		if ( isset( $settings['mailchimp']['terms'] ) && ! empty( $settings['mailchimp']['terms'] ) ) {
-			$tax_to_save  = &$settings['mailchimp']['terms'];
-
-			// Computing the difference between old options grouping and what is being save
-			foreach ( $old_option as $key => &$value ) { $value = []; }
-
-			foreach ( array_merge( $old_option, $tax_to_save ) as $tax => $terms ) {
-
-				// Use the tax label in mailchimp as it is cleaner
-				$terms        = array_map( 'sanitize_text_field', $terms );
-				$tax_label    = get_taxonomy( $tax )->label;
-				$grouping     = $this->mc->get_grouping( $tax_label );
-				$local_groups = [];
-
-				foreach ( $terms as $term_id ) {
-
-					if ( 'all' === $term_id ) {
-						continue;
-					}
-
-					$term = $this->wp->get_term_by( 'id', $term_id, $tax );
-
-					if ( $term ) {
-						$local_groups[] = $term->name;
-					}
-				}
-
-				$this->add_or_update_grouping(
-					$local_groups,
-					$grouping,
-					$tax_label,
-					$tax_to_save
-				);
-
-			}
-		}
-		else {
-			foreach ( $old_option as $tax => $terms ) {
-
-				$tax_label = get_taxonomy( $tax )->label;
-				$this->mc->delete_grouping( $tax_label );
-
-			}
-		}
-
 		// User roles list fields
-		if (
-			isset( $settings['mailchimp']['user_roles'] )
-			&& is_array( $settings['mailchimp']['user_roles'] )
-		) {
+		if ( is_array( $roles ) && $roles !== $old_option ) {
 			// Make sure we got a valid role from the role list
-			$roles_to_save = array_diff( $settings['mailchimp']['user_roles'], ['all'] );
+			$roles_to_save = array_diff( $roles, ['all'] );
 			$roles_key     = array_keys( $this->wp->get_editable_roles() );
 			$role_diff     = array_diff( $roles_to_save, $roles_key );
 
 			if ( count( $role_diff ) > 0 ) {
-				unset( $settings['mailchimp']['user_roles'] );
+
+				unset( $roles );
+
 				$this->wp->add_settings_error(
 					self::SETTINGS_KEY,
 					'chimplet-invalid-user-roles',
 					__( 'Impossible to save specified user roles', 'chimplet' ),
 					'error'
 				);
+
 			}
 			else {
 				// Let's add the role as a list field if not already present
@@ -261,24 +460,30 @@ class SettingsPage extends BasePage
 					'field_type' => 'dropdown',
 					'public'     => false,
 					'show'       => false,
+					'req'        => true,
 					'choices'    => $roles_to_save
 				];
 
-				$success = $this->mc->handle_merge_var_integrity( self::USER_ROLE_MERGE_VAR, 'WordPress role', $merge_var_options );
+				$success = $this->mc->handle_merge_var_integrity(
+					self::USER_ROLE_MERGE_VAR,
+					'WordPress role',
+					$merge_var_options
+				);
 
 				if ( ! $success ) {
-					unset( $settings['mailchimp']['user_roles'] );
+
+					unset( $roles );
+
 					$this->wp->add_settings_error(
 						self::SETTINGS_KEY,
 						'chimplet-user-roles-sync-problem',
 						__( 'Impossible to save user roles with MailChimp merge fields', 'chimplet' ),
 						'error'
 					);
+
 				}
 			}
 		}
-
-		return $settings;
 	}
 
 	/**
@@ -292,8 +497,11 @@ class SettingsPage extends BasePage
 	 */
 	private function add_or_update_grouping( $local_groups, $grouping, $grouping_name, &$to_unset, $group_type = 'checkboxes' ) {
 		if ( empty( $local_groups ) ) {
+
 			$this->mc->delete_grouping( $grouping_name );
+
 			return;
+
 		}
 
 		if ( $grouping ) {
@@ -311,6 +519,30 @@ class SettingsPage extends BasePage
 
 			}
 		}
+	}
+
+	/**
+	 * Generate all combination for segments using power set algorithm
+	 *
+	 * @param array $array
+	 * @return array
+	 */
+	private function generate_group_power_set( $array ) {
+		$results = [ [] ];
+
+		foreach ( $array as $element ) {
+
+			foreach ( $results as $combination ) {
+
+				array_push( $results, array_merge( [ $element ], $combination ) );
+
+			}
+		}
+
+		// Removing the empty array of the beginning
+		array_shift( $results );
+
+		return $results;
 	}
 
 	/**
@@ -345,9 +577,11 @@ class SettingsPage extends BasePage
 
 	public function render_page()
 	{
+
 		$this->view['settings_group'] = self::SETTINGS_KEY;
 		$this->view['button_label']   = ( $this->get_option( 'mailchimp.valid' ) ? null : __( 'Save API Key', 'chimplet' ) );
 		$this->render_view( 'options-settings', $this->view );
+
 	}
 
 	/**
@@ -362,34 +596,9 @@ class SettingsPage extends BasePage
 
 	public function render_mailchimp_section( $args )
 	{
-		$options = $this->get_options();
 
-		if ( empty( $options['mailchimp']['api_key'] ) ) {
-		?>
-			<p><?php _e( 'To integrate your blog with your MailChimp account, you need to generate an API key.', 'chimplet' ); ?></p>
-			<aside class="panel-assistance inset">
-				<p><?php
-					printf(
-						esc_html__( 'Users with Admin or Manager permissions can generate and view API keys. You can %s from your Account Panel.', 'chimplet' ),
-						'<a target="_blank" href="' . '//kb.mailchimp.com/accounts/management/about-api-keys#Find-or-Generate-Your-API-Key' . '">' . esc_html__( 'find or generate an API key', 'chimplet' ) . '</a>'
-					);
-				?></p>
-				<ol>
-					<li><?php printf( esc_html__( 'Click your profile name to expand the Account Panel, and choose %1$s.', 'chimplet' ), '<em>' . __( 'Account', 'chimplet' ) . '</em>' ); ?></li>
-					<li><?php printf( esc_html__( 'Click the %1$s drop-down menu and choose %2$s.', 'chimplet' ), '<em>' . esc_html__( 'Extras', 'chimplet' ) . '</em>', '<em>' . __( 'API keys', 'chimplet' ) . '</em>' ); ?></li>
-					<li><?php printf( esc_html__( 'Copy an existing API key or click the %1$s button.', 'chimplet' ), '<em>' . esc_html__( 'Create A Key', 'chimplet' ) . '</em>' ); ?></li>
-					<li><?php esc_html_e( 'Name your key descriptively, so you know what application uses that key.', 'chimplet' ); ?></li>
-				</ol>
-			</aside>
-			<p><?php esc_html_e( 'Once the API Key is integrated with Chimplet, you will be provided with additional options.', 'chimplet' ); ?></p>
-		<?php
-		}
-		else {
-			?>
-			<p><?php esc_html_e( 'With an integrated API Key, additional options are provided below.', 'chimplet' ); ?></p>
-			<p><?php esc_html_e( 'Removing the API Key will disable Chimplet’s data synchronization features and no longer provides access to your account to manage your subscribers and campaigns. This does not delete any data from your MailChimp nor does it disable Post Category feeds and the active RSS-Driven Campaigns.', 'chimplet' ); ?></p>
-		<?php
-		}
+		$options = $this->get_options();
+		$this->render_section( 'settings-mailchimp', $options );
 
 	}
 
@@ -403,7 +612,7 @@ class SettingsPage extends BasePage
 	 * @param  array  $args
 	 */
 
-	public function render_mailchimp_field_api_key( $args )
+	public function render_mailchimp_field_api_key_section( $args )
 	{
 		$value = $this->get_option( 'mailchimp.api_key' );
 
@@ -424,111 +633,9 @@ class SettingsPage extends BasePage
 	 * @param  array  $args
 	 */
 
-	public function render_mailchimp_field_list( $args )
+	public function render_mailchimp_field_list_section( $args )
 	{
-		$value = $this->get_option( 'mailchimp.list' );
-		$lists = $this->mc->get_all_lists();
-		$total = $this->mc->get_current_list_total_results();
-
-		if ( $lists instanceof \Mailchimp_Error ) {
-			if ( $lists->getMessage() ) {
-				echo '<p class="chimplet-alert alert-error">' . esc_html( $lists->getMessage() ) . '</p>';
-			} else {
-				echo '<p class="chimplet-alert alert-error">' . esc_html__( 'An unknown error occurred while fetching the Mailing Lists from your account.', 'chimplet' ) . '</p>';
-			}
-
-			$lists = [];
-		}
-
-		if ( empty( $value ) ) {
-			$value = $readonly = '';
-		}
-		else {
-			$value = esc_attr( $value );
-			$readonly = ' readonly';
-		}
-
-		$readonly = '';
-		$selected = '';
-
-		if ( ! empty( $lists ) ) {
-
-			if ( ! isset( $args['control'] ) ) {
-				$args['control'] = 'radio-table';
-			}
-
-			if ( 'select' === $args['control'] ) {
-
-				printf(
-					'<select name="list" id="%s" name="chimplet[mailchimp][list]" %s>',
-					esc_attr( $args['label_for'] ),
-					esc_attr( $readonly )
-				);
-
-				foreach ( $lists['data'] as $list ) {
-					printf(
-						'<option value="%s" %s>%s</option>',
-						esc_attr( $list['id'] ),
-						selected( $value, $list['id'] ),
-						esc_html( $list['name'] )
-					);
-				}
-
-				echo '</select>';
-
-			}
-			else {
-?>
-					</td>
-				</tr>
-			</table>
-			<table class="wp-list-table widefat mailchimp-lists">
-				<thead>
-					<tr>
-						<th scope="col" id="chimplet-rb" class="manage-column column-rb check-column"><label class="screen-reader-text"><?php esc_html_e( 'Select One', 'chimplet' ); ?></label></th>
-						<th scope="col" id="mailchimp-list-title" class="manage-column column-name"><?php esc_html_e( 'Title' ); ?></th>
-						<th scope="col" id="mailchimp-list-groups" class="manage-column column-groups num"><?php esc_html_e( 'Groupings', 'chimplet' ); ?></th>
-						<th scope="col" id="mailchimp-list-members" class="manage-column column-members num"><?php esc_html_e( 'Members', 'chimplet' ); ?></th>
-						<th scope="col" id="mailchimp-list-rating" class="manage-column column-rating num"><?php esc_html_e( 'Rating' ); ?></th>
-						<th scope="col" id="mailchimp-list-date" class="manage-column column-date"><?php esc_html_e( 'Date Created', 'chimplet' ); ?></th>
-					</tr>
-				</thead>
-				<tbody>
-				<?php
-				$i = 0;
-				foreach ( $lists as $list ) :
-					$select_label = sprintf( __( 'Select %s' ), '&ldquo;' . $list['name'] . '&rdquo;' ); //xss ok
-					$id = 'rb-select-' . $list['id'];
-				?>
-					<tr id="mailchimp-list-<?php echo esc_attr( $list['id'] ); ?>" class="mailchimp-list-<?php echo esc_attr( $list['id'] ); ?> mailchimp-list<?php echo ( $i % 2 === 0 ? ' alternate' : '' ); //xss ok ?>">
-						<th scope="row" class="check-column">
-							<label class="screen-reader-text" for="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $select_label ); ?></label>
-							<input type="radio" id="<?php echo esc_attr( $id ); ?>" name="chimplet[mailchimp][list]" value="<?php echo esc_attr( $list['id'] ); ?>"<?php echo checked( $value, $list['id'] ); ?> />
-						</th>
-						<td class="column-title">
-							<strong><label for="<?php echo esc_attr( $id ); ?>" title="<?php echo esc_attr( $select_label ); ?>"><?php echo esc_html( $list['name'] ); ?></label></strong>
-						</td>
-						<td class="column-groupings num"><?php echo esc_html( $list['stats']['grouping_count'] ); ?></td>
-						<td class="column-members num"><?php echo esc_html( $list['stats']['member_count'] ); ?></td>
-						<td class="column-rating num"><?php echo esc_html( $list['list_rating'] ); ?></td>
-						<td class="column-date"><time datetime="<?php echo esc_attr( $list['date_created'] ); ?>"><?php echo esc_html( date_i18n( get_option( 'date_format' ), strtotime( $list['date_created'] ) ) ); ?></time></td>
-					</tr>
-				<?php
-					$i++;
-				endforeach;
-				?>
-			</table>
-			<div class="tablenav bottom cf">
-				<div class="alignleft tablenav-information">
-					<span class="displaying-num"><?php printf( esc_html( _n( '1 list', '%s lists', $total, 'chimplet' ) ), $total ); ?></span>
-				</div>
-			</div>
-			<table class="form-table">
-				<tr>
-					<td>
-			<?php
-			}
-		}
+		$this->render_section( 'settings-list', $args );
 	}
 
 	/**
@@ -541,7 +648,7 @@ class SettingsPage extends BasePage
 	 * @param  array  $args
 	 */
 
-	public function render_mailchimp_field_terms( $args )
+	public function render_mailchimp_field_terms_section( $args )
 	{
 		?>
 		<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List. (Maximum of 60 groups)', 'chimplet' ); ?></p>
@@ -630,27 +737,22 @@ class SettingsPage extends BasePage
 	/**
 	 * Render user groups that needs to be synchonize with MailChimp
 	 *
-	 * @todo synchonize user roles to be mapped as groups
 	 * @access public
 	 * @param $args
 	 *
 	 * @return void
 	 */
 
-	public function render_mailchimp_field_user_roles( $args ) {
-		?>
-		<p class="description"><?php esc_html_e( 'All users of the chosen roles will be synced with MailChimp and added as WP_ROLE merge field.', 'chimplet' ); ?></p>
-		<?php
+	public function render_mailchimp_field_user_roles_section( $args )
+	{
+		$this->render_section( 'settings-user-roles', $args );
+	}
 
-		$local_roles = $this->get_option( 'mailchimp.user_roles', [] );
-		$roles       = $this->wp->get_editable_roles();
-
-		if ( empty( $roles ) ) {
-			return;
-		}
-		else {
-			$roles_key = array_keys( $roles );
-		}
+	/**
+	 * Used to render campaigns specific settings
+	 *
+	 * @param array $args
+	 */
 
 		$merge_var         = $this->mc->get_merge_var( self::USER_ROLE_MERGE_VAR );
 		$merge_var_choices = isset( $merge_var['choices'] ) ?  $merge_var['choices'] : [];
@@ -704,7 +806,8 @@ class SettingsPage extends BasePage
 	 * @param $message
 	 * @param $fallback_message
 	 */
-	private function display_inline_error( $message, $fallback_message ) {
+	private function display_inline_error( $message, $fallback_message )
+	{
 		if ( $message ) {
 			printf( '<p class="chimplet-alert alert-warning">%s</p>', esc_html( $message ) );
 		} else {

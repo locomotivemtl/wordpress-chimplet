@@ -350,6 +350,129 @@ class Facade
 	}
 
 	/**
+	 * Get a folder ID by name or create the folder if it doesn't exist
+	 *
+	 * @param $name
+	 * @return bool|int
+	 */
+
+	public function get_campaign_folder_id( $name ) {
+
+		if ( empty( $name ) ) {
+			return false;
+		}
+
+		try {
+
+			$folders = $this->facade->folders->getList( 'campaign' );
+
+			foreach ( $folders as $folder ) {
+				if ( $folder['name'] === $name ) {
+					return $folder['folder_id'];
+				}
+			}
+
+			return $this->create_campaign_folder( $name );
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+
+	public function create_campaign_folder( $folder_name = '' ) {
+
+		try {
+
+			return $this->facade->folders->add( $folder_name, 'campaign' );
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+
+	/**
+	 * Create all segments necessary
+	 *
+	 * @param $campaign
+	 * @return bool|array
+	 */
+	public function create_campaign( $campaign ) {
+
+		try {
+
+			$result = $this->facade->lists->segmentTest( $this->current_list['id'], $campaign['segment_opts'] );
+
+			if ( $result ) {
+
+				// Add the campaigns
+				list( $type, $options, $content, $segment_opts, $type_opts ) = array_values( $campaign );
+				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
+
+				// @todo should we send them immediately?
+				// $this->facade->campaigns->send( $campaign['id'] );
+
+				return $campaign;
+
+			}
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+	}
+
+
+	/**
+	 * Delete a campaign using a campaign ID
+	 *
+	 * @param $campaign_id
+	 * @return bool
+	 */
+
+	public function delete_campaign( $campaign_id ) {
+
+		try {
+
+			$this->facade->campaigns->delete( $campaign_id );
+
+		} catch( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+	/**
+	 * Retrieve user template in MailChimp
+	 *
+	 * @return array
+	 */
+	public function get_user_template() {
+
+		try {
+
+			$templates = $this->facade->templates->getList( [ 'user' => true ], [ 'include_drag_and_drop' => true ] );
+
+			return $templates['user'];
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return [];
+
+		}
+
+	}
+
+	/**
 	 * Function to get all merge vars affected to the current list
 	 *
 	 * @return bool
