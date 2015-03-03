@@ -286,7 +286,7 @@ class SettingsPage extends BasePage
 	 * @param array $tax_to_save
 	 * @return array|bool
 	 */
-	
+
 	private function save_taxonomy_terms( &$tax_to_save ) {
 		// For comparison purposes
 		if ( ! $old_option = $this->get_option( 'mailchimp.terms' ) ) {
