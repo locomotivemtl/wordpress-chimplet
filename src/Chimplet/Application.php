@@ -134,7 +134,6 @@ class Application extends Base
 	 * @version 2015-02-10
 	 * @since   0.0.0 (2015-02-05)
 	 * @link    AdvancedCustomFields\acf::wp_init() Based on ACF method
-	 * @todo    Register assets, post types, taxonomies
 	 */
 
 	public function wp_init()
@@ -165,8 +164,7 @@ class Application extends Base
 					[ 'type' => 'error' ]
 				);
 			}
-
-			if ( ! $this->get_option( 'mailchimp.valid' ) ) {
+			else if ( ! $this->get_option( 'mailchimp.valid' ) ) {
 				$this->notices->add(
 					'chimplet/mailchimp/invalid-api-key',
 					sprintf( __( 'Invalid MailChimp API Key: %s.' ), $mailchimp_key ) . ' ' . esc_html( 'Please go to ', 'chimplet' ) . $settings_link, // xss ok

@@ -29,6 +29,7 @@ class Facade
 	public  $is_initialized = false;
 	private $facade;
 	private $current_list;
+	private $current_list_merge_vars;
 	private $current_list_groupings;
 	private $all_lists;
 
@@ -345,6 +346,245 @@ class Facade
 			$this->add_to_grouping( $group_to_add, $grouping_id );
 
 		}
+
+	}
+
+	/**
+	 * Get a folder ID by name or create the folder if it doesn't exist
+	 *
+	 * @param $name
+	 * @return bool|int
+	 */
+
+	public function get_campaign_folder_id( $name ) {
+
+		if ( empty( $name ) ) {
+			return false;
+		}
+
+		try {
+
+			$folders = $this->facade->folders->getList( 'campaign' );
+
+			foreach ( $folders as $folder ) {
+				if ( $folder['name'] === $name ) {
+					return $folder['folder_id'];
+				}
+			}
+
+			return $this->create_campaign_folder( $name );
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+
+	public function create_campaign_folder( $folder_name = '' ) {
+
+		try {
+
+			return $this->facade->folders->add( $folder_name, 'campaign' );
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+
+	/**
+	 * Create all segments necessary
+	 *
+	 * @param $campaign
+	 * @return bool|array
+	 */
+	public function create_campaign( $campaign ) {
+
+		try {
+
+			$result = $this->facade->lists->segmentTest( $this->current_list['id'], $campaign['segment_opts'] );
+
+			if ( $result ) {
+
+				// Add the campaigns
+				list( $type, $options, $content, $segment_opts, $type_opts ) = array_values( $campaign );
+				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
+
+				// @todo should we send them immediately?
+				// $this->facade->campaigns->send( $campaign['id'] );
+
+				return $campaign;
+
+			}
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+	}
+
+
+	/**
+	 * Delete a campaign using a campaign ID
+	 *
+	 * @param $campaign_id
+	 * @return bool
+	 */
+
+	public function delete_campaign( $campaign_id ) {
+
+		try {
+
+			$this->facade->campaigns->delete( $campaign_id );
+
+		} catch( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+	/**
+	 * Retrieve user template in MailChimp
+	 *
+	 * @return array
+	 */
+	public function get_user_template() {
+
+		try {
+
+			$templates = $this->facade->templates->getList( [ 'user' => true ], [ 'include_drag_and_drop' => true ] );
+
+			return $templates['user'];
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return [];
+
+		}
+
+	}
+
+	/**
+	 * Function to get all merge vars affected to the current list
+	 *
+	 * @return bool
+	 */
+	public function get_all_merge_vars() {
+
+		if ( isset( $this->current_list_merge_vars ) ) {
+
+			return $this->current_list_merge_vars;
+
+		}
+
+		try {
+
+			$response = $this->facade->lists->mergeVars( [ $this->current_list['id'] ] );
+			$response = reset( $response['data'] );
+
+			return $this->current_list_merge_vars = $response['merge_vars'];
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+
+	}
+
+	/**
+	 * Get merge var by tag
+	 *
+	 * @param string $tag
+	 * @return bool|array
+	 */
+	public function get_merge_var( $tag ) {
+		if ( $merge_vars = $this->get_all_merge_vars() ) {
+
+			foreach ( $merge_vars as $key => $merge_var ) {
+
+				if ( $tag === $merge_var['tag'] ) {
+					return $merge_var;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Add new merge var to the current list
+	 *
+	 * @param $tag
+	 * @param $name
+	 * @param $options
+	 * @return bool
+	 */
+	public function add_merge_var( $tag, $name, $options ) {
+		try {
+
+			$this->facade->lists->mergeVarAdd( $this->current_list['id'], $tag, $name, $options );
+			return true;
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+	}
+
+	/**
+	 * Update merge var to the current list
+	 *
+	 * @param $tag
+	 * @param $options
+	 * @return bool
+	 */
+	public function update_merge_var( $tag, $options ) {
+		try {
+
+			// Field type cannot be save with update
+			unset( $options['field_type'] );
+
+			$this->facade->lists->mergeVarUpdate( $this->current_list['id'], $tag, $options );
+			return true;
+
+		} catch ( \Mailchimp_Error $e ) {
+
+			return false;
+
+		}
+	}
+
+	/**
+	 * Make sure merge vars specified is present in MailChimp list
+	 * Update all merge vars option
+	 *
+	 * @param string $tag
+	 * @param string $name
+	 * @param array $options
+	 * @return bool
+	 */
+	public function handle_merge_var_integrity( $tag, $name = '', $options = [] ) {
+
+		if ( $merge_var = $this->get_merge_var( $tag ) ) {
+
+			return $this->update_merge_var( $tag, $options );
+
+		}
+		else {
+			return $this->add_merge_var( $tag, $name, $options );
+		}
+
+		return false;
 
 	}
 

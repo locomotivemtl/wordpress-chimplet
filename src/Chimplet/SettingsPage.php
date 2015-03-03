@@ -286,7 +286,6 @@ class SettingsPage extends BasePage
 	 * @param array $tax_to_save
 	 * @return array|bool
 	 */
-
 	private function save_taxonomy_terms( &$tax_to_save ) {
 		// For comparison purposes
 		if ( ! $old_option = $this->get_option( 'mailchimp.terms' ) ) {
@@ -327,7 +326,6 @@ class SettingsPage extends BasePage
 	 * @param $options
 	 * @return array
 	 */
-
 	private function handle_segment_and_grouping( $options ) {
 
 		$segments = [];
@@ -373,7 +371,6 @@ class SettingsPage extends BasePage
 	/**
 	 * We established that we needed to clear the campaigns we created.
 	 */
-
 	private function delete_active_campaigns() {
 
 		if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
@@ -391,7 +388,6 @@ class SettingsPage extends BasePage
 	 * @param $grouping
 	 * @return array
 	 */
-
 	private function generate_segments( $groups, $grouping ) {
 
 		$segments = $this->generate_group_power_set( $groups );
@@ -431,7 +427,6 @@ class SettingsPage extends BasePage
 	 *
 	 * @param array $roles
 	 */
-
 	private function save_user_roles( &$roles ) {
 		// For comparison purposes
 		$old_option = $this->get_option( 'mailchimp.user_roles' );
@@ -533,7 +528,6 @@ class SettingsPage extends BasePage
 	 * @param array $array
 	 * @return array
 	 */
-
 	private function generate_group_power_set( $array ) {
 		$results = [ [] ];
 
@@ -584,9 +578,11 @@ class SettingsPage extends BasePage
 
 	public function render_page()
 	{
+
 		$this->view['settings_group'] = self::SETTINGS_KEY;
 		$this->view['button_label']   = ( $this->get_option( 'mailchimp.valid' ) ? null : __( 'Save API Key', 'chimplet' ) );
 		$this->render_view( 'options-settings', $this->view );
+
 	}
 
 	/**
@@ -601,8 +597,10 @@ class SettingsPage extends BasePage
 
 	public function render_mailchimp_section( $args )
 	{
+
 		$options = $this->get_options();
 		$this->render_section( 'settings-mailchimp', $options );
+
 	}
 
 	/**
@@ -689,7 +687,6 @@ class SettingsPage extends BasePage
 	 * @param $message
 	 * @param $fallback_message
 	 */
-
 	private function display_inline_error( $message, $fallback_message )
 	{
 		if ( $message ) {
