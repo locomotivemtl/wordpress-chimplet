@@ -33,7 +33,7 @@ $merge_var_choices = isset( $merge_var['choices'] ) ?  $merge_var['choices'] : [
 		<?php
 		foreach ( $roles_key as $role ) :
 			$id    = "cb-select-user-roles-$role";
-			$name  = "chimplet[mailchimp][user_roles][$role]";
+			$name  = 'chimplet[mailchimp][user_roles][]';
 			$match = in_array( $role, $local_roles );
 
 			$is_synced = in_array( $role, $merge_var_choices );
@@ -47,7 +47,7 @@ $merge_var_choices = isset( $merge_var['choices'] ) ?  $merge_var['choices'] : [
 				<input type="checkbox"
 				       name="<?php echo esc_attr( $name ); ?>"
 				       id="<?php echo esc_attr( $id ); ?>"
-				       value="<?php echo esc_attr( $role ); ?>" <?php checked( $match ); ?>>
+				       value="<?php echo esc_attr( $role ); ?>" <?php checked( $match || $is_synced ); ?>>
 				<span><?php echo esc_html( $roles[ $role ]['name'] ); ?></span>
 				<?php echo $group_status; //xss ok ?>
 			</label>
