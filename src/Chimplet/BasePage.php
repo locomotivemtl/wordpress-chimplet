@@ -302,8 +302,8 @@ abstract class BasePage extends Base
 	{
 		global $wp_settings_fields;
 
-		if ( ! isset( $wp_settings_fields[ $page ][ $section ] ) )
-			return;
+		if ( ! isset( $wp_settings_fields[ $page ][ $section ] ) ) {
+			return; }
 
 		foreach ( (array) $wp_settings_fields[ $page ][ $section ] as $field ) {
 			$field['args']['title'] = $field['title'];
@@ -327,11 +327,11 @@ abstract class BasePage extends Base
 					$colspan = ' colspan="' . $field['args']['colspan'] . '"';
 					$scope   = ' scope="col"';
 				}
-/*
+				/*
 				if ( isset( $field['args']['rowspan'] ) && $field['args']['rowspan'] ) {
 					$rowspan = ' rowspan="' . $field['args']['rowspan'] . '"';
 				}
-*/
+				*/
 				$span = $colspan . $rowspan;
 
 				$th = $scope . $span;

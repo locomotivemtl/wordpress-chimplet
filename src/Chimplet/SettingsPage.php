@@ -188,11 +188,8 @@ class SettingsPage extends BasePage
 						);
 
 					}
-
 				}
-
 			}
-
 		}
 	}
 

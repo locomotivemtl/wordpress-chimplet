@@ -63,20 +63,20 @@ $field_name = 'chimplet[mailchimp][campaigns]';
 				esc_attr( $name )
 			);
 
-			$date = new DateTime('midnight');
+			$date = new DateTime( 'midnight' );
 			for ( $i = 0; $i <= 23; $i++ ) {
 
 				printf(
 					'<option value="%s"%s>%s</option>',
 					esc_attr( $i ),
 					selected( $i, $options['schedule']['schedule_hour'], false ),
-					esc_html( $date->format('H:i A') )
+					esc_html( $date->format( 'H:i A' ) )
 				);
 
-				$date->add( new DateInterval('PT1H') );
+				$date->add( new DateInterval( 'PT1H' ) );
 			}
 
-			echo '</select>' . "\n" . $date->format('T');
+			echo '</select>' . "\n" . $date->format( 'T' );
 
 			?>
 		</div>
@@ -86,7 +86,7 @@ $field_name = 'chimplet[mailchimp][campaigns]';
 		<div class="chimplet-item-list chimplet-hl">
 		<?php
 
-		$timestamp = strtotime('next Sunday');
+		$timestamp = strtotime( 'next Sunday' );
 		for ( $i = 1; $i <= 7; $i++ ) {
 
 			$id    = 'days' . $i;

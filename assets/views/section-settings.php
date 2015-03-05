@@ -22,7 +22,6 @@ else if ( is_array( $section['callback'] ) ) {
 	if ( isset( $section['callback']['after'] ) && is_callable( $section['callback']['after'] ) ) {
 		$after_fields = $section['callback']['after'];
 	}
-
 }
 
 
