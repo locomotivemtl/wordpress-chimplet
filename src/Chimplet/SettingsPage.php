@@ -111,7 +111,7 @@ class SettingsPage extends BasePage
 	 * Register settings and fields
 	 *
 	 * @used-by Action: "admin_init"
-	 * @version 2015-03-03
+	 * @version 2015-03-06
 	 * @since   0.0.0 (2015-02-09)
 	 */
 
@@ -124,7 +124,7 @@ class SettingsPage extends BasePage
 		$this->wp->add_settings_field(
 			'chimplet-field-mailchimp-api_key',
 			__( 'API Key', 'chimplet' ),
-			[ $this, 'render_mailchimp_field_api_key_section' ],
+			[ $this, 'render_mailchimp_field_api_key' ],
 			$this->view['menu_slug'],
 			'chimplet-section-mailchimp-api',
 			[
@@ -138,7 +138,7 @@ class SettingsPage extends BasePage
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-lists',
 				__( 'Select Mailing List', 'chimplet' ),
-				[ $this, 'render_mailchimp_field_list_section' ],
+				[ $this, 'render_mailchimp_field_list' ],
 				$this->view['menu_slug'],
 				'chimplet-section-mailchimp-lists',
 				[
@@ -157,7 +157,7 @@ class SettingsPage extends BasePage
 					$this->wp->add_settings_field(
 						'chimplet-field-mailchimp-categories',
 						__( 'Select Taxonomy Terms', 'chimplet' ),
-						[ $this, 'render_mailchimp_field_terms_section' ],
+						[ $this, 'render_mailchimp_field_terms' ],
 						$this->view['menu_slug'],
 						'chimplet-section-mailchimp-lists',
 						[ 'list' => $list ]
@@ -166,7 +166,7 @@ class SettingsPage extends BasePage
 					$this->wp->add_settings_field(
 						'chimplet-field-mailchimp-user-roles',
 						__( 'Select User Roles', 'chimplet' ),
-						[ $this, 'render_mailchimp_field_user_roles_section' ],
+						[ $this, 'render_mailchimp_field_user_roles' ],
 						$this->view['menu_slug'],
 						'chimplet-section-mailchimp-lists',
 						[ 'list' => $list ]
@@ -687,13 +687,13 @@ class SettingsPage extends BasePage
 	 * Display the API Key Settings Field
 	 *
 	 * @used-by Function: add_settings_field
-	 * @version 2015-02-10
+	 * @version 2015-03-06
 	 * @since   0.0.0 (2015-02-09)
 	 *
 	 * @param  array  $args
 	 */
 
-	public function render_mailchimp_field_api_key_section( $args )
+	public function render_mailchimp_field_api_key( $args )
 	{
 		$value = $this->get_option( 'mailchimp.api_key' );
 
@@ -708,30 +708,30 @@ class SettingsPage extends BasePage
 	 * Display the Subscriber List Settings Field
 	 *
 	 * @used-by Function: add_settings_field
-	 * @version 2015-02-10
+	 * @version 2015-03-06
 	 * @since   0.0.0 (2015-02-09)
 	 *
 	 * @param  array  $args
 	 */
 
-	public function render_mailchimp_field_list_section( $args )
+	public function render_mailchimp_field_list( $args )
 	{
-		$this->render_section( 'settings-list', $args );
+		$this->render_field( 'settings-list', $args );
 	}
 
 	/**
 	 * Display a terms from all taxonomies
 	 *
 	 * @used-by Function: add_settings_field
-	 * @version 2015-02-13
+	 * @version 2015-03-06
 	 * @since   0.0.0 (2015-02-11)
 	 *
 	 * @param  array  $args
 	 */
 
-	public function render_mailchimp_field_terms_section( $args )
+	public function render_mailchimp_field_terms( $args )
 	{
-		$this->render_section( 'settings-terms', $args );
+		$this->render_field( 'settings-terms', $args );
 	}
 
 	/**
@@ -743,9 +743,9 @@ class SettingsPage extends BasePage
 	 * @return void
 	 */
 
-	public function render_mailchimp_field_user_roles_section( $args )
+	public function render_mailchimp_field_user_roles( $args )
 	{
-		$this->render_section( 'settings-user-roles', $args );
+		$this->render_field( 'settings-user-roles', $args );
 	}
 
 	/**

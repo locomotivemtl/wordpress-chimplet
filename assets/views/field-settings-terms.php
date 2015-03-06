@@ -4,7 +4,7 @@
  * File: Chimplet Taxonomy Settings
  *
  * @package Locomotive\Chimplet\Views
- * @version 2015-03-03
+ * @version 2015-03-06
  * @since   0.0.0 (2015-02-28)
  */
 
