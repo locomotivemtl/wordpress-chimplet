@@ -55,7 +55,7 @@ class SettingsPage extends BasePage
 	 * Register settings and sections
 	 *
 	 * @used-by Action: "admin_init"
-	 * @version 2015-03-03
+	 * @version 2015-03-06
 	 * @since   0.0.0 (2015-03-03)
 	 */
 
@@ -77,19 +77,34 @@ class SettingsPage extends BasePage
 			$this->view['menu_slug']
 		);
 
-		$this->wp->add_settings_section(
-			'chimplet-section-mailchimp-lists',
-			__( 'List Management', 'chimplet' ),
-			null,
-			$this->view['menu_slug']
-		);
+		// Add these fields when the API Key is integrated
+		if ( $this->get_option( 'mailchimp.valid' ) ) {
 
-		$this->wp->add_settings_section(
-			'chimplet-section-mailchimp-campaigns',
-			__( 'Campaign Management', 'chimplet' ),
-			null,
-			$this->view['menu_slug']
-		);
+			$this->wp->add_settings_section(
+				'chimplet-section-mailchimp-lists',
+				__( 'List Management', 'chimplet' ),
+				null,
+				$this->view['menu_slug']
+			);
+
+			// Add these fields when the List is selected
+			if ( $list = $this->get_option( 'mailchimp.list' ) ) {
+
+				$list = $this->mc->get_list_by_id( $list );
+
+				if ( ! $list instanceof \Mailchimp_Error ) {
+
+					$this->wp->add_settings_section(
+						'chimplet-section-mailchimp-campaigns',
+						__( 'Campaign Management', 'chimplet' ),
+						null,
+						$this->view['menu_slug']
+					);
+
+				}
+			}
+
+		}
 	}
 
 	/**
@@ -244,8 +259,8 @@ class SettingsPage extends BasePage
 		}
 
 		// No need to continue further if we don't have list...
-		if ( ! $list ) {
-			return;
+		if ( empty( $list ) ) {
+			return $settings;
 		}
 
 		// Do we have any taxonomies?
