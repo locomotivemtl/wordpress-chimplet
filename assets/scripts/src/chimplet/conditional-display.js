@@ -13,8 +13,6 @@
 	var Condition = {
 		toggle: function (event)
 		{
-			console.group( 'Condition' );
-
 			var $trigger, $targets, $shown, $hidden, condition, value;
 
 			$trigger = $( event.currentTarget );
@@ -28,8 +26,6 @@
 			$shown  = $targets.filter('[' + condition + '="' + value + '"]').removeClass( 'hidden' );
 
 			$hidden = $targets.not('[' + condition + '="' + value + '"]').addClass( 'hidden' );
-
-			console.groupEnd();
 		}
 	};
 
