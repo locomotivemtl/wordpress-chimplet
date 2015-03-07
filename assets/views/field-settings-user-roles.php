@@ -12,7 +12,12 @@ use Locomotive\Chimplet\SettingsPage;
 
 ?>
 
-<p class="description"><?php esc_html_e( 'All users of the chosen roles will be synced with MailChimp and added as WP_ROLE merge field.', 'chimplet' ); ?></p>
+<p class="description"><?php
+	printf(
+		esc_html__( 'All users of the chosen roles will be synced with MailChimp and added as %s merge field.', 'chimplet' ),
+		'<samp>' . esc_html__( 'WP_ROLE', 'chimplet' ) . '</samp>'
+	);
+?></p>
 
 <?php
 
