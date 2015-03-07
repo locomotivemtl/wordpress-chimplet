@@ -13,11 +13,32 @@ $options = $this->get_option( 'mailchimp.campaigns', [] );
 // Use as basis for name attribute
 $field_name = 'chimplet[mailchimp][campaigns]';
 
+$options['schedule']['frequency'] = ( isset( $options['schedule']['frequency'] ) ? $options['schedule']['frequency'] : 'daily' );
+
+$is_daily   = false;
+$is_weekly  = false;
+$is_monthly = false;
+
+$hidden_class = ' hidden';
+
+switch ( $options['schedule']['frequency'] ) {
+	case 'daily':
+		$is_daily = true;
+		break;
+
+	case 'weekly':
+		$is_weekly = true;
+		break;
+
+	case 'monthly':
+		$is_monthly = true;
+		break;
+}
+
 ?>
 
 <fieldset>
 	<legend class="screen-reader-text"><span class="h4"><?php echo esc_html( $args['title'] ); ?></span></legend>
-	<p class="description"><?php esc_html_e( 'We’ll only send if there’s new content.', 'chimplet' ); ?></p>
 	<div class="chimplet-item-list chimplet-hl">
 		<div class="chimplet-cell chimplet-1/4 chimplet-schedule-option chimplet-schedule-frequency">
 			<?php
@@ -31,12 +52,10 @@ $field_name = 'chimplet[mailchimp][campaigns]';
 			];
 
 			printf(
-				'<select id="%s" name="%s" autocomplete="off" data-condition-set="frequency">',
+				'<select id="%s" name="%s" autocomplete="off" data-condition-key="frequency">',
 				esc_attr( $id ),
 				esc_attr( $name )
 			);
-
-			$options['schedule']['frequency'] = ( isset( $options['schedule']['frequency'] ) ? $options['schedule']['frequency'] : '' );
 
 			foreach ( $frequencies as $key => $name ) {
 				$key = $key;
@@ -51,7 +70,7 @@ $field_name = 'chimplet[mailchimp][campaigns]';
 			echo '</select>';
 			?>
 		</div>
-		<div class="chimplet-cell chimplet-1/4 chimplet-schedule-option chimplet-schedule-daily /*hide-if-js*/" data-condition-frequency="daily">
+		<div class="chimplet-cell chimplet-1/4 chimplet-schedule-option chimplet-schedule-daily<?php echo ( $is_daily ? '' : $hidden_class ); ?>" data-condition-frequency="daily">
 			<?php
 
 			$id   = 'mailchimp-campaigns-schedule_hour';
@@ -80,9 +99,9 @@ $field_name = 'chimplet[mailchimp][campaigns]';
 
 			?>
 		</div>
+		<p class="description clear"><?php esc_html_e( 'We’ll only send if there’s new content.', 'chimplet' ); ?></p>
 	</div>
-	<div class="chimplet-schedule-option chimplet-schedule-daily /*hide-if-js*/" data-condition-frequency="daily">
-		<p class="description"><?php esc_html_e( 'Send only on these days', 'chimplet' ); ?></p>
+	<div class="chimplet-schedule-option chimplet-schedule-daily<?php echo ( $is_daily ? '' : $hidden_class ); ?>" data-condition-frequency="daily">
 		<div class="chimplet-item-list chimplet-hl">
 		<?php
 
@@ -107,5 +126,6 @@ $field_name = 'chimplet[mailchimp][campaigns]';
 
 		?>
 		</div>
+		<p class="description"><?php esc_html_e( 'Send only on these days', 'chimplet' ); ?></p>
 	</div>
 </fieldset>
