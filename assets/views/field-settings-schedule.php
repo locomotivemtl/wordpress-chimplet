@@ -8,12 +8,12 @@
  * @since   0.0.0 (2015-03-03)
  */
 
-$options = $this->get_option( 'mailchimp.campaigns', [] );
+$options = $this->get_option( 'mailchimp.campaigns.schedule', [] );
 
 // Use as basis for name attribute
 $field_name = 'chimplet[mailchimp][campaigns]';
 
-$options['schedule']['frequency'] = ( isset( $options['schedule']['frequency'] ) ? $options['schedule']['frequency'] : 'daily' );
+$options['frequency'] = ( isset( $options['frequency'] ) ? $options['frequency'] : 'daily' );
 
 $is_daily   = false;
 $is_weekly  = false;
@@ -21,7 +21,7 @@ $is_monthly = false;
 
 $hidden_class = ' hidden';
 
-switch ( $options['schedule']['frequency'] ) {
+switch ( $options['frequency'] ) {
 	case 'daily':
 		$is_daily = true;
 		break;
@@ -33,6 +33,41 @@ switch ( $options['schedule']['frequency'] ) {
 	case 'monthly':
 		$is_monthly = true;
 		break;
+}
+
+$weekday_options = $weekday_checkboxes = '';
+
+$date = new DateTime( 'next sunday' );
+for ( $i = 1; $i <= 7; $i++ ) {
+
+	$val = esc_attr( $date->format( 'N' ) );
+
+	$weekday_options .= sprintf(
+		'<option value="%s"%s>%s</option>',
+		$val,
+		selected( $val, ( $options['weekday'] || 1 ), false ),
+		esc_html( $date->format( 'l' ) )
+	);
+
+	$match = ( empty( $options['days'] ) || ! is_array( $options ) ) ? ( 'daily' === $options['frequency'] ) : in_array( $val, $options['days'] );
+
+	$weekday_checkboxes .= sprintf( '
+		<label for="%2$s" title="%5$s">
+			<input type="checkbox"
+			       name="%3$s"
+			       id="%2$s"
+			       value="%1$s"%4$s>
+			<span>%6$s</span>
+		</label>' . "\n",
+		$val,
+		esc_attr( 'days' . $val ),
+		esc_attr( $field_name . '[schedule][days][]' ),
+		checked( $match, true, false ),
+		esc_html( $date->format( 'l' ) ),
+		esc_html( $date->format( 'D' ) )
+	);
+
+	$date->add( new DateInterval( 'P1D' ) );
 }
 
 ?>
@@ -62,7 +97,7 @@ switch ( $options['schedule']['frequency'] ) {
 				printf(
 					'<option value="%s"%s>%s</option>',
 					esc_attr( $key ),
-					selected( $key, $options['schedule']['frequency'], false ),
+					selected( $key, $options['frequency'], false ),
 					esc_html( $name )
 				);
 			}
@@ -70,11 +105,75 @@ switch ( $options['schedule']['frequency'] ) {
 			echo '</select>';
 			?>
 		</div>
-		<div class="chimplet-cell chimplet-1/4 chimplet-schedule-option chimplet-schedule-daily<?php echo ( $is_daily ? '' : $hidden_class ); ?>" data-condition-frequency="daily">
+		<div class="chimplet-cell chimplet-1/4 chimplet-schedule-option chimplet-schedule-weekly<?php echo ( $is_weekly ? '' : $hidden_class ); ?>" data-condition-frequency="weekly">
 			<?php
 
-			$id   = 'mailchimp-campaigns-schedule_hour';
-			$name = $field_name . '[schedule][schedule_hour]';
+			$id   = 'mailchimp-campaigns-weekday';
+			$name = $field_name . '[schedule][weekday]';
+
+			printf(
+				'<select id="%s" name="%s" autocomplete="off">',
+				esc_attr( $id ),
+				esc_attr( $name )
+			);
+
+			echo $weekday_options;
+
+			echo '</select>';
+
+			?>
+		</div>
+		<div class="chimplet-cell chimplet-1/4 chimplet-schedule-option chimplet-schedule-monthly<?php echo ( $is_monthly ? '' : $hidden_class ); ?>" data-condition-frequency="monthly">
+			<?php
+
+			$id   = 'mailchimp-campaigns-monthday';
+			$name = $field_name . '[schedule][monthday]';
+
+			printf(
+				'<select id="%s" name="%s" autocomplete="off">',
+				esc_attr( $id ),
+				esc_attr( $name )
+			);
+
+			$date = new DateTime( '2014-01-01' );
+			for ( $i = 1; $i <= 29; $i++ ) { // 32
+
+				if ( 29 === $i ) {
+					$val  = -1;
+					$text = esc_attr__( 'last day of the month', 'chimplet' );
+				}
+				else {
+					$val  = $date->format( 'j' );
+					$text = $date->format( 'jS' );
+				}
+
+				if ( $i > 29 ) {
+					$text = sprintf( esc_attr__( '%s (not available in all months)', 'chimplet' ), $text );
+				}
+
+				$val = esc_attr( $val );
+
+				printf(
+					'<option value="%s"%s>%s</option>',
+					$val,
+					selected( $val, ( $options['monthday'] ?: 1 ), false ) . ( $i > 29 ? ' disabled' : '' ),
+					esc_html( $text )
+				);
+
+				if ( 29 !== $i ) {
+					$date->add( new DateInterval( 'P1D' ) );
+				}
+			}
+
+			echo '</select>';
+
+			?>
+		</div>
+		<div class="chimplet-cell chimplet-1/4 chimplet-schedule-option chimplet-schedule-hourly">
+			<?php
+
+			$id   = 'mailchimp-campaigns-hour';
+			$name = $field_name . '[schedule][hour]';
 
 			printf(
 				'<select id="%s" name="%s" autocomplete="off">',
@@ -88,7 +187,7 @@ switch ( $options['schedule']['frequency'] ) {
 				printf(
 					'<option value="%s"%s>%s</option>',
 					esc_attr( $i ),
-					selected( $i, $options['schedule']['schedule_hour'], false ),
+					selected( $i, ( $options['hour'] ?: 0 ), false ),
 					esc_html( $date->format( 'H:i A' ) )
 				);
 
@@ -105,24 +204,7 @@ switch ( $options['schedule']['frequency'] ) {
 		<div class="chimplet-item-list chimplet-hl">
 		<?php
 
-		$timestamp = strtotime( 'next Sunday' );
-		for ( $i = 1; $i <= 7; $i++ ) {
-
-			$id    = 'days' . $i;
-			$name  = esc_attr( $field_name . '[schedule][days][]' );
-			$match = ( empty( $options['schedule']['days'] ) || ! is_array( $options ) ) ? ( 'daily' === $options['schedule']['frequency'] ) : in_array( $i, $options['schedule']['days'] );
-			?>
-			<label for="<?php echo esc_attr( $id ); ?>" title="<?php echo esc_attr( strftime( '%A', $timestamp ) ); ?>">
-				<input type="checkbox"
-				       name="<?php echo esc_attr( $name ); ?>"
-				       id="<?php echo esc_attr( $id ); ?>"
-				       value="<?php echo esc_attr( $i ); ?>" <?php checked( $match ); ?>>
-				<span><?php echo esc_html( strftime( '%a', $timestamp ) ); ?></span>
-			</label>
-			<?php
-
-			$timestamp = strtotime( '+1 day', $timestamp );
-		}
+		echo $weekday_checkboxes;
 
 		?>
 		</div>

@@ -103,7 +103,6 @@ class SettingsPage extends BasePage
 
 				}
 			}
-
 		}
 	}
 
@@ -245,7 +244,6 @@ class SettingsPage extends BasePage
 			$list = $this->mc->get_list_by_id( $settings['mailchimp']['list'] );
 
 			if ( $list instanceof \Mailchimp_Error ) {
-
 				$this->wp->add_settings_error(
 					self::SETTINGS_KEY,
 					'mailchimp-invalid-list',
@@ -254,7 +252,6 @@ class SettingsPage extends BasePage
 				);
 
 				$list = null;
-
 			}
 		}
 
@@ -265,15 +262,11 @@ class SettingsPage extends BasePage
 
 		// Do we have any taxonomies?
 		if ( isset( $settings['mailchimp']['terms'] ) ) {
-
 			$segments = $this->save_taxonomy_terms( $settings['mailchimp']['terms'] );
-
 		}
 
 		if ( isset( $settings['mailchimp']['user_roles'] ) ) {
-
 			$this->save_user_roles( $settings['mailchimp']['user_roles'] );
-
 		}
 
 		// We have new segments we add a corresponding campaigns
@@ -339,6 +332,56 @@ class SettingsPage extends BasePage
 					}
 				}
 			}
+
+			// Campaign automated creation
+			if ( isset( $settings['mailchimp']['campaigns']['schedule'] ) ) {
+				$schedule = $settings['mailchimp']['campaigns']['schedule'];
+
+				if ( isset( $schedule['frequency'] ) ) {
+					switch ( $schedule['frequency'] ) {
+						case 'daily':
+							unset( $schedule['monthday'], $schedule['weekday'] );
+							$schedule['days'] = array_map( 'intval', $schedule['days'] );
+							break;
+
+						case 'weekly':
+							unset( $schedule['monthday'], $schedule['days'] );
+							$schedule['weekday'] = absint( $schedule['weekday'] );
+							break;
+
+						case 'monthly':
+							unset( $schedule['weekday'], $schedule['days'] );
+							$schedule['monthday'] = intval( $schedule['monthday'] );
+							break;
+
+						default:
+							$this->wp->add_settings_error(
+								self::SETTINGS_KEY,
+								'mailchimp-shedule-frequency-failed',
+								sprintf( __( 'Invalid schedule frequency.' ) ),
+								'error'
+							);
+							break;
+					}
+				}
+
+				if ( isset( $schedule['hour'] ) ) {
+					$schedule['hour'] = absint( $schedule['hour'] );
+				}
+				else {
+					$this->wp->add_settings_error(
+						self::SETTINGS_KEY,
+						'mailchimp-shedule-hour-failed',
+						sprintf( __( 'Invalid schedule hour.' ) ),
+						'error'
+					);
+				}
+
+				$settings['mailchimp']['campaigns']['schedule'] = $schedule;
+			}
+		}
+		else {
+			unset( $settings['mailchimp']['campaigns']['schedule'] );
 		}
 
 		return $settings;
