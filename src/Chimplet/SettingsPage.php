@@ -293,12 +293,73 @@ class SettingsPage extends BasePage
 				// @todo what do we do with all other segments from other tax?
 				$segments = array_shift( $segments );
 
+				if ( isset( $settings['mailchimp']['campaigns']['schedule'] ) ) {
+					$schedule = $settings['mailchimp']['campaigns']['schedule'];
+
+					if ( isset( $schedule['frequency'] ) ) {
+						switch ( $schedule['frequency'] ) {
+							case 'daily':
+								unset( $schedule['monthday'], $schedule['weekday'] );
+								$schedule['days'] = array_map( 'intval', $schedule['days'] );
+								$rss_opts = [
+									'schedule' => 'daily',
+									'days'     => array_fill_keys( $schedule['days'], true ),
+								];
+								break;
+
+							case 'weekly':
+								unset( $schedule['monthday'], $schedule['days'] );
+								$schedule['weekday'] = absint( $schedule['weekday'] );
+								$rss_opts = [
+									'schedule'         => 'weekly',
+									'schedule_weekday' => $schedule['weekday'],
+								];
+								break;
+
+							case 'monthly':
+								unset( $schedule['weekday'], $schedule['days'] );
+								$schedule['monthday'] = intval( $schedule['monthday'] );
+								$rss_opts = [
+									'schedule'          => 'monthly',
+									'schedule_monthday' => $schedule['monthday'],
+								];
+
+								break;
+
+							default:
+								$this->wp->add_settings_error(
+									self::SETTINGS_KEY,
+									'mailchimp-shedule-frequency-failed',
+									sprintf( __( 'Invalid schedule frequency.' ) ),
+									'error'
+								);
+								break;
+						}
+					}
+
+					if ( isset( $schedule['hour'] ) ) {
+						$schedule['hour'] = $rss_opts['schedule_hour'] = absint( $schedule['hour'] );
+					} else {
+						$this->wp->add_settings_error(
+							self::SETTINGS_KEY,
+							'mailchimp-shedule-hour-failed',
+							sprintf( __( 'Invalid schedule hour.' ) ),
+							'error'
+						);
+					}
+
+					$settings['mailchimp']['campaigns']['schedule'] = $schedule;
+				}
+
 				foreach ( $segments as $segment ) {
 					// From core
 					$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
 					if ( 'www.' == substr( $sitename, 0, 4 ) ) {
 						$sitename = substr( $sitename, 4 );
 					}
+
+					// Here we must generate the url for mailchimp to fetch
+					$rss_opts['url'] = apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ), $segment );
 
 					$campaign = [
 						'type'    => apply_filters( 'chimplet/campaigns/type', 'rss' ),
@@ -313,12 +374,7 @@ class SettingsPage extends BasePage
 							'url' => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
 						] ),
 						'segment_opts' => $segment,
-						'type_opts' => apply_filters( 'chimplet/campaigns/type/opts', [
-							'rss' => [
-								'url'      => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
-								'schedule' => $settings['mailchimp']['campaigns']['frequency']
-							]
-						] ),
+						'type_opts' => apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts 	] ),
 					];
 
 					if ( is_int( $folder_id ) ) {
@@ -331,53 +387,6 @@ class SettingsPage extends BasePage
 						$settings['mailchimp']['campaigns']['active'][] = $campaign['id'];
 					}
 				}
-			}
-
-			// Campaign automated creation
-			if ( isset( $settings['mailchimp']['campaigns']['schedule'] ) ) {
-				$schedule = $settings['mailchimp']['campaigns']['schedule'];
-
-				if ( isset( $schedule['frequency'] ) ) {
-					switch ( $schedule['frequency'] ) {
-						case 'daily':
-							unset( $schedule['monthday'], $schedule['weekday'] );
-							$schedule['days'] = array_map( 'intval', $schedule['days'] );
-							break;
-
-						case 'weekly':
-							unset( $schedule['monthday'], $schedule['days'] );
-							$schedule['weekday'] = absint( $schedule['weekday'] );
-							break;
-
-						case 'monthly':
-							unset( $schedule['weekday'], $schedule['days'] );
-							$schedule['monthday'] = intval( $schedule['monthday'] );
-							break;
-
-						default:
-							$this->wp->add_settings_error(
-								self::SETTINGS_KEY,
-								'mailchimp-shedule-frequency-failed',
-								sprintf( __( 'Invalid schedule frequency.' ) ),
-								'error'
-							);
-							break;
-					}
-				}
-
-				if ( isset( $schedule['hour'] ) ) {
-					$schedule['hour'] = absint( $schedule['hour'] );
-				}
-				else {
-					$this->wp->add_settings_error(
-						self::SETTINGS_KEY,
-						'mailchimp-shedule-hour-failed',
-						sprintf( __( 'Invalid schedule hour.' ) ),
-						'error'
-					);
-				}
-
-				$settings['mailchimp']['campaigns']['schedule'] = $schedule;
 			}
 		}
 		else {
