@@ -1,4 +1,17 @@
+<?php
+
+/**
+ * File: Chimplet Taxonomy Settings
+ *
+ * @package Locomotive\Chimplet\Views
+ * @version 2015-03-06
+ * @since   0.0.0 (2015-02-28)
+ */
+
+?>
+
 <p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List. (Maximum of 60 groups).', 'chimplet' ); ?></p>
+
 <?php
 
 $local_grouping = $this->get_option( 'mailchimp.terms', [] );
@@ -31,7 +44,7 @@ foreach ( $taxonomies as $taxonomy ) :
 	?>
 	<fieldset>
 		<legend><span class="h4"><?php echo $taxonomy->label . $grouping_status; //xss ok ?></span></legend>
-		<div class="chimplet-item-list chimplet-mc">
+		<div class="chimplet-item-list chimplet-mc chimplet-1/3">
 			<?php
 			$id    = "cb-select-$taxonomy->name-all";
 			$name  = "chimplet[mailchimp][terms][$taxonomy->name][]";
@@ -78,4 +91,5 @@ foreach ( $taxonomies as $taxonomy ) :
 		</div>
 	</fieldset>
 <?php
+
 endforeach;

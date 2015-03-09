@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * File: Chimplet Subscriber List Settings
+ *
+ * @package Locomotive\Chimplet\Views
+ * @version 2015-03-03
+ * @since   0.0.0 (2015-02-28)
+ */
+
 $value = $this->get_option( 'mailchimp.list' );
 $lists = $this->mc->get_all_lists();
 $total = $this->mc->get_current_list_total_results();
@@ -52,11 +60,11 @@ if ( ! empty( $lists ) ) {
 
 	}
 	else {
-		?>
-					</td>
-				</tr>
-			</table>
+
+			?>
+
 			<table class="wp-list-table widefat mailchimp-lists">
+				<caption><?php echo esc_html( $args['title'] ); ?></caption>
 				<thead>
 					<tr>
 						<th scope="col" id="chimplet-rb" class="manage-column column-rb check-column"><label class="screen-reader-text"><?php esc_html_e( 'Select One', 'chimplet' ); ?></label></th>
@@ -97,9 +105,8 @@ if ( ! empty( $lists ) ) {
 					<span class="displaying-num"><?php printf( esc_html( _n( '1 list', '%s lists', $total, 'chimplet' ) ), $total ); ?></span>
 				</div>
 			</div>
-			<table class="form-table">
-				<tr>
-					<td>
+
 			<?php
+
 	}
 }

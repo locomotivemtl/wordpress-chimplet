@@ -48,7 +48,7 @@ abstract class BasePage extends Base
 	 * Prepares all the necessary actions, filters, and functions
 	 * for the plugin to operate.
 	 *
-	 * @version 2015-02-12
+	 * @version 2015-03-03
 	 * @since   0.0.0 (2015-02-05)
 	 * @access  public
 	 * @param   Application $app
@@ -65,6 +65,8 @@ abstract class BasePage extends Base
 		$this->before_wp_hooks();
 
 		$this->wp->add_action( 'admin_menu', [ $this, 'append_to_menu' ] );
+
+		$this->wp->add_action( 'admin_init', [ $this, 'register_sections' ] );
 		$this->wp->add_action( 'admin_init', [ $this, 'register_settings' ] );
 
 		$this->wp->add_filter( 'pre_update_option_chimplet', [ $this, 'pre_update_option' ], 1, 2 );
@@ -146,7 +148,19 @@ abstract class BasePage extends Base
 	}
 
 	/**
-	 * Register settings sections and fields
+	 * Register settings sections; optionally including fields
+	 *
+	 * @used-by Action: "admin_init"
+	 * @version 2015-03-03
+	 * @since   0.0.0 (2015-03-03)
+	 */
+
+	public function register_sections()
+	{
+	}
+
+	/**
+	 * Register settings fields, optionally including sections
 	 *
 	 * @used-by Action: "admin_init"
 	 * @version 2015-02-09
@@ -234,6 +248,114 @@ abstract class BasePage extends Base
 		}
 
 		return '';
+	}
+
+	/**
+	 * Prints out all settings sections added to a particular settings page
+	 *
+	 * Replaces do_settings_sections().
+	 *
+	 * Part of the Settings API. Use this in a settings page callback function
+	 * to output all the sections and fields that were added to that $page with
+	 * add_settings_section() and add_settings_field()
+	 *
+	 * @global $wp_settings_sections Storage array of all settings sections added to admin pages
+	 * @global $wp_settings_fields Storage array of settings fields and info about their pages/sections
+	 * @see    \WordPress\do_settings_sections
+	 *
+	 * @param string $page The slug name of the page whos settings sections you want to output
+	 */
+	public function render_sections( $page )
+	{
+		global $wp_settings_sections, $wp_settings_fields;
+
+		if ( ! isset( $wp_settings_sections[ $page ] ) ) {
+			return;
+		}
+
+		$path = $this->get_path( 'assets/views/section-settings.php' );
+
+		if ( ! file_exists( $path ) ) {
+			return do_settings_sections( $page );
+		}
+
+		foreach ( (array) $wp_settings_sections[ $page ] as $section ) {
+			include $path;
+		}
+	}
+
+	/**
+	 * Print out the settings fields for a particular settings section
+	 *
+	 * Part of the Settings API. Use this in a settings page to output
+	 * a specific section. Should normally be called by do_settings_sections()
+	 * rather than directly.
+	 *
+	 * @global $wp_settings_fields Storage array of settings fields and their pages/sections
+	 *
+	 * @since 2.7.0
+	 *
+	 * @param string $page Slug title of the admin page who's settings fields you want to show.
+	 * @param string $section Slug title of the settings section who's fields you want to show.
+	 */
+	public function render_fields( $page, $section )
+	{
+		global $wp_settings_fields;
+
+		if ( ! isset( $wp_settings_fields[ $page ][ $section ] ) ) {
+			return; }
+
+		foreach ( (array) $wp_settings_fields[ $page ][ $section ] as $field ) {
+			$field['args']['title'] = $field['title'];
+
+			if ( isset( $field['args']['layout'] ) && 'custom' === $field['args']['layout'] ) {
+				echo '</tbody>';
+				echo '</table>';
+				call_user_func( $field['callback'], $field['args'] );
+				echo '<table class="form-table">';
+				echo '<tbody>';
+			}
+			else {
+
+				echo '<tr>';
+
+				$colspan = '';
+				$rowspan = '';
+				$scope   = ' scope="row"';
+
+				if ( isset( $field['args']['colspan'] ) && $field['args']['colspan'] ) {
+					$colspan = ' colspan="' . $field['args']['colspan'] . '"';
+					$scope   = ' scope="col"';
+				}
+				/*
+				if ( isset( $field['args']['rowspan'] ) && $field['args']['rowspan'] ) {
+					$rowspan = ' rowspan="' . $field['args']['rowspan'] . '"';
+				}
+				*/
+				$span = $colspan . $rowspan;
+
+				$th = $scope . $span;
+
+				if ( ! empty( $field['args']['label_for'] ) ) {
+					echo '<th' . $th . '><label for="' . esc_attr( $field['args']['label_for'] ) . '">' . $field['title'] . '</label></th>';
+				}
+				else {
+					echo '<th' . $th . '>' . $field['title'] . '</th>';
+				}
+
+				if ( $colspan ) {
+					echo '</tr>';
+					echo '<tr>';
+				}
+
+				$td = $span;
+
+				echo '<td' . $td . '>';
+				call_user_func( $field['callback'], $field['args'] );
+				echo '</td>';
+				echo '</tr>';
+			}
+		}
 	}
 
 }

@@ -68,6 +68,7 @@ module.exports = function(grunt) {
 			plugin: {
 				src: [
 					'assets/scripts/src/chimplet/utilities.js',
+					'assets/scripts/src/chimplet/conditional-display.js',
 					'assets/scripts/src/chimplet/toggle-checkboxes.js'
 				],
 				dest: 'assets/scripts/dist/common.js'
