@@ -132,78 +132,90 @@ class SettingsPage extends BasePage
 		);
 
 		// Add these fields when the API Key is integrated
-		if ( $this->get_option( 'mailchimp.valid' ) ) {
+		if ( ! $this->get_option( 'mailchimp.valid' ) ) {
+			return;
+		}
 
+		$this->wp->add_settings_field(
+			'chimplet-field-mailchimp-lists',
+			__( 'Select Mailing List', 'chimplet' ),
+			[ $this, 'render_mailchimp_field_list' ],
+			$this->view['menu_slug'],
+			'chimplet-section-mailchimp-lists',
+			[
+				'layout'   => 'custom',
+				'control'  => 'radio-table' // Choices: select, radio-table
+			]
+		);
+
+		// Add these fields when the List is selected
+		if ( ! $list = $this->get_option( 'mailchimp.list' ) ) {
+			return;
+		}
+
+		$list = $this->mc->get_list_by_id( $list );
+
+		if ( $list instanceof \Mailchimp_Error ) {
+			return;
+		}
+
+		$this->wp->add_settings_field(
+			'chimplet-field-mailchimp-categories',
+			__( 'Select Taxonomy Terms', 'chimplet' ),
+			[ $this, 'render_mailchimp_field_terms' ],
+			$this->view['menu_slug'],
+			'chimplet-section-mailchimp-lists',
+			[ 'list' => $list ]
+		);
+
+		$this->wp->add_settings_field(
+			'chimplet-field-mailchimp-user-roles',
+			__( 'Select User Roles', 'chimplet' ),
+			[ $this, 'render_mailchimp_field_user_roles' ],
+			$this->view['menu_slug'],
+			'chimplet-section-mailchimp-lists',
+			[ 'list' => $list ]
+		);
+
+		if ( $this->get_option( 'mailchimp.user_roles' ) ) {
 			$this->wp->add_settings_field(
-				'chimplet-field-mailchimp-lists',
-				__( 'Select Mailing List', 'chimplet' ),
-				[ $this, 'render_mailchimp_field_list' ],
+				'chimplet-field-mailchimp-subscribers-sync',
+				__( 'Subcribers sync', 'chimplet' ),
+				[ $this, 'render_mailchimp_field_subscribers' ],
 				$this->view['menu_slug'],
 				'chimplet-section-mailchimp-lists',
-				[
-					'layout'   => 'custom',
-					'control'  => 'radio-table' // Choices: select, radio-table
-				]
+				[ 'list' => $list ]
+			);
+		}
+
+		$this->wp->add_settings_field(
+			'chimplet-field-mailchimp-campaign-automation',
+			__( 'Automation', 'chimplet' ),
+			[ $this, 'render_mailchimp_field_campaign_automation' ],
+			$this->view['menu_slug'],
+			'chimplet-section-mailchimp-campaigns',
+			[
+				'label_for' => 'chimplet-field-mailchimp-campaign-automation'
+			]
+		);
+
+		// Add these fields when Campaign Automation is enabled
+		if ( $this->get_option( 'mailchimp.campaigns.automate' ) ) {
+			$this->wp->add_settings_field(
+				'chimplet-field-mailchimp-campaign-schedule',
+				__( 'Schedule', 'chimplet' ),
+				[ $this, 'render_mailchimp_field_campaign_schedule' ],
+				$this->view['menu_slug'],
+				'chimplet-section-mailchimp-campaigns'
 			);
 
-			// Add these fields when the List is selected
-			if ( $list = $this->get_option( 'mailchimp.list' ) ) {
-
-				$list = $this->mc->get_list_by_id( $list );
-
-				if ( ! $list instanceof \Mailchimp_Error ) {
-
-					$this->wp->add_settings_field(
-						'chimplet-field-mailchimp-categories',
-						__( 'Select Taxonomy Terms', 'chimplet' ),
-						[ $this, 'render_mailchimp_field_terms' ],
-						$this->view['menu_slug'],
-						'chimplet-section-mailchimp-lists',
-						[ 'list' => $list ]
-					);
-
-					$this->wp->add_settings_field(
-						'chimplet-field-mailchimp-user-roles',
-						__( 'Select User Roles', 'chimplet' ),
-						[ $this, 'render_mailchimp_field_user_roles' ],
-						$this->view['menu_slug'],
-						'chimplet-section-mailchimp-lists',
-						[ 'list' => $list ]
-					);
-
-					$this->wp->add_settings_field(
-						'chimplet-field-mailchimp-campaign-automation',
-						__( 'Automation', 'chimplet' ),
-						[ $this, 'render_mailchimp_field_campaign_automation' ],
-						$this->view['menu_slug'],
-						'chimplet-section-mailchimp-campaigns',
-						[
-							'label_for' => 'chimplet-field-mailchimp-campaign-automation'
-						]
-					);
-
-					// Add these fields when Campaign Automation is enabled
-					if ( $this->get_option( 'mailchimp.campaigns.automate' ) ) {
-
-						$this->wp->add_settings_field(
-							'chimplet-field-mailchimp-campaign-schedule',
-							__( 'Schedule', 'chimplet' ),
-							[ $this, 'render_mailchimp_field_campaign_schedule' ],
-							$this->view['menu_slug'],
-							'chimplet-section-mailchimp-campaigns'
-						);
-
-						$this->wp->add_settings_field(
-							'chimplet-field-mailchimp-campaign-template',
-							__( 'RSS Template', 'chimplet' ),
-							[ $this, 'render_mailchimp_field_campaign_template' ],
-							$this->view['menu_slug'],
-							'chimplet-section-mailchimp-campaigns'
-						);
-
-					}
-				}
-			}
+			$this->wp->add_settings_field(
+				'chimplet-field-mailchimp-campaign-template',
+				__( 'RSS Template', 'chimplet' ),
+				[ $this, 'render_mailchimp_field_campaign_template' ],
+				$this->view['menu_slug'],
+				'chimplet-section-mailchimp-campaigns'
+			);
 		}
 	}
 
@@ -816,7 +828,7 @@ class SettingsPage extends BasePage
 		echo '<fieldset>';
 
 		$field  = '<label for="%1$s">';
-		$field .= '<input type="checkbox" id="%1$s" name="%2$s" value="%3$s"' . checked( $match, true, false ) . '/>' . ' ';
+		$field .= '<input type="checkbox" id="%1$s" name="%2$s" value="%3$s"' . checked( $match, true, false ) . ' autocomplete="off"/>' . ' ';
 		$field .= '<span>%4$s</span>';
 		$field .= '</label>';
 
@@ -858,6 +870,20 @@ class SettingsPage extends BasePage
 	public function render_mailchimp_field_campaign_template( $args )
 	{
 		$this->render_field( 'settings-template', $args );
+	}
+
+	/**
+	 * Render subscriber sync sections settings
+	 *
+	 * @access public
+	 * @param $args
+	 *
+	 * @return void
+	 */
+
+	public function render_mailchimp_field_subscribers( $args )
+	{
+		$this->render_field( 'settings-subscribers-sync', $args );
 	}
 
 	/**

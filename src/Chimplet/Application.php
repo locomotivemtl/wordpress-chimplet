@@ -86,6 +86,9 @@ class Application extends Base
 
 		$this->wp->add_filter( 'plugin_row_meta', [ $this, 'plugin_meta' ], 10, 4 );
 
+		// Ajax function for user sync
+		$this->wp->add_action( 'wp_ajax_subscribers_sync', [ $this, 'subscribers_sync' ] );
+
 		$this->wp->register_activation_hook( LOCOMOTIVE_CHIMPLET_ABS, [ $this, 'activation_hook' ] );
 	}
 
@@ -177,6 +180,18 @@ class Application extends Base
 	}
 
 	/**
+	 * Sync WordPress users with MailChimp
+	 *
+	 * @return array
+	 */
+
+	public function subscribers_sync() {
+		check_admin_referer( 'chimplet-subscribers-sync', 'subscribersNonce' );
+
+		wp_send_json_success( $_REQUEST['offset'] );
+	}
+
+	/**
 	 * Register Assets
 	 *
 	 * @version 2015-02-13
@@ -192,12 +207,23 @@ class Application extends Base
 				'handle' => 'chimplet-common',
 				'src'    => $this->get_asset( 'scripts/dist/common' . $min . '.js' ),
 				'deps'   => [ 'jquery' ],
-				'foot'   => true
+				'foot'   => true,
+				'localized' => [
+					'object_name' => 'chimpletCommon',
+					'data'        => [
+						'action' => 'subscribers_sync',
+						'subscriberSyncNonce' => wp_create_nonce( 'chimplet-subscribers-sync' )
+					]
+				]
 			]
 		];
 
 		foreach ( $scripts as $script ) {
 			wp_register_script( $script['handle'], $script['src'], $script['deps'], $this->get_info( 'version' ), $script['foot'] );
+
+			if ( isset( $script['localized'] ) ) {
+				wp_localize_script( $script['handle'], $script['localized']['object_name'], $script['localized']['data'] );
+			}
 		}
 
 		$styles = [
