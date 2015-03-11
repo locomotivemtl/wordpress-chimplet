@@ -87,7 +87,13 @@ class Application extends Base
 		$this->wp->add_filter( 'plugin_row_meta', [ $this, 'plugin_meta' ], 10, 4 );
 
 		// Ajax function for user sync
-		$this->wp->add_action( 'wp_ajax_subscribers_sync', [ $this, 'subscribers_sync' ] );
+		$this->wp->add_action( 'wp_ajax_subscribers_sync', [ $this, 'initial_subscribers_sync' ] );
+
+		// Hook for when a user gets added or udated
+		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
+			$this->wp->add_action( 'profile_update', [ $this, 'subscribers_sync' ], 10, 1 );
+			$this->wp->add_action( 'user_register', [ $this, 'subscribers_sync' ], 10, 1 );
+		}
 
 		$this->wp->register_activation_hook( LOCOMOTIVE_CHIMPLET_ABS, [ $this, 'activation_hook' ] );
 	}
@@ -181,14 +187,103 @@ class Application extends Base
 
 	/**
 	 * Sync WordPress users with MailChimp
-	 *
+	 * @todo Should we update the automate option here
 	 * @return array
 	 */
 
-	public function subscribers_sync() {
+	public function initial_subscribers_sync() {
 		check_admin_referer( 'chimplet-subscribers-sync', 'subscribersNonce' );
 
-		wp_send_json_success( $_REQUEST['offset'] );
+		$limit  = 100;
+		$offset = isset( $_REQUEST['offset'] ) ? absint( $_REQUEST['offset'] ) : 0;
+
+		$roles   = $this->get_option( 'mailchimp.user_roles' );
+		$list_id = $this->get_option( 'mailchimp.list' );
+
+		if ( ! $roles || ! $list_id ) {
+			wp_send_json_error( [ 'message' => 'No roles found' ] );
+		}
+
+		$users = [];
+
+		// Get all users with the specified user roles
+		// See https://tommcfarlin.com/wp_user_query-multiple-roles/
+		foreach ( $roles as $role ) {
+
+			$query = new \WP_User_Query(
+				[
+					'role'   => $role,
+					'offset' => $offset,
+					'number' => $limit,
+				]
+			);
+
+			foreach ( $query->get_results() as $user ) {
+				$user = $user;
+				$users[] = $this->get_user_object( $user, $role );
+			}
+		}
+
+		if ( ! empty( $users ) ) {
+			$result = $this->mc->sync_list_users( $list_id, $users );
+
+			if ( $result ) {
+				if ( $limit === count( $users ) ) {
+					wp_send_json_success( [ 'message' => 'Users processed','next' => $offset + $limit ] );
+				}
+			}
+			else {
+				wp_send_json_error( [ 'message' => 'Error syncing with MailChimp' ] );
+			}
+		}
+
+		wp_send_json_success( [ 'message' => 'done', 'next' => false ] );
+	}
+
+	/**
+	 * Sync the current user with the corresponding list if he has one of the roles specified
+	 *
+	 * @param $user_id
+	 */
+
+	public function subscribers_sync( $user_id ) {
+		$user = get_user_by( 'id', $user_id );
+
+		if ( ! $user ) {
+			return;
+		}
+
+		if ( $roles = $this->get_option( 'mailchimp.user_roles' ) ) {
+			$role = reset( $user->roles );
+
+			if ( in_array( $role, $roles ) ) {
+				$this->mc->sync_list_users( $this->get_option( 'mailchimp.list' ), [ $this->get_user_object( $user, $role ) ] );
+			}
+		}
+	}
+
+	/**
+	 * Get user object for MailChimp
+	 *
+	 * @param $user
+	 * @param $role
+	 * @return mixed|void
+	 */
+
+	private function get_user_object( $user, $role ) {
+		return apply_filters( 'chimplet/user/subscribe', [
+			'email' => [
+				'email' => $user->user_email,
+			],
+			'email_type' => 'html',
+			'merge_vars' => [
+				'FNAME'     => $user->first_name,
+				'LNAME'     => $user->last_name,
+				'WP_ROLE'   => $role,
+				//see https://apidocs.mailchimp.com/api/2.0/lists/subscribe.php
+				'GROUPINGS' => apply_filters( 'chimplet/user/groupings', [], $user ),
+			]
+		]);
 	}
 
 	/**

@@ -184,7 +184,9 @@ class SettingsPage extends BasePage
 				[ $this, 'render_mailchimp_field_subscribers' ],
 				$this->view['menu_slug'],
 				'chimplet-section-mailchimp-lists',
-				[ 'list' => $list ]
+				[
+					'label_for' => 'chimplet-field-mailchimp-user-sync',
+				]
 			);
 		}
 
