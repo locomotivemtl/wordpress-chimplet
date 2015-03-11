@@ -140,8 +140,9 @@ String.prototype.escapeSelector = function ( find ) {
                         }
                     }
                 },
-                error: function( error ){
-                    /*console.log( error );*/
+                error: function(){
+                    t.$spinner.hide();
+                    t.$checkbox.prop('checked', true);
                 }
             });
         }
