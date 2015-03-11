@@ -141,7 +141,7 @@ String.prototype.escapeSelector = function ( find ) {
                     }
                 },
                 error: function( error ){
-                    console.log( error );
+                    /*console.log( error );*/
                 }
             });
         }
