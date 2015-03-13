@@ -589,6 +589,24 @@ class Facade
 	}
 
 	/**
+	 * Sync users with the saved list
+	 *
+	 * @access public
+	 * @param $list_id
+	 * @param $users
+	 *
+	 * @return void
+	 */
+	public function sync_list_users( $list_id, $users ) {
+		try {
+			$this->facade->lists->batchSubscribe( $list_id, $users, false, true );
+			return true;
+		} catch ( \Mailchimp_Error $e ) {
+			return false;
+		}
+	}
+
+	/**
 	 * Magic __call method that creates a facade for
 	 * the chosen MailChimp API client.
 	 *
