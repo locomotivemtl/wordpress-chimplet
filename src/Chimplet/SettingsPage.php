@@ -276,6 +276,16 @@ class SettingsPage extends BasePage
 
 		// Do we have any taxonomies?
 		if ( isset( $settings['mailchimp']['terms'] ) ) {
+			// Sanitize taxonomies
+			foreach ( $settings['mailchimp']['terms'] as $tax_name => &$values ) {
+				foreach ( $values as &$term_id ) {
+					$term = term_exists( (int) $term_id, $tax_name );
+					if ( 0 === $term || null === $term ) {
+						unset( $term_id );
+					}
+				}
+			}
+
 			$segments = $this->save_taxonomy_terms( $settings['mailchimp']['terms'] );
 		}
 
@@ -363,6 +373,7 @@ class SettingsPage extends BasePage
 					}
 
 					$settings['mailchimp']['campaigns']['schedule'] = $schedule;
+					$this->wp->flush_rewrite_rules();
 				}
 
 				foreach ( $segments as $segment ) {
@@ -373,23 +384,24 @@ class SettingsPage extends BasePage
 					}
 
 					// Here we must generate the url for mailchimp to fetch
-					$rss_opts['url'] = $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ), $segment );
+					// Build the RSS url on format: /chimplet/monthly/?tax[category]=6,5
+					$rss_opts['url'] = $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ), $this->app->rss->create_rss_url( $settings['mailchimp']['terms'], $rss_opts['schedule'] ) );
 
-					$campaign = [
-						'type'    => $this->wp->apply_filters( 'chimplet/campaigns/type', 'rss' ),
-						'options' => $this->wp->apply_filters( 'chimplet/campaigns/options', [
+					$campaign = $this->wp->apply_filters( 'chimplet/caimpaigns', [
+						'type'    => 'rss',
+						'options' => [
 							'list_id'     => $list['id'],
 							'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
 							'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
 							'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),
 							'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
-						] ),
+						],
 						'content' => $this->wp->apply_filters( 'chimplet/campaigns/content', [
-							'url' => $this->wp->apply_filters( 'chimplet/campaigns/rss/url', get_bloginfo( 'rss2_url' ) ),
+							'url' => $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ) ),
 						] ),
 						'segment_opts' => $segment,
-						'type_opts' => $this->wp->apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts 	] ),
-					];
+						'type_opts'    => $this->wp->apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts ] ),
+					] );
 
 					if ( is_int( $folder_id ) ) {
 						$campaign['options']['folder_id'] = $folder_id;
