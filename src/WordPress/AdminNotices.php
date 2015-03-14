@@ -63,7 +63,7 @@ class AdminNotices
 			return;
 		}
 
-		$this->wp->add_action( 'init',          [ $this, 'init'     ], 5 );
+		$this->wp->add_action( 'admin_init',    [ $this, 'init'     ], 5 );
 		$this->wp->add_action( 'admin_notices', [ $this, 'render'   ], 5 );
 		$this->wp->add_action( 'shutdown',      [ $this, 'shutdown' ], 5 );
 	}

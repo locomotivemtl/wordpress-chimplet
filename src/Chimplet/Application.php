@@ -39,6 +39,7 @@ class Application extends Base
 	public $notices;
 	public $overview;
 	public $settings;
+	public $rss;
 
 	/**
 	 * Chimplet Initialization
@@ -60,10 +61,6 @@ class Application extends Base
 		$this->wp = new WP;
 		$this->mc = new MC;
 
-		if ( ! $this->wp->is_admin() ) {
-			return;
-		}
-
 		self::$information = [
 			'name'     => __( 'Chimplet', 'chimplet' ),
 			'version'  => '0.0.0',
@@ -73,6 +70,12 @@ class Application extends Base
 		];
 
 		$this->wp->load_textdomain( 'chimplet', self::$information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
+
+		$this->rss = new RSS( $this->wp );
+
+		if ( ! $this->wp->is_admin() ) {
+			return;
+		}
 
 		$this->verify_version();
 
