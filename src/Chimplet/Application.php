@@ -50,7 +50,6 @@ class Application extends Base
 	 * @since   0.0.0 (2015-02-05)
 	 * @uses    self::$information
 	 * @uses    self::$wp
-	 * @todo    Technically, the instantiated "page" classes no longer need the Singleton pattern/
 	 *
 	 * @param   string  $file  The filename of the plugin (__FILE__).
 	 */
@@ -82,8 +81,7 @@ class Application extends Base
 		$this->overview = new OverviewPage( $this );
 		$this->settings = new SettingsPage( $this );
 
-		$this->wp->add_action( 'init', [ $this, 'wp_init' ] );
-
+		$this->wp->add_action( 'init',            [ $this, 'wp_init' ] );
 		$this->wp->add_filter( 'plugin_row_meta', [ $this, 'plugin_meta' ], 10, 4 );
 
 		// Ajax function for user sync
@@ -91,9 +89,12 @@ class Application extends Base
 
 		// Hook for when a user gets added or udated
 		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
-			$this->wp->add_action( 'profile_update', [ $this, 'subscribers_sync' ], 10, 1 );
-			$this->wp->add_action( 'user_register', [ $this, 'subscribers_sync' ], 10, 1 );
+			$this->wp->add_action( 'profile_update',     [ $this, 'subscribers_sync' ], 10, 1 );
+			$this->wp->add_action( 'user_register',      [ $this, 'subscribers_sync' ], 10, 1 );
 		}
+
+		// Third party can use this do initiate user sync
+		$this->wp->add_action( 'chimplet/user/sync', [ $this, 'subscribers_sync' ], 10, 1 );
 
 		$this->wp->register_activation_hook( LOCOMOTIVE_CHIMPLET_ABS, [ $this, 'activation_hook' ] );
 	}
@@ -271,6 +272,20 @@ class Application extends Base
 	 */
 
 	private function get_user_object( $user, $role ) {
+		static $groupings = null;
+
+		if ( is_null( $groupings ) ) {
+			$this->mc->get_list_by_id( $this->get_option( 'mailchimp.list' ) );
+			$groupings = $this->mc->get_all_groupings();
+
+			foreach ( $groupings as $key => &$grouping ) {
+				$grouping['groups'] = $this->wp->wp_list_pluck( $grouping['groups'], 'name' );
+			}
+
+			unset( $groupings['display_order'] );
+			unset( $groupings['form_field'] );
+		}
+
 		return apply_filters( 'chimplet/user/subscribe', [
 			'email' => [
 				'email' => $user->user_email,
@@ -281,7 +296,7 @@ class Application extends Base
 				'LNAME'     => $user->last_name,
 				'WP_ROLE'   => $role,
 				//see https://apidocs.mailchimp.com/api/2.0/lists/subscribe.php
-				'GROUPINGS' => apply_filters( 'chimplet/user/groupings', [], $user ),
+				'GROUPINGS' => apply_filters( 'chimplet/user/groupings', $groupings, $user->ID ),
 			]
 		]);
 	}
