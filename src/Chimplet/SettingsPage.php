@@ -373,22 +373,22 @@ class SettingsPage extends BasePage
 					}
 
 					// Here we must generate the url for mailchimp to fetch
-					$rss_opts['url'] = apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ), $segment );
+					$rss_opts['url'] = $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ), $segment );
 
 					$campaign = [
-						'type'    => apply_filters( 'chimplet/campaigns/type', 'rss' ),
-						'options' => apply_filters( 'chimplet/campaigns/options', [
+						'type'    => $this->wp->apply_filters( 'chimplet/campaigns/type', 'rss' ),
+						'options' => $this->wp->apply_filters( 'chimplet/campaigns/options', [
 							'list_id'     => $list['id'],
 							'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
-							'from_email'  => apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
-							'from_name'   => apply_filters( 'wp_mail_from_name', 'Chimplet' ),
+							'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
+							'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),
 							'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
 						] ),
-						'content' => apply_filters( 'chimplet/campaigns/content', [
-							'url' => apply_filters( 'chimplet/campaigns/rss/url', bloginfo( 'rss2_url' ) ),
+						'content' => $this->wp->apply_filters( 'chimplet/campaigns/content', [
+							'url' => $this->wp->apply_filters( 'chimplet/campaigns/rss/url', get_bloginfo( 'rss2_url' ) ),
 						] ),
 						'segment_opts' => $segment,
-						'type_opts' => apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts 	] ),
+						'type_opts' => $this->wp->apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts 	] ),
 					];
 
 					if ( is_int( $folder_id ) ) {

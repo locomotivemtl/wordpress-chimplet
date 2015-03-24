@@ -15,7 +15,7 @@ use Locomotive\MailChimp\Facade as MC;
 /**
  * Class: Chimplet Administration Page
  *
- * @version 2015-02-12
+ * @version 2015-03-24
  * @since   0.0.0 (2015-02-07)
  */
 
@@ -187,7 +187,7 @@ abstract class BasePage extends Base
 	 * @return array|mixed
 	 */
 
-	public function pre_update_option( $value, $old_value )
+	public function pre_update_option( $value = [], $old_value = [] )
 	{
 		$value = array_merge( $old_value, $value );
 
@@ -261,7 +261,7 @@ abstract class BasePage extends Base
 	 *
 	 * @global $wp_settings_sections Storage array of all settings sections added to admin pages
 	 * @global $wp_settings_fields Storage array of settings fields and info about their pages/sections
-	 * @see    \WordPress\do_settings_sections
+	 * @see    \WordPress\do_settings_sections()
 	 *
 	 * @param string $page The slug name of the page whos settings sections you want to output
 	 */
@@ -287,13 +287,14 @@ abstract class BasePage extends Base
 	/**
 	 * Print out the settings fields for a particular settings section
 	 *
+	 * Replaces do_settings_fields().
+	 *
 	 * Part of the Settings API. Use this in a settings page to output
 	 * a specific section. Should normally be called by do_settings_sections()
 	 * rather than directly.
 	 *
 	 * @global $wp_settings_fields Storage array of settings fields and their pages/sections
-	 *
-	 * @since 2.7.0
+	 * @see    \WordPress\do_settings_fields()
 	 *
 	 * @param string $page Slug title of the admin page who's settings fields you want to show.
 	 * @param string $section Slug title of the settings section who's fields you want to show.
@@ -303,7 +304,8 @@ abstract class BasePage extends Base
 		global $wp_settings_fields;
 
 		if ( ! isset( $wp_settings_fields[ $page ][ $section ] ) ) {
-			return; }
+			return;
+		}
 
 		foreach ( (array) $wp_settings_fields[ $page ][ $section ] as $field ) {
 			$field['args']['title'] = $field['title'];
