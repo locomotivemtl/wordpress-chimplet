@@ -598,7 +598,7 @@ class SettingsPage extends BasePage
 
 				$success = $this->mc->handle_merge_var_integrity(
 					self::USER_ROLE_MERGE_VAR,
-					'WordPress role',
+					__( 'WordPress Role', 'chimplet' ),
 					$merge_var_options
 				);
 
