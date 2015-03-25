@@ -266,8 +266,8 @@ class Application extends Base
 	/**
 	 * Get user object for MailChimp
 	 *
-	 * @param $user
-	 * @param $role
+	 * @param WP_User $user WordPress User object
+	 * @param string $role Chimplet-associated WordPress Role.
 	 * @return mixed|void
 	 */
 
@@ -286,19 +286,78 @@ class Application extends Base
 			unset( $groupings['form_field'] );
 		}
 
+
+
+		$language = get_locale();
+
+		if ( $language ) {
+			$language = substr( $language, 0, 2 );
+		}
+		else {
+			$language = null;
+		}
+
+		/**
+		 * Filter MailChimp subscriber object from a WordPress User
+		 *
+		 * @link https://apidocs.mailchimp.com/api/2.0/lists/subscribe.php for merge variables
+		 *
+		 * @param WP_User $user WordPress User object
+		 * @param string $role Chimplet-associated WordPress Role.
+		 * @return array|void MailChimp subscriber object
+		 */
+
 		return apply_filters( 'chimplet/user/subscribe', [
 			'email' => [
 				'email' => $user->user_email,
 			],
-			'email_type' => 'html',
+
+			/**
+			 * Filter the email type preference for the MailChimp Subscriber
+			 *
+			 * Either 'html' (rich-text emails) or 'text' (plain-text emails).
+			 *
+			 * @param string $email_type Either 'html' or 'text'. Defaults to 'html'.
+			 * @param int $user WordPress User ID
+			 * @return string
+			 */
+
+			'email_type' => apply_filters( 'chimplet/user/email_type', 'html', $user->ID ),
 			'merge_vars' => [
-				'FNAME'     => $user->first_name,
-				'LNAME'     => $user->last_name,
-				'WP_ROLE'   => $role,
-				//see https://apidocs.mailchimp.com/api/2.0/lists/subscribe.php
-				'GROUPINGS' => apply_filters( 'chimplet/user/groupings', $groupings, $user->ID ),
+				'FNAME'   => $user->first_name,
+				'LNAME'   => $user->last_name,
+				'WP_ROLE' => $role,
+
+				/**
+				 * Filter MailChimp Interest Groupings to associate to a Subscriber
+				 *
+				 * @param array  $groupings {
+				 *     An array of Groupings. Each Grouping is an associative array that contains:
+				 *
+				 *     @type int      $id      Grouping "id" from `lists/interest-groupings` (either this or $name must be present).
+				 *                             This $id takes precedence and can't change (unlike the $name)
+				 *     @type string   $name    Grouping "name" from lists/interest-groupings (either this or $id must be present).
+				 *     @type array    $groups  An array of valid group names for this grouping.
+				 * }
+				 * @param int $user WordPress User ID
+				 * @return mixed|void
+				 */
+
+				'groupings'   => apply_filters( 'chimplet/user/groupings', $groupings, $user->ID ),
+
+				/**
+				 * Filter the language preference for the MailChimp Subscriber
+				 *
+				 * @link http://kb.mailchimp.com/lists/managing-subscribers/view-and-edit-subscriber-languages#code for supported codes that are fully case-sensitive.
+				 *
+				 * @param string $language Two-letter language code based on current locale.
+				 * @param int $user WordPress User ID
+				 * @return string|null
+				 */
+
+				'mc_language' => apply_filters( 'chimplet/user/language', $language, $user->ID ),
 			]
-		]);
+		], $user, $role );
 	}
 
 	/**
