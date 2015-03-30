@@ -55,9 +55,9 @@ if ( isset( $wp_settings_fields[ $page ][ $section['id'] ] ) ) {
 		</table>
 		<?php
 
-	if ( is_callable( $after_fields ) ) {
-		call_user_func( $after_fields, $section );
-	}
+		if ( is_callable( $after_fields ) ) {
+			call_user_func( $after_fields, $section );
+		}
 
 	?>
 	</div>

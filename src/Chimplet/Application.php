@@ -286,8 +286,6 @@ class Application extends Base
 			unset( $groupings['form_field'] );
 		}
 
-
-
 		$language = get_locale();
 
 		if ( $language ) {
