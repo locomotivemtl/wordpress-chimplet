@@ -51,7 +51,8 @@ class RSS extends Base {
 	 * Register a rewrite endpoint for the RSS feed
 	 */
 
-	public function init() {
+	public function init()
+	{
 		add_rewrite_tag( '%chimplet_schedule%', '(monthly|weekly|daily)' );
 		add_rewrite_rule( 'chimplet/(monthly|weekly|daily)/?$', 'index.php?chimplet_schedule=$matches[1]', 'top' );
 	}
@@ -61,7 +62,9 @@ class RSS extends Base {
 	 *
 	 * @param $query
 	 */
-	public function pre_get_posts( $query ) {
+
+	public function pre_get_posts( $query )
+	{
 		$schedule = $query->get( 'chimplet_schedule' );
 
 		if ( empty( $schedule ) ) {
@@ -145,7 +148,8 @@ class RSS extends Base {
 	 * Handle data send back to the endpoint
 	 */
 
-	public function generate_rss_feed() {
+	public function generate_rss_feed()
+	{
 		global $wp_query;
 
 		if ( ! $wp_query->get( 'chimplet_rss' ) ) {
@@ -167,7 +171,8 @@ class RSS extends Base {
 	 * @return string|void
 	 */
 
-	public function create_rss_url( $tax, $schedule ) {
+	public function create_rss_url( $tax, $schedule )
+	{
 		$url = trailingslashit( get_bloginfo( 'url' ) ) . '?';
 
 		foreach ( $tax as $tax_name => $tax_ids ) {

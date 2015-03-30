@@ -124,7 +124,8 @@ class AdminNotices
 				'notices'     => [],
 				'notice_data' => []
 			];
-		} else {
+		}
+		else {
 			if ( empty( $saved['notices'] ) ) {
 				$saved['notices'] = [];
 			}
@@ -283,6 +284,7 @@ class AdminNotices
 	 * @param   string      $message  Notification message.
 	 * @param   mixed       $data     Optional. Notification data.
 	 */
+
 	public function add( $code, $message, $data = [] )
 	{
 		$this->notices[ $code ][] = $message;
@@ -301,6 +303,7 @@ class AdminNotices
 	 * @param   mixed       $data  Notification data.
 	 * @param   string|int  $code  Optional. Notification code.
 	 */
+
 	public function add_data( $data, $code = '' )
 	{
 		if ( empty( $code ) ) {
@@ -319,6 +322,7 @@ class AdminNotices
 	 * @access  public
 	 * @param   string|int  $code  Notification code.
 	 */
+
 	public function remove( $code )
 	{
 		unset( $this->notices[ $code ] );

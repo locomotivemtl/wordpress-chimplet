@@ -85,16 +85,14 @@ class Facade
 		$this->facade = new Mailchimp( $api_key, $user_options );
 
 		try {
-
 			$ping = $this->facade->helper->ping();
 
 			if ( "Everything's Chimpy!" === $ping['msg'] ) {
 				return true;
 			}
-		} catch( \Mailchimp_Error $e ) {
-
+		}
+		catch( \Mailchimp_Error $e ) {
 			return false;
-
 		}
 
 		return false;
@@ -107,9 +105,10 @@ class Facade
 	 * @param bool $return_mc_error wheter to return mailchimp error or only false
 	 * @return array|bool
 	 */
-	public function get_list_by_id( $list_id, $return_mc_error = true ) {
-		try {
 
+	public function get_list_by_id( $list_id, $return_mc_error = true )
+	{
+		try {
 			$list = $this->facade->lists->getList( [ 'list_id' => $list_id ] );
 			$list = $this->current_list = reset( $list['data'] );
 
@@ -117,14 +116,12 @@ class Facade
 			$this->current_list_groupings = null;
 			return $list;
 
-		} catch ( \Mailchimp_List_DoesNotExist $e ) {
-
-			return $return_mc_error ? $e : false;
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			return $return_mc_error ? $e : false;
-
+		}
+		catch ( \Mailchimp_List_DoesNotExist $e ) {
+			return ( $return_mc_error ? $e : false );
+		}
+		catch ( \Mailchimp_Error $e ) {
+			return ( $return_mc_error ? $e : false );
 		}
 	}
 
@@ -135,18 +132,17 @@ class Facade
 	 * @todo find a way to deal with MailChimp paging
 	 * @return array|bool
 	 */
-	public function get_all_lists( $return_mc_error = true ) {
-		try {
 
+	public function get_all_lists( $return_mc_error = true )
+	{
+		try {
 			// There is an API limit of 100 list return in one call
 			$lists = $this->facade->lists->getList( [], 0, 100 );
 			$this->all_lists = $lists;
 			return $lists['data'];
-
-		} catch( \Mailchimp_Error $e ) {
-
+		}
+		catch( \Mailchimp_Error $e ) {
 			return $return_mc_error ? $e : false;
-
 		}
 	}
 
@@ -155,35 +151,29 @@ class Facade
 	 *
 	 * @return int|bool
 	 */
-	public function get_current_list_total_results() {
 
-		return isset( $this->all_lists ) ? (int) $this->all_lists['total'] : 0;
-
+	public function get_current_list_total_results()
+	{
+		return ( isset( $this->all_lists ) ? (int) $this->all_lists['total'] : 0 );
 	}
 
 	/**
 	 * Return all groupings found in the list
 	 */
 
-	public function get_all_groupings() {
-
+	public function get_all_groupings()
+	{
 		if ( isset( $this->current_list_groupings ) ) {
-
 			return $this->current_list_groupings;
-
 		}
 
 		try {
-
 			return $this->current_list_groupings = $this->facade->lists->interestGroupings( $this->current_list['id'] );
-
-		} catch ( \Mailchimp_List_InvalidOption $e ) {
-
+		}
+		catch ( \Mailchimp_List_InvalidOption $e ) {
 			// There is no grouping present
 			if ( 211 === $e->getCode() ) {
-
 				return false;
-
 			}
 		}
 	}
@@ -195,16 +185,12 @@ class Facade
 	 * @return bool|array
 	 */
 
-	public function get_grouping( $name ) {
-
+	public function get_grouping( $name )
+	{
 		if ( $groupings = $this->get_all_groupings() ) {
-
 			foreach ( $groupings as $key => $grouping ) {
-
 				if ( $name === $grouping['name'] ) {
-
 					return $grouping;
-
 					break;
 				}
 			}
@@ -222,18 +208,14 @@ class Facade
 	 * @return bool|int
 	 */
 
-	public function add_grouping( $name, $type = 'checkboxes', $groups ) {
-
+	public function add_grouping( $name, $type = 'checkboxes', $groups )
+	{
 		try {
-
 			return $this->facade->lists->interestGroupingAdd( $this->current_list['id'], $name, $type, $groups )['id'];
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			return false;
-
 		}
-
+		catch ( \Mailchimp_Error $e ) {
+			return false;
+		}
 	}
 
 	/**
@@ -243,20 +225,17 @@ class Facade
 	 * @return bool
 	 */
 
-	public function delete_grouping( $name ) {
+	public function delete_grouping( $name )
+	{
 		try {
-
 			$grouping_id = $this->get_grouping( $name )['id'];
 
 			if ( $grouping_id ) {
-
 				return $this->facade->lists->interestGroupingDel( $grouping_id );
-
 			}
-		} catch ( \Mailchimp_Error $e ) {
-
+		}
+		catch ( \Mailchimp_Error $e ) {
 			return false;
-
 		}
 
 		return false;
@@ -269,18 +248,15 @@ class Facade
 	 * @param $grouping_id
 	 * @return bool
 	 */
-	public function add_to_grouping( $name, $grouping_id ) {
 
+	public function add_to_grouping( $name, $grouping_id )
+	{
 		try {
-
 			return $this->facade->lists->interestGroupAdd( $this->current_list['id'], $name, $grouping_id )['id'];
-
-		} catch( \Mailchimp_Error $e ) {
-
-			return false;
-
 		}
-
+		catch( \Mailchimp_Error $e ) {
+			return false;
+		}
 	}
 
 	/**
@@ -292,19 +268,16 @@ class Facade
 	 * return bool|void
 	 * @return bool
 	 */
-	public function delete_from_grouping( $name, $grouping_id ) {
 
+	public function delete_from_grouping( $name, $grouping_id )
+	{
 		try {
-
 			$this->facade->lists->interestGroupDel( $this->current_list['id'], $name, $grouping_id );
 			return true;
-
-		} catch( \Mailchimp_Error $e ) {
-
-			return false;
-
 		}
-
+		catch( \Mailchimp_Error $e ) {
+			return false;
+		}
 	}
 
 	/**
@@ -314,39 +287,30 @@ class Facade
 	 * @param $remote_groups
 	 * @param $grouping_id
 	 */
-	public function handle_grouping_integrity( $local_groups, $remote_groups, $grouping_id ) {
 
+	public function handle_grouping_integrity( $local_groups, $remote_groups, $grouping_id )
+	{
 		$groups_to_delete = [];
 
 		foreach ( $remote_groups as $group ) {
-
 			if ( in_array( $group['name'], $local_groups ) ) {
-
 				// This means we already have this group so we can skip the creation
 				$key = array_search( $group['name'], $local_groups );
 				unset( $local_groups[ $key ] );
-
 			}
 			else {
-
 				$groups_to_delete[] = $group['name'];
-
 			}
 		}
 
 		// Remove groups
 		foreach ( $groups_to_delete as $group_to_delete ) {
-
 			$this->delete_from_grouping( $group_to_delete, $grouping_id );
-
 		}
 
 		foreach ( $local_groups as $group_to_add ) {
-
 			$this->add_to_grouping( $group_to_add, $grouping_id );
-
 		}
-
 	}
 
 	/**
@@ -356,14 +320,13 @@ class Facade
 	 * @return bool|int
 	 */
 
-	public function get_campaign_folder_id( $name ) {
-
+	public function get_campaign_folder_id( $name )
+	{
 		if ( empty( $name ) ) {
 			return false;
 		}
 
 		try {
-
 			$folders = $this->facade->folders->getList( 'campaign' );
 
 			foreach ( $folders as $folder ) {
@@ -373,28 +336,21 @@ class Facade
 			}
 
 			return $this->create_campaign_folder( $name );
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			return false;
-
 		}
-
+		catch ( \Mailchimp_Error $e ) {
+			return false;
+		}
 	}
 
 
-	public function create_campaign_folder( $folder_name = '' ) {
-
+	public function create_campaign_folder( $folder_name = '' )
+	{
 		try {
-
 			return $this->facade->folders->add( $folder_name, 'campaign' );
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			return false;
-
 		}
-
+		catch ( \Mailchimp_Error $e ) {
+			return false;
+		}
 	}
 
 
@@ -404,14 +360,13 @@ class Facade
 	 * @param $campaign
 	 * @return bool|array
 	 */
-	public function create_campaign( $campaign ) {
 
+	public function create_campaign( $campaign )
+	{
 		try {
-
 			$result = $this->facade->lists->segmentTest( $this->current_list['id'], $campaign['segment_opts'] );
 
 			if ( $result ) {
-
 				// Add the campaigns
 				list( $type, $options, $content, $segment_opts, $type_opts ) = array_values( $campaign );
 				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
@@ -420,12 +375,10 @@ class Facade
 				// $this->facade->campaigns->send( $campaign['id'] );
 
 				return $campaign;
-
 			}
-		} catch ( \Mailchimp_Error $e ) {
-
+		}
+		catch ( \Mailchimp_Error $e ) {
 			return false;
-
 		}
 	}
 
@@ -437,18 +390,14 @@ class Facade
 	 * @return bool
 	 */
 
-	public function delete_campaign( $campaign_id ) {
-
+	public function delete_campaign( $campaign_id )
+	{
 		try {
-
 			$this->facade->campaigns->delete( $campaign_id );
-
-		} catch( \Mailchimp_Error $e ) {
-
-			return false;
-
 		}
-
+		catch( \Mailchimp_Error $e ) {
+			return false;
+		}
 	}
 
 	/**
@@ -456,20 +405,17 @@ class Facade
 	 *
 	 * @return array
 	 */
-	public function get_user_template() {
 
+	public function get_user_template()
+	{
 		try {
-
 			$templates = $this->facade->templates->getList( [ 'user' => true ], [ 'include_drag_and_drop' => true ] );
 
 			return $templates['user'];
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			return [];
-
 		}
-
+		catch ( \Mailchimp_Error $e ) {
+			return [];
+		}
 	}
 
 	/**
@@ -477,27 +423,22 @@ class Facade
 	 *
 	 * @return bool
 	 */
-	public function get_all_merge_vars() {
 
+	public function get_all_merge_vars()
+	{
 		if ( isset( $this->current_list_merge_vars ) ) {
-
 			return $this->current_list_merge_vars;
-
 		}
 
 		try {
-
 			$response = $this->facade->lists->mergeVars( [ $this->current_list['id'] ] );
 			$response = reset( $response['data'] );
 
 			return $this->current_list_merge_vars = $response['merge_vars'];
-
-		} catch ( \Mailchimp_Error $e ) {
-
-			return false;
-
 		}
-
+		catch ( \Mailchimp_Error $e ) {
+			return false;
+		}
 	}
 
 	/**
@@ -506,11 +447,11 @@ class Facade
 	 * @param string $tag
 	 * @return bool|array
 	 */
-	public function get_merge_var( $tag ) {
+
+	public function get_merge_var( $tag )
+	{
 		if ( $merge_vars = $this->get_all_merge_vars() ) {
-
 			foreach ( $merge_vars as $key => $merge_var ) {
-
 				if ( $tag === $merge_var['tag'] ) {
 					return $merge_var;
 				}
@@ -528,16 +469,15 @@ class Facade
 	 * @param $options
 	 * @return bool
 	 */
-	public function add_merge_var( $tag, $name, $options ) {
-		try {
 
+	public function add_merge_var( $tag, $name, $options )
+	{
+		try {
 			$this->facade->lists->mergeVarAdd( $this->current_list['id'], $tag, $name, $options );
 			return true;
-
-		} catch ( \Mailchimp_Error $e ) {
-
+		}
+		catch ( \Mailchimp_Error $e ) {
 			return false;
-
 		}
 	}
 
@@ -548,19 +488,18 @@ class Facade
 	 * @param $options
 	 * @return bool
 	 */
-	public function update_merge_var( $tag, $options ) {
-		try {
 
+	public function update_merge_var( $tag, $options )
+	{
+		try {
 			// Field type cannot be save with update
 			unset( $options['field_type'] );
 
 			$this->facade->lists->mergeVarUpdate( $this->current_list['id'], $tag, $options );
 			return true;
-
-		} catch ( \Mailchimp_Error $e ) {
-
+		}
+		catch ( \Mailchimp_Error $e ) {
 			return false;
-
 		}
 	}
 
@@ -573,19 +512,17 @@ class Facade
 	 * @param array $options
 	 * @return bool
 	 */
-	public function handle_merge_var_integrity( $tag, $name = '', $options = [] ) {
 
+	public function handle_merge_var_integrity( $tag, $name = '', $options = [] )
+	{
 		if ( $merge_var = $this->get_merge_var( $tag ) ) {
-
 			return $this->update_merge_var( $tag, $options );
-
 		}
 		else {
 			return $this->add_merge_var( $tag, $name, $options );
 		}
 
 		return false;
-
 	}
 
 	/**
@@ -597,11 +534,14 @@ class Facade
 	 *
 	 * @return void
 	 */
-	public function sync_list_users( $list_id, $users ) {
+
+	public function sync_list_users( $list_id, $users )
+	{
 		try {
 			$this->facade->lists->batchSubscribe( $list_id, $users, false, true );
 			return true;
-		} catch ( \Mailchimp_Error $e ) {
+		}
+		catch ( \Mailchimp_Error $e ) {
 			return false;
 		}
 	}
@@ -654,7 +594,9 @@ class Facade
 	 *
 	 * @param $list array
 	 */
-	public function set_current_list( $list ) {
+
+	public function set_current_list( $list )
+	{
 		$this->current_list = $list;
 	}
 
