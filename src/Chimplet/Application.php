@@ -13,6 +13,20 @@ use Locomotive\MailChimp\Facade as MC;
  */
 
 /**
+ * Escaping for PHPCodeSniffer.
+ *
+ * Display content that has already been escaped and sanitized.
+ *
+ * @param string $data Escaped data
+ * @return string
+ */
+
+function unesc( $data )
+{
+	echo wp_kses_post( $data );
+}
+
+/**
  * Class: Chimplet Application
  *
  * @version 2015-02-13
@@ -39,6 +53,7 @@ class Application extends Base
 	public $notices;
 	public $overview;
 	public $settings;
+	public $rss;
 
 	/**
 	 * Chimplet Initialization
@@ -59,10 +74,6 @@ class Application extends Base
 		$this->wp = new WP;
 		$this->mc = new MC;
 
-		if ( ! $this->wp->is_admin() ) {
-			return;
-		}
-
 		self::$information = [
 			'name'     => __( 'Chimplet', 'chimplet' ),
 			'version'  => '0.0.0',
@@ -72,6 +83,12 @@ class Application extends Base
 		];
 
 		$this->wp->load_textdomain( 'chimplet', self::$information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
+
+		$this->rss = new RSS( $this->wp );
+
+		if ( ! $this->wp->is_admin() ) {
+			return;
+		}
 
 		$this->verify_version();
 
@@ -192,7 +209,8 @@ class Application extends Base
 	 * @return array
 	 */
 
-	public function initial_subscribers_sync() {
+	public function initial_subscribers_sync()
+	{
 		check_admin_referer( 'chimplet-subscribers-sync', 'subscribersNonce' );
 
 		$limit  = 100;
@@ -247,7 +265,8 @@ class Application extends Base
 	 * @param $user_id
 	 */
 
-	public function subscribers_sync( $user_id ) {
+	public function subscribers_sync( $user_id )
+	{
 		$user = get_user_by( 'id', $user_id );
 
 		if ( ! $user ) {
@@ -271,7 +290,8 @@ class Application extends Base
 	 * @return mixed|void
 	 */
 
-	private function get_user_object( $user, $role ) {
+	private function get_user_object( $user, $role )
+	{
 		static $groupings = null;
 
 		if ( is_null( $groupings ) ) {

@@ -265,6 +265,7 @@ abstract class BasePage extends Base
 	 *
 	 * @param string $page The slug name of the page whos settings sections you want to output
 	 */
+
 	public function render_sections( $page )
 	{
 		global $wp_settings_sections, $wp_settings_fields;
@@ -299,6 +300,7 @@ abstract class BasePage extends Base
 	 * @param string $page Slug title of the admin page who's settings fields you want to show.
 	 * @param string $section Slug title of the settings section who's fields you want to show.
 	 */
+
 	public function render_fields( $page, $section )
 	{
 		global $wp_settings_fields;
@@ -339,10 +341,10 @@ abstract class BasePage extends Base
 				$th = $scope . $span;
 
 				if ( ! empty( $field['args']['label_for'] ) ) {
-					echo '<th' . $th . '><label for="' . esc_attr( $field['args']['label_for'] ) . '">' . $field['title'] . '</label></th>';
+					printf( '<th%s><label for="%s">%s</label></th>', $th, esc_attr( $field['args']['label_for'] ), $field['title'] );
 				}
 				else {
-					echo '<th' . $th . '>' . $field['title'] . '</th>';
+					printf( '<th%s>%s</th>', $th, $field['title'] );
 				}
 
 				if ( $colspan ) {
@@ -352,7 +354,7 @@ abstract class BasePage extends Base
 
 				$td = $span;
 
-				echo '<td' . $td . '>';
+				printf( '<td%s>', $td );
 				call_user_func( $field['callback'], $field['args'] );
 				echo '</td>';
 				echo '</tr>';

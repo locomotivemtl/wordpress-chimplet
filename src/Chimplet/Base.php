@@ -149,14 +149,12 @@ abstract class Base
 	 * @param array $args
 	 */
 
-	public function render_section( $template, $args = [] ) {
-
+	public function render_section( $template, $args = [] )
+	{
 		$path = $this->get_path( "assets/views/section-{$template}.php" );
 
 		if ( file_exists( $path ) ) {
-
 			include $path;
-
 		}
 	}
 
@@ -167,14 +165,12 @@ abstract class Base
 	 * @param array $args
 	 */
 
-	public function render_field( $template, $args = [] ) {
-
+	public function render_field( $template, $args = [] )
+	{
 		$path = $this->get_path( "assets/views/field-{$template}.php" );
 
 		if ( file_exists( $path ) ) {
-
 			include $path;
-
 		}
 	}
 

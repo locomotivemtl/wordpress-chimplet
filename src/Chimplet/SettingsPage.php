@@ -276,6 +276,16 @@ class SettingsPage extends BasePage
 
 		// Do we have any taxonomies?
 		if ( isset( $settings['mailchimp']['terms'] ) ) {
+			// Sanitize taxonomies
+			foreach ( $settings['mailchimp']['terms'] as $tax_name => &$values ) {
+				foreach ( $values as &$term_id ) {
+					$term = term_exists( (int) $term_id, $tax_name );
+					if ( 0 === $term || null === $term ) {
+						unset( $term_id );
+					}
+				}
+			}
+
 			$segments = $this->save_taxonomy_terms( $settings['mailchimp']['terms'] );
 		}
 
@@ -353,7 +363,8 @@ class SettingsPage extends BasePage
 
 					if ( isset( $schedule['hour'] ) ) {
 						$schedule['hour'] = $rss_opts['schedule_hour'] = absint( $schedule['hour'] );
-					} else {
+					}
+					else {
 						$this->wp->add_settings_error(
 							self::SETTINGS_KEY,
 							'mailchimp-shedule-hour-failed',
@@ -363,6 +374,7 @@ class SettingsPage extends BasePage
 					}
 
 					$settings['mailchimp']['campaigns']['schedule'] = $schedule;
+					$this->wp->flush_rewrite_rules();
 				}
 
 				foreach ( $segments as $segment ) {
@@ -373,23 +385,24 @@ class SettingsPage extends BasePage
 					}
 
 					// Here we must generate the url for mailchimp to fetch
-					$rss_opts['url'] = $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ), $segment );
+					// Build the RSS url on format: /chimplet/monthly/?tax[category]=6,5
+					$rss_opts['url'] = $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ), $this->app->rss->create_rss_url( $settings['mailchimp']['terms'], $rss_opts['schedule'] ) );
 
-					$campaign = [
-						'type'    => $this->wp->apply_filters( 'chimplet/campaigns/type', 'rss' ),
-						'options' => $this->wp->apply_filters( 'chimplet/campaigns/options', [
+					$campaign = $this->wp->apply_filters( 'chimplet/caimpaigns', [
+						'type'    => 'rss',
+						'options' => [
 							'list_id'     => $list['id'],
 							'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
 							'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
 							'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),
 							'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
-						] ),
+						],
 						'content' => $this->wp->apply_filters( 'chimplet/campaigns/content', [
-							'url' => $this->wp->apply_filters( 'chimplet/campaigns/rss/url', get_bloginfo( 'rss2_url' ) ),
+							'url' => $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ) ),
 						] ),
 						'segment_opts' => $segment,
-						'type_opts' => $this->wp->apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts 	] ),
-					];
+						'type_opts'    => $this->wp->apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts ] ),
+					] );
 
 					if ( is_int( $folder_id ) ) {
 						$campaign['options']['folder_id'] = $folder_id;
@@ -418,7 +431,9 @@ class SettingsPage extends BasePage
 	 * @param array $tax_to_save
 	 * @return array|bool
 	 */
-	private function save_taxonomy_terms( &$tax_to_save ) {
+
+	private function save_taxonomy_terms( &$tax_to_save )
+	{
 		// For comparison purposes
 		if ( ! $old_option = $this->get_option( 'mailchimp.terms' ) ) {
 			$old_option = [];
@@ -458,8 +473,9 @@ class SettingsPage extends BasePage
 	 * @param $options
 	 * @return array
 	 */
-	private function handle_segment_and_grouping( $options ) {
 
+	private function handle_segment_and_grouping( $options )
+	{
 		$segments = [];
 
 		foreach ( $options as $tax => $terms ) {
@@ -503,14 +519,14 @@ class SettingsPage extends BasePage
 	/**
 	 * We established that we needed to clear the campaigns we created.
 	 */
-	private function delete_active_campaigns() {
 
+	private function delete_active_campaigns()
+	{
 		if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
 			foreach ( $active_campaigns as $cid ) {
 				$this->mc->delete_campaign( $cid );
 			}
 		}
-
 	}
 
 	/**
@@ -520,7 +536,9 @@ class SettingsPage extends BasePage
 	 * @param $grouping
 	 * @return array
 	 */
-	private function generate_segments( $groups, $grouping ) {
+
+	private function generate_segments( $groups, $grouping )
+	{
 
 		$segments = $this->generate_group_power_set( $groups );
 
@@ -559,7 +577,9 @@ class SettingsPage extends BasePage
 	 *
 	 * @param array $roles
 	 */
-	private function save_user_roles( &$roles ) {
+
+	private function save_user_roles( &$roles )
+	{
 		// For comparison purposes
 		$old_option = $this->get_option( 'mailchimp.user_roles' );
 
@@ -627,28 +647,24 @@ class SettingsPage extends BasePage
 	 * @param mixed $to_unset
 	 * @param string $group_type
 	 */
-	private function add_or_update_grouping( $local_groups, $grouping, $grouping_name, &$to_unset, $group_type = 'checkboxes' ) {
-		if ( empty( $local_groups ) ) {
 
+	private function add_or_update_grouping( $local_groups, $grouping, $grouping_name, &$to_unset, $group_type = 'checkboxes' )
+	{
+		if ( empty( $local_groups ) ) {
 			$this->mc->delete_grouping( $grouping_name );
 
 			return;
-
 		}
 
 		if ( $grouping ) {
-
 			$this->mc->handle_grouping_integrity( $local_groups, $grouping['groups'], $grouping['id'] );
-
 		}
 		else {
 			// Create new grouping with default groups
 			$grouping_id = $this->mc->add_grouping( $grouping_name, $group_type, $local_groups );
 
 			if ( ! $grouping_id ) {
-
 				unset( $to_unset );
-
 			}
 		}
 	}
@@ -659,15 +675,14 @@ class SettingsPage extends BasePage
 	 * @param array $array
 	 * @return array
 	 */
-	private function generate_group_power_set( $array ) {
+
+	private function generate_group_power_set( $array )
+	{
 		$results = [ [] ];
 
 		foreach ( $array as $element ) {
-
 			foreach ( $results as $combination ) {
-
 				array_push( $results, array_merge( [ $element ], $combination ) );
-
 			}
 		}
 
@@ -896,13 +911,10 @@ class SettingsPage extends BasePage
 	 * @param $message
 	 * @param $fallback_message
 	 */
+
 	private function display_inline_error( $message, $fallback_message )
 	{
-		if ( $message ) {
-			printf( '<p class="chimplet-alert alert-warning">%s</p>', esc_html( $message ) );
-		} else {
-			printf( '<p class="chimplet-alert alert-error">%s</p>', esc_html( $fallback_message ) );
-		}
+		printf( '<p class="chimplet-alert alert-warning">%s</p>', esc_html( $message ?: $fallback_message ) );
 	}
 
 }
