@@ -63,6 +63,10 @@ $all-choice-inputs: assign-selectors( $choice-inputs-list );
 
 	}
 
+	.form-invalid {
+		background-color: #FDF3F3 !important;
+	}
+
 	#{$all-choice-inputs} {
 		-webkit-user-select: none;
 		-moz-user-select: none;

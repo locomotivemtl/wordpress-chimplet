@@ -211,6 +211,8 @@ class Application extends Base
 
 	public function initial_subscribers_sync()
 	{
+		global $wpdb;
+
 		check_admin_referer( 'chimplet-subscribers-sync', 'subscribersNonce' );
 
 		$limit  = 100;
@@ -219,40 +221,122 @@ class Application extends Base
 		$roles   = $this->get_option( 'mailchimp.user_roles' );
 		$list_id = $this->get_option( 'mailchimp.list' );
 
-		if ( ! $roles || ! $list_id ) {
-			wp_send_json_error( [ 'message' => 'No roles found' ] );
+		if ( ! $list_id ) {
+			wp_send_json_error([
+				'message' => [
+					'type' => 'error',
+					'text' => __( 'No MailChimp List found.', 'chimplet' )
+				]
+			]);
+		}
+
+		if ( ! $roles ) {
+			wp_send_json_error([
+				'message' => [
+					'type' => 'error',
+					'text' => __( 'No WordPress User Roles found.', 'chimplet' )
+				]
+			]);
+		}
+
+		/**
+		 * Retrieve users associated with certain roles.
+		 *
+		 * @link http://wordpress.stackexchange.com/a/88158/18350 Multiple roles
+		 */
+
+		$query_args = [
+			'orderby' => 'registered',
+			'order'   => 'ASC',
+			'offset'  => $offset,
+			'number'  => $limit
+		];
+
+		if ( count( $roles ) > 1 ) {
+			$blog_id = get_current_blog_id();
+			$prefix  = $wpdb->get_blog_prefix( $blog_id );
+
+			$meta_query = [ 'relation' => 'OR' ];
+
+			foreach ( $roles as $role ) {
+				$meta_query[] = [
+					'key'     => $prefix . 'capabilities',
+					'value'   => '"' . $role . '"',
+					'compare' => 'like'
+				];
+			}
+
+			$query_args['meta_query'] = $meta_query;
+		}
+		else {
+			$query_args['role'] = reset( $roles );
+		}
+
+		if ( isset( $query_args['role'] ) || isset( $query_args['meta_query'] ) ) {
+			$user_query = new \WP_User_Query( $query_args );
+		}
+		else {
+			wp_send_json_error([
+				'message' => [
+					'type' => 'error',
+					'text' => __( 'An error occurred while attempting to select WordPress Users.', 'chimplet' )
+				]
+			]);
 		}
 
 		$subscribers = [];
 
-		// Get all users with the specified user roles
-		// See https://tommcfarlin.com/wp_user_query-multiple-roles/
-		foreach ( $roles as $role ) {
-			$query = new \WP_User_Query( [
-				'role'   => $role,
-				'offset' => $offset,
-				'number' => $limit,
-			] );
-
-			foreach ( $query->get_results() as $user ) {
+		if ( $user_query->get_results() ) {
+			foreach ( $user_query->get_results() as $user ) {
 				$subscribers[] = $this->get_user_object( $user, $role );
 			}
 		}
 
-		if ( ! empty( $subscribers ) ) {
+		if ( count( $subscribers ) ) {
 			$result = $this->mc->sync_list_users( $list_id, $subscribers );
 
 			if ( $result ) {
 				if ( $limit === count( $subscribers ) ) {
-					wp_send_json_success( [ 'message' => 'Users processed', 'next' => $offset + $limit ] );
+					$new_offset = ( $offset + $limit );
+
+					wp_send_json_success([
+						'message' => [
+							'type' => 'info',
+							// Please don’t turn off your console.
+							'text' => sprintf(
+								'<strong>%s</strong> %s',
+								sprintf(
+									__( 'Syncing %1$d/%2$d WordPress Users to MailChimp.', 'chimplet' ),
+									$new_offset,
+									$user_query->get_total()
+								),
+								__( 'Please wait.', 'chimplet' )
+							)
+						],
+						'limit' => $limit,
+						'next' => $new_offset
+					]);
 				}
 			}
 			else {
-				wp_send_json_error( [ 'message' => 'Error syncing with MailChimp' ] );
+				wp_send_json_error([
+					'message' => [
+						'type' => 'error',
+						'text' => __( 'An error occurred while syncing WordPress Users to MailChimp.', 'chimplet' )
+					],
+					'limit' => $limit
+				]);
 			}
 		}
 
-		wp_send_json_success( [ 'message' => 'Users synced with MailChimp', 'next' => false ] );
+		wp_send_json_success([
+			'message' => [
+				'type' => 'success',
+				'text' => __( 'Successfully synced WordPress Users to MailChimp.', 'chimplet' )
+			],
+			'limit' => $limit,
+			'next' => false
+		]);
 	}
 
 	/**

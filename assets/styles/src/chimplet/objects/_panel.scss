@@ -14,6 +14,13 @@
 // Placeholders
 // ==========================================================================
 
+%panel-notification {
+	padding: 1em 15px 1em 11px;
+	border-left-width: 4px;
+	border-left-style: solid;
+}
+
+
 // ==========================================================================
 // Styles
 // ==========================================================================
@@ -79,10 +86,43 @@
 
 	}
 
+	.panel-success {
+		@extend %panel-notification;
+
+		border-color: #7AD03A;
+		background-color: #FCFEFA;
+	}
+
+	.panel-info,
 	.panel-assistance {
-		padding: 1em 15px 1em 11px;
-		border-left: 4px solid #2EA2CC;
+		@extend %panel-notification;
+
+		border-color: #2EA2CC;
 		background-color: #F7FCFE;
+	}
+
+	.panel-warning {
+		@extend %panel-notification;
+
+		border-color: #E4A116;
+		background-color: #FFFDFA;
+	}
+
+	.panel-error {
+		@extend %panel-notification;
+
+		border-color: #DD3D36;
+		background-color: #FFEBE8;
+	}
+
+	.spinner {
+		&.alignleft {
+			float: left;
+		}
+
+		&.alignright {
+			float: right;
+		}
 	}
 
 	h2 {
