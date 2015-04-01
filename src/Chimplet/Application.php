@@ -102,16 +102,16 @@ class Application extends Base
 		$this->wp->add_filter( 'plugin_row_meta', [ $this, 'plugin_meta' ], 10, 4 );
 
 		// Ajax function for user sync
-		$this->wp->add_action( 'wp_ajax_subscribers_sync', [ $this, 'initial_subscribers_sync' ] );
+		$this->wp->add_action( 'wp_ajax_subscribers_sync', [ $this, 'sync_all_subscribers' ] );
 
 		// Hook for when a user gets added or udated
 		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
-			$this->wp->add_action( 'profile_update', [ $this, 'subscribers_sync' ], 10, 1 );
-			$this->wp->add_action( 'user_register',  [ $this, 'subscribers_sync' ], 10, 1 );
+			$this->wp->add_action( 'profile_update', [ $this, 'sync_subscriber' ], 10, 1 );
+			$this->wp->add_action( 'user_register',  [ $this, 'sync_subscriber' ], 10, 1 );
 		}
 
 		// Third party can use this do initiate user sync
-		$this->wp->add_action( 'chimplet/user/sync', [ $this, 'subscribers_sync' ], 10, 1 );
+		$this->wp->add_action( 'chimplet/user/sync', [ $this, 'sync_subscriber' ], 10, 1 );
 
 		$this->wp->register_activation_hook( LOCOMOTIVE_CHIMPLET_ABS, [ $this, 'activation_hook' ] );
 	}
@@ -209,7 +209,7 @@ class Application extends Base
 	 * @return array
 	 */
 
-	public function initial_subscribers_sync()
+	public function sync_all_subscribers()
 	{
 		global $wpdb;
 
@@ -345,7 +345,7 @@ class Application extends Base
 	 * @param $user_id
 	 */
 
-	public function subscribers_sync( $user_id )
+	public function sync_subscriber( $user_id )
 	{
 		$user = get_user_by( 'id', $user_id );
 
