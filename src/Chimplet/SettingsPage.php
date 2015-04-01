@@ -702,6 +702,8 @@ class SettingsPage extends BasePage
 
 	public function append_to_menu()
 	{
+		parent::{ __FUNCTION__ }();
+
 		$this->hook = $this->wp->add_submenu_page(
 			$this->get_menu_slug( 'overview' ),
 			$this->view['document_title'],
