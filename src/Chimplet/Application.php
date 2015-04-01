@@ -23,7 +23,7 @@ use Locomotive\MailChimp\Facade as MC;
 
 function unesc( $data )
 {
-	echo wp_kses_post( $data );
+	echo '' . $data;
 }
 
 /**
@@ -106,8 +106,8 @@ class Application extends Base
 
 		// Hook for when a user gets added or udated
 		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
-			$this->wp->add_action( 'profile_update',     [ $this, 'subscribers_sync' ], 10, 1 );
-			$this->wp->add_action( 'user_register',      [ $this, 'subscribers_sync' ], 10, 1 );
+			$this->wp->add_action( 'profile_update', [ $this, 'subscribers_sync' ], 10, 1 );
+			$this->wp->add_action( 'user_register',  [ $this, 'subscribers_sync' ], 10, 1 );
 		}
 
 		// Third party can use this do initiate user sync
@@ -214,7 +214,7 @@ class Application extends Base
 		check_admin_referer( 'chimplet-subscribers-sync', 'subscribersNonce' );
 
 		$limit  = 100;
-		$offset = isset( $_REQUEST['offset'] ) ? absint( $_REQUEST['offset'] ) : 0;
+		$offset = ( isset( $_REQUEST['offset'] ) ? absint( $_REQUEST['offset'] ) : 0 );
 
 		$roles   = $this->get_option( 'mailchimp.user_roles' );
 		$list_id = $this->get_option( 'mailchimp.list' );
@@ -223,32 +223,28 @@ class Application extends Base
 			wp_send_json_error( [ 'message' => 'No roles found' ] );
 		}
 
-		$users = [];
+		$subscribers = [];
 
 		// Get all users with the specified user roles
 		// See https://tommcfarlin.com/wp_user_query-multiple-roles/
 		foreach ( $roles as $role ) {
-
-			$query = new \WP_User_Query(
-				[
-					'role'   => $role,
-					'offset' => $offset,
-					'number' => $limit,
-				]
-			);
+			$query = new \WP_User_Query( [
+				'role'   => $role,
+				'offset' => $offset,
+				'number' => $limit,
+			] );
 
 			foreach ( $query->get_results() as $user ) {
-				$user = $user;
-				$users[] = $this->get_user_object( $user, $role );
+				$subscribers[] = $this->get_user_object( $user, $role );
 			}
 		}
 
-		if ( ! empty( $users ) ) {
-			$result = $this->mc->sync_list_users( $list_id, $users );
+		if ( ! empty( $subscribers ) ) {
+			$result = $this->mc->sync_list_users( $list_id, $subscribers );
 
 			if ( $result ) {
-				if ( $limit === count( $users ) ) {
-					wp_send_json_success( [ 'message' => 'Users processed','next' => $offset + $limit ] );
+				if ( $limit === count( $subscribers ) ) {
+					wp_send_json_success( [ 'message' => 'Users processed', 'next' => $offset + $limit ] );
 				}
 			}
 			else {
@@ -256,7 +252,7 @@ class Application extends Base
 			}
 		}
 
-		wp_send_json_success( [ 'message' => 'done', 'next' => false ] );
+		wp_send_json_success( [ 'message' => 'Users synced with MailChimp', 'next' => false ] );
 	}
 
 	/**
@@ -273,11 +269,17 @@ class Application extends Base
 			return;
 		}
 
+		$list_id = $this->get_option( 'mailchimp.list' );
+
 		if ( $roles = $this->get_option( 'mailchimp.user_roles' ) ) {
 			$role = reset( $user->roles );
 
+			$subscriber = $this->get_user_object( $user, $role );
+
+			error_log( var_export( $subscriber, true ) );
+
 			if ( in_array( $role, $roles ) ) {
-				$this->mc->sync_list_users( $this->get_option( 'mailchimp.list' ), [ $this->get_user_object( $user, $role ) ] );
+				$this->mc->sync_list_users( $list_id, [ $subscriber ] );
 			}
 		}
 	}

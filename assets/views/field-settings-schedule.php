@@ -199,7 +199,7 @@ for ( $i = 1; $i <= 7; $i++ ) {
 		<div class="chimplet-item-list chimplet-hl">
 		<?php
 
-		unesc( $weekday_checkboxes );
+		Locomotive\Chimplet\unesc( $weekday_checkboxes );
 
 		?>
 		</div>
