@@ -95,7 +95,7 @@ class Application extends Base
 		$this->verify_mailchimp_api();
 
 		$this->notices  = new AdminNotices( $this->wp );
-		$this->overview = new OverviewPage( $this );
+		# $this->overview = new OverviewPage( $this );
 		$this->settings = new SettingsPage( $this );
 
 		$this->wp->add_action( 'init',            [ $this, 'wp_init' ] );
