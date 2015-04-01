@@ -27,6 +27,39 @@ function unesc( $data )
 }
 
 /**
+ * Finding all element combinations of an array
+ *
+ * Iterating over a large set of elements takes a long time.
+ * A set of n elements generates 2n+1 sets. In other words,
+ * as n grows by 1, the number of elements doubles.
+ *
+ * A combination focuses on the selection of objects without regard
+ * to the order in which they are selected. A permutation, in contrast,
+ * focuses on the arrangement of objects with regard to the order in
+ * which they are arranged.
+ *
+ * @link http://docstore.mik.ua/orelly/webprog/pcook/ch04_25.htm Source of function
+ * @link http://docstore.mik.ua/orelly/webprog/pcook/ch04_26.htm For a function that finds all permutations of an array.
+ * @param array $array The array to work on
+ * @return array
+ */
+
+function array_power_set( array $array )
+{
+	$results = [ [] ];
+
+	foreach ( $array as $element ) {
+		foreach ( $results as $combination ) {
+			array_push( $results, array_merge( [ $element ], $combination ) );
+		}
+	}
+
+	array_shift( $results );
+
+	return $results;
+}
+
+/**
  * Class: Chimplet Application
  *
  * @version 2015-02-13

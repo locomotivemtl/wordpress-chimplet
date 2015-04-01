@@ -180,7 +180,7 @@ class SettingsPage extends BasePage
 		if ( $this->get_option( 'mailchimp.user_roles' ) ) {
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-subscribers-sync',
-				__( 'Subcribers sync', 'chimplet' ),
+				__( 'Subcribers', 'chimplet' ),
 				[ $this, 'render_mailchimp_field_subscribers' ],
 				$this->view['menu_slug'],
 				'chimplet-section-mailchimp-lists',
@@ -286,7 +286,7 @@ class SettingsPage extends BasePage
 				}
 			}
 
-			$segments = $this->save_taxonomy_terms( $settings['mailchimp']['terms'] );
+			$taxonomy_segments = $this->save_taxonomy_terms( $settings['mailchimp']['terms'] );
 		}
 
 		if ( isset( $settings['mailchimp']['user_roles'] ) ) {
@@ -297,25 +297,21 @@ class SettingsPage extends BasePage
 		if ( isset( $settings['mailchimp']['campaigns']['automate'] ) ) {
 
 			// Here we compare old campaign settings to the new one
-			if ( ! $segments ) {
+			if ( ! $taxonomy_segments ) {
 				$old_options = $this->get_option( 'mailchimp.campaigns' );
 
 				if ( $old_options !== $settings['mailchimp']['campaigns'] ) {
 					// Delete all campaigns saved and recreate segments
 					$this->delete_active_campaigns();
 
-					$segments = $this->handle_segment_and_grouping( $this->get_option( 'mailchimp.terms' ) );
+					$taxonomy_segments = $this->handle_segment_and_grouping( $this->get_option( 'mailchimp.terms' ) );
 				}
 			}
 
-			if ( $segments ) {
+			if ( $taxonomy_segments ) {
 				// Create RSS driven campaign using template and frequency specified
-				$segments  = apply_filters( 'chimplet/campaigns/segments', $segments );
+				$taxonomy_segments = apply_filters( 'chimplet/campaigns/segments', $taxonomy_segments );
 				$folder_id = $this->mc->get_campaign_folder_id( apply_filters( 'chimplet/campaigns/folder', 'Chimplet' ) );
-
-				// Only one taxonomy for now
-				// @todo what do we do with all other segments from other tax?
-				$segments = array_shift( $segments );
 
 				if ( isset( $settings['mailchimp']['campaigns']['schedule'] ) ) {
 					$schedule = $settings['mailchimp']['campaigns']['schedule'];
@@ -377,41 +373,47 @@ class SettingsPage extends BasePage
 					$this->wp->flush_rewrite_rules();
 				}
 
-				foreach ( $segments as $segment ) {
-					// From core
-					$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
-					if ( 'www.' == substr( $sitename, 0, 4 ) ) {
-						$sitename = substr( $sitename, 4 );
-					}
+				foreach ( $taxonomy_segments as $segments ) {
+					foreach ( $segments as $segment ) {
+						if ( empty( $segment['conditions'][0]['value'] ) ) {
+							continue;
+						}
 
-					// Here we must generate the url for mailchimp to fetch
-					// Build the RSS url on format: /chimplet/monthly/?tax[category]=6,5
-					$rss_opts['url'] = $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ), $this->app->rss->create_rss_url( $settings['mailchimp']['terms'], $rss_opts['schedule'] ) );
+						// From core
+						$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
+						if ( 'www.' == substr( $sitename, 0, 4 ) ) {
+							$sitename = substr( $sitename, 4 );
+						}
 
-					$campaign = $this->wp->apply_filters( 'chimplet/caimpaigns', [
-						'type'    => 'rss',
-						'options' => [
-							'list_id'     => $list['id'],
-							'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
-							'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
-							'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),
-							'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
-						],
-						'content' => $this->wp->apply_filters( 'chimplet/campaigns/content', [
-							'url' => $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ) ),
-						] ),
-						'segment_opts' => $segment,
-						'type_opts'    => $this->wp->apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts ] ),
-					] );
+						// Here we must generate the url for mailchimp to fetch
+						// Build the RSS url on format: /chimplet/monthly/?tax[category]=6,5
+						$rss_opts['url'] = $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->app->rss->create_rss_url( $settings['mailchimp']['terms'], $rss_opts['schedule'] ) );
 
-					if ( is_int( $folder_id ) ) {
-						$campaign['options']['folder_id'] = $folder_id;
-					}
+						$campaign = $this->wp->apply_filters( 'chimplet/caimpaigns', [
+							'type'    => 'rss',
+							'options' => [
+								'list_id'     => $list['id'],
+								'subject'     => sprintf( __( 'Digest - %s', 'chimplet' ), $segment['conditions'][0]['value'] ),
+								'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
+								'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),
+								'template_id' => absint( $settings['mailchimp']['campaigns']['template'] ),
+							],
+							'content' => $this->wp->apply_filters( 'chimplet/campaigns/content', [
+								'url' => $this->wp->apply_filters( 'chimplet/campaigns/rss/url', $this->wp->get_bloginfo( 'rss2_url' ) ),
+							] ),
+							'segment_opts' => $segment,
+							'type_opts'    => $this->wp->apply_filters( 'chimplet/campaigns/type/opts', [ 'rss' => $rss_opts ] ),
+						] );
 
-					$campaign = $this->mc->create_campaign( $campaign );
+						if ( is_int( $folder_id ) ) {
+							$campaign['options']['folder_id'] = $folder_id;
+						}
 
-					if ( $campaign ) {
-						$settings['mailchimp']['campaigns']['active'][] = $campaign['id'];
+						$campaign = $this->mc->create_campaign( $campaign );
+
+						if ( $campaign ) {
+							$settings['mailchimp']['campaigns']['active'][] = $campaign['id'];
+						}
 					}
 				}
 			}
@@ -441,25 +443,22 @@ class SettingsPage extends BasePage
 
 		// Sync taxonomy with MailChimp groups only if it didn't change
 		if ( $tax_to_save !== $old_option ) {
-
 			// Here we have some new terms so we need to delete previously set campaigns
 			// otherwise we won't be able to delete any groups because of active campaigns
 			$this->delete_active_campaigns();
 
-			if ( ! empty( $tax_to_save )	) {
-
+			if ( ! empty( $tax_to_save ) ) {
 				// Computing the difference between old options grouping and what is being save
-				foreach ( $old_option as $key => &$value ) { $value = []; }
+				foreach ( $old_option as $key => &$value ) {
+					$value = [];
+				}
 
 				return $this->handle_segment_and_grouping( array_merge( $old_option, $tax_to_save ) );
 			}
 			else {
-
 				foreach ( $old_option as $tax => $terms ) {
-
 					$tax_label = get_taxonomy( $tax )->label;
 					$this->mc->delete_grouping( $tax_label );
-
 				}
 			}
 		}
@@ -470,38 +469,46 @@ class SettingsPage extends BasePage
 	/**
 	 * Create grouping and related segments
 	 *
-	 * @param $options
+	 * @param array $taxonomies_and_terms
 	 * @return array
 	 */
 
-	private function handle_segment_and_grouping( $options )
+	private function handle_segment_and_grouping( $taxonomies_and_terms )
 	{
-		$segments = [];
+		$taxonomy_segments = [];
 
-		foreach ( $options as $tax => $terms ) {
+		foreach ( $taxonomies_and_terms as $taxonomy => $terms ) {
+			// Only one taxonomy for now
+			// @todo what do we do with all other segments from other tax?
+			if ( 'category' !== $taxonomy ) {
+				continue;
+			}
 
-			// Use the tax label in mailchimp as it is cleaner
-			$terms        = array_map( 'sanitize_text_field', $terms );
-			$tax_label    = get_taxonomy( $tax )->label;
-			$grouping     = $this->mc->get_grouping( $tax_label );
-			$local_groups = [];
+			// Use the taxonomy label in mailchimp as it is cleaner
+			$terms     = array_map( 'sanitize_text_field', $terms );
+			$tax_obj   = get_taxonomy( $taxonomy );
+			$tax_label = $tax_obj->label;
+			$grouping  = $this->mc->get_grouping( $tax_label );
+			$groups    = [];
 
 			foreach ( $terms as $term_id ) {
-
-				if ( 'all' === $term_id ) {
+				if ( 'all' === $term_id || empty( $term_id ) ) {
 					continue;
 				}
 
-				$term = $this->wp->get_term_by( 'id', $term_id, $tax );
+				$term = $this->wp->get_term_by( 'id', $term_id, $taxonomy );
 
 				if ( $term ) {
-					$local_groups[] = $term->name;
+					$groups[] = $term->name;
 				}
 			}
 
+			natsort( $groups );
+			$groups = array_values( $groups );
+
 			// Add or update grouping
 			$this->add_or_update_grouping(
-				$local_groups,
+				$groups,
 				$grouping,
 				$tax_label,
 				$tax_to_save
@@ -509,11 +516,10 @@ class SettingsPage extends BasePage
 
 			// Add or update segments related to grouping
 			// We cannot cross reference grouping. This might limit power set.
-			$segments[] = $this->generate_segments( $local_groups, $grouping );
-
+			$taxonomy_segments[ $tax_label ] = $this->generate_segmentation_rules( $groups, $grouping );
 		}
 
-		return $segments;
+		return $taxonomy_segments;
 	}
 
 	/**
@@ -537,39 +543,39 @@ class SettingsPage extends BasePage
 	 * @return array
 	 */
 
-	private function generate_segments( $groups, $grouping )
+	private function generate_segmentation_rules( $groups, $grouping )
 	{
+		$sets = array_power_set( $groups );
 
-		$segments = $this->generate_group_power_set( $groups );
+		$segments = [];
 
-		foreach ( $segments as &$segment ) {
-			$diff = array_diff( $groups, $segment );
+		foreach ( $sets as $combination ) {
+			$diff = array_diff( $groups, $combination );
 
 			// Here we setup some option for the segment
 			$segment = [
 				'match' => 'all',
-				'conditions' => [
-					[
-						'field' => 'interests-' . $grouping['id'],
-						'op'    => 'all',
-						'value' => implode( ',', $segment ),
-					]
-				],
+				'conditions' => []
+			];
+
+			$segment['conditions'][] = [
+				'field' => 'interests-' . $grouping['id'],
+				'op'    => 'all',
+				'value' => implode( ',', $combination )
 			];
 
 			if ( count( $diff ) > 0 ) {
-
 				$segment['conditions'][] = [
 					'field' => 'interests-' . $grouping['id'],
 					'op'    => 'none',
-					'value' => implode( ',', $diff ),
+					'value' => implode( ',', $diff )
 				];
-
 			}
+
+			$segments[] = $segment;
 		}
 
 		return $segments;
-
 	}
 
 	/**
@@ -667,29 +673,6 @@ class SettingsPage extends BasePage
 				unset( $to_unset );
 			}
 		}
-	}
-
-	/**
-	 * Generate all combination for segments using power set algorithm
-	 *
-	 * @param array $array
-	 * @return array
-	 */
-
-	private function generate_group_power_set( $array )
-	{
-		$results = [ [] ];
-
-		foreach ( $array as $element ) {
-			foreach ( $results as $combination ) {
-				array_push( $results, array_merge( [ $element ], $combination ) );
-			}
-		}
-
-		// Removing the empty array of the beginning
-		array_shift( $results );
-
-		return $results;
 	}
 
 	/**
