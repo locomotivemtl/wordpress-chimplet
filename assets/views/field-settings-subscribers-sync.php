@@ -18,7 +18,7 @@ printf(
 	esc_attr( $args['label_for'] ),
 	esc_attr( 'chimplet[mailchimp][subscribers][automate]' ),
 	esc_attr( 'on' ),
-	esc_html__( 'Automate subscribers sync', 'chimplet' )
+	esc_html__( 'Automate subscribers synchronization', 'chimplet' )
 );
 
 echo '</fieldset>';

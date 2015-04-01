@@ -288,6 +288,19 @@ class Application extends Base
 
 		if ( $user_query->get_results() ) {
 			foreach ( $user_query->get_results() as $user ) {
+				/** In case a WP_User has more than one role, get a single Chimplet-valid role. */
+				$role = array_intersect( $user->roles, $roles );
+
+				if ( empty( $role ) ) {
+					continue;
+				}
+
+				$role = end( $role );
+
+				if ( empty( $role ) ) {
+					continue;
+				}
+
 				$subscribers[] = $this->get_user_object( $user, $role );
 			}
 		}
@@ -360,8 +373,6 @@ class Application extends Base
 
 			$subscriber = $this->get_user_object( $user, $role );
 
-			error_log( var_export( $subscriber, true ) );
-
 			if ( in_array( $role, $roles ) ) {
 				$this->mc->sync_list_users( $list_id, [ $subscriber ] );
 			}
@@ -383,13 +394,6 @@ class Application extends Base
 		if ( is_null( $groupings ) ) {
 			$this->mc->get_list_by_id( $this->get_option( 'mailchimp.list' ) );
 			$groupings = $this->mc->get_all_groupings();
-
-			foreach ( $groupings as $key => &$grouping ) {
-				$grouping['groups'] = $this->wp->wp_list_pluck( $grouping['groups'], 'name' );
-			}
-
-			unset( $groupings['display_order'] );
-			unset( $groupings['form_field'] );
 		}
 
 		$language = get_locale();
@@ -406,6 +410,7 @@ class Application extends Base
 		 *
 		 * @link https://apidocs.mailchimp.com/api/2.0/lists/subscribe.php for merge variables
 		 *
+		 * @param array $subscriber A MailChimp subscriber
 		 * @param WP_User $user WordPress User object
 		 * @param string $role Chimplet-associated WordPress Role.
 		 * @return array|void MailChimp subscriber object
@@ -422,12 +427,22 @@ class Application extends Base
 			 * Either 'html' (rich-text emails) or 'text' (plain-text emails).
 			 *
 			 * @param string $email_type Either 'html' or 'text'. Defaults to 'html'.
-			 * @param int $user WordPress User ID
+			 * @param int $user_id WordPress User ID
 			 * @return string
 			 */
 
 			'email_type' => apply_filters( 'chimplet/user/email_type', 'html', $user->ID ),
-			'merge_vars' => [
+
+			/**
+			 * Filter the merges to associate to a Subscriber
+			 *
+			 * @param array $merge_vars An array of mergs
+			 * @param WP_User $user WordPress User object
+			 * @param string $role Chimplet-associated WordPress Role.
+			 * @return array|void MailChimp subscriber object
+			 */
+
+			'merge_vars' => apply_filters( 'chimplet/user/merge_vars', [
 				'FNAME'   => $user->first_name,
 				'LNAME'   => $user->last_name,
 				'WP_ROLE' => $role,
@@ -435,19 +450,34 @@ class Application extends Base
 				/**
 				 * Filter MailChimp Interest Groupings to associate to a Subscriber
 				 *
-				 * @param array  $groupings {
-				 *     An array of Groupings. Each Grouping is an associative array that contains:
+				 * @param array  $interests {
+				 *     An array of Interest Groupings the user belongs to. Each Grouping is an associative array that contains:
 				 *
 				 *     @type int      $id      Grouping "id" from `lists/interest-groupings` (either this or $name must be present).
 				 *                             This $id takes precedence and can't change (unlike the $name)
 				 *     @type string   $name    Grouping "name" from lists/interest-groupings (either this or $id must be present).
 				 *     @type array    $groups  An array of valid group names for this grouping.
 				 * }
-				 * @param int $user WordPress User ID
+				 * @param array  $groupings {
+				 *     An array of available Interest Groupings. Baisc properties documented in {@see $interests}.
+				 *
+				 *     @type string  $form_field     Gives the type of interest group: checkbox, radio, select.
+				 *     @type string  $display_order  The display order of the grouping, if set.
+				 *     @type array   $groups {
+				 *         Each Group is an associative array that contains:
+				 *
+				 *         @type int     $id             Group "id" from `lists/interest-groupings`.
+				 *         @type string  $bit            The bit value - not really anything to be done with this.
+				 *         @type string  $name           The name of the group.
+				 *         @type string  $display_order  The display order of the group, if set.
+				 *         @type int     $subscribers    Total number of subscribers who have this group, if set.
+				 *     }
+				 * }
+				 * @param int $user_id WordPress User ID
 				 * @return mixed|void
 				 */
 
-				'groupings'   => apply_filters( 'chimplet/user/groupings', $groupings, $user->ID ),
+				'groupings'   => apply_filters( 'chimplet/user/groupings', [], $groupings, $user->ID ),
 
 				/**
 				 * Filter the language preference for the MailChimp Subscriber
@@ -455,12 +485,12 @@ class Application extends Base
 				 * @link http://kb.mailchimp.com/lists/managing-subscribers/view-and-edit-subscriber-languages#code for supported codes that are fully case-sensitive.
 				 *
 				 * @param string $language Two-letter language code based on current locale.
-				 * @param int $user WordPress User ID
+				 * @param int $user_id WordPress User ID
 				 * @return string|null
 				 */
 
 				'mc_language' => apply_filters( 'chimplet/user/language', $language, $user->ID ),
-			]
+			], $user, $role )
 		], $user, $role );
 	}
 
