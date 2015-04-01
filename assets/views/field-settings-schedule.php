@@ -165,7 +165,7 @@ for ( $i = 1; $i <= 7; $i++ ) {
 
 			?>
 		</div>
-		<div class="chimplet-cell chimplet-1/4 chimplet-schedule-option chimplet-schedule-hourly">
+		<div class="chimplet-cell chimplet-2/4 chimplet-schedule-option chimplet-schedule-hourly">
 			<?php
 
 			$id   = 'mailchimp-campaigns-hour';
@@ -185,7 +185,7 @@ for ( $i = 1; $i <= 7; $i++ ) {
 			}
 
 			printf(
-				'<select id="%s" name="%s" autocomplete="off"></select>' . "\n" . $date->format( 'T' ),
+				'<select id="%s" name="%s" autocomplete="off">%s</select>' . "\n" . $date->format( 'T' ),
 				esc_attr( $id ),
 				esc_attr( $name ),
 				$hourly_options

@@ -5,3 +5,20 @@
 /// @group  Chimplet\Tools
 /// @author Locomotive
 ////
+
+/// Assign CSS pseudo-classes to a list of selectors
+///
+/// @link https://developer.mozilla.org/en-US/docs/Web/CSS/Pseudo-classes
+
+@function assign-selectors( $selectors, $pseudo: null )
+{
+	$list: ();
+
+	@each $selector in $selectors {
+		$selector: unquote( $selector );
+		$selector: if( $pseudo, $selector + ":" + $pseudo, $selector );
+		$list: append( $list, $selector, comma );
+	}
+
+	@return $list;
+}
