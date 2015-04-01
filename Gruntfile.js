@@ -78,6 +78,11 @@ module.exports = function(grunt) {
 
 		// uglify: Minify (javascript)files with UglifyJS
 		uglify: {
+			options: {
+				compress: {
+					drop_console: true
+				}
+			},
 			plugin: {
 				files: {
 					'assets/scripts/dist/common.min.js': 'assets/scripts/dist/common.js'
