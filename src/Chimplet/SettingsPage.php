@@ -45,8 +45,8 @@ class SettingsPage extends BasePage
 		$this->view['menu_title'] = $this->view['page_title'];
 		$this->view['menu_slug']  = 'chimplet-settings';
 
-		$this->excluded_post_types = [ 'page', 'revision', 'nav_menu_item' ];
-		$this->excluded_taxonomies = [ 'post_format', 'nav_menu' ];
+		$this->excluded_post_types = apply_filters( 'chimplet/excluded_post_types', [ 'page', 'revision', 'nav_menu_item' ] );
+		$this->excluded_taxonomies = apply_filters( 'chimplet/excluded_taxonomies', [ 'post_format', 'nav_menu' ] );
 
 		$this->notices->set_settings_errors_params( self::SETTINGS_KEY );
 	}

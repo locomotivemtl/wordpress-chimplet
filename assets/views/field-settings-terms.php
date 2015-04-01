@@ -35,7 +35,11 @@ foreach ( $taxonomies as $taxonomy ) :
 		$grouping_status      = '<span class="chimplet-sync dashicons dashicons-yes" title="' . esc_attr( __( 'Grouping is synced with MailChimp List.', 'chimplet' ) ) . '"></span>';
 	}
 
-	$terms = get_terms( $taxonomy->name, [ 'hide_empty' => false ] );
+	$args = [ 'hide_empty' => false ];
+	$args = apply_filters( 'chimplet/get_terms', $args, $taxonomy, $grouping );
+	$args = apply_filters( "chimplet/get_terms/name={$taxonomy->name}", $args, $taxonomy, $grouping );
+
+	$terms = get_terms( $taxonomy->name, $args );
 
 	if ( empty( $terms ) ) {
 		continue;
