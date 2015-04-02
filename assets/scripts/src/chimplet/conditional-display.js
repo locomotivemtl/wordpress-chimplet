@@ -19,13 +19,32 @@
 
 			condition = 'data-condition-' + $trigger.data( 'condition-key' );
 
-			value = $trigger.val();
+			if ( ( $trigger.is(':checkbox') || $trigger.is(':radio') ) && ! $trigger.prop('checked') ) {
+				value = '';
+			}
+			else {
+				value = $trigger.val();
+			}
 
 			$targets = $( '[' + condition + ']' );
+
+			console.group( 'Condition.toggle()' );
+
+			console.log( '$trigger',  $trigger );
+			console.log( 'condition', condition );
+			console.log( 'value',     value );
+			console.log( '$targets',  $targets );
+
+			console.log( 'targets', '[' + condition + '="' + value + '"]' );
 
 			$shown  = $targets.filter('[' + condition + '="' + value + '"]').removeClass( 'hidden' );
 
 			$hidden = $targets.not('[' + condition + '="' + value + '"]').addClass( 'hidden' );
+
+			console.log( '$shown',  $shown );
+			console.log( '$hidden', $hidden );
+
+			console.groupEnd();
 		}
 	};
 

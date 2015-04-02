@@ -1,7 +1,7 @@
 /* global console, jQuery, ajaxurl, chimpletCommon */
 
 /**
- * Toggle Checkboxes
+ * Toggle Automation
  * ==========================================================================
  * @group  Chimplet
  * @author Locomotive
@@ -10,30 +10,26 @@
 (function ($) {
 	'use strict';
 
-	var Subscribers = {
+	var Automation = {
 		working: false,
 
-		toggle: function( event )
+		init: function( event )
 		{
 			if ( this.working ) {
 				return;
 			}
 
-			this.$checkbox = $( event.target );
-			this.$fieldset = this.$checkbox.closest('fieldset');
-			this.$notices  = this.$fieldset.children('.chimplet-notice');
+			this.$trigger  = $( event.target );
+			this.$fieldset = this.$trigger.closest('fieldset');
+			this.$notices  = this.$trigger.siblings('.chimplet-notice');
+			this.$checkbox = this.$fieldset.find('[type="checkbox"]');
 			this.$tableRow = this.$fieldset.closest('tr');
 
 			if ( this.$checkbox.prop('checked') ) {
-				this.prepareLoader();
 				this.sync(0);
 			}
-		},
-		prepareLoader: function()
-		{
-			if ( ! this.$spinner ) {
-				this.$spinner = $('<div class="spinner alignleft"></div>');
-				this.$spinner.prependTo( this.$checkbox.parent() );
+			else {
+				this.$trigger.attr( 'disabled', 'disabled' );
 			}
 		},
 		showLoader: function()
@@ -41,24 +37,22 @@
 			this.$notices.remove();
 			this.$tableRow.removeClass('form-invalid');
 
-			this.$tableRow.addClass('chimplet-loading');
 			this.$checkbox.attr( 'disabled', 'disabled' ).hide();
-			this.$spinner.show();
+			this.$trigger.attr( 'disabled', 'disabled' ).addClass('chimplet-spinner');
 		},
 		hideLoader: function()
 		{
-			this.$spinner.hide();
+			this.$trigger.removeAttr('disabled').removeClass('chimplet-spinner');
 			this.$checkbox.removeAttr('disabled').show();
-			this.$tableRow.removeClass('chimplet-loading');
 		},
 		sync: function( offset )
 		{
 			this.working = true;
 
 			var formData = {
-				action: chimpletCommon.action,
-				subscribersNonce: chimpletCommon.subscriberSyncNonce,
-				offset: offset
+				action : this.$trigger.data('xhr-action'),
+				nonce  : this.$trigger.data('xhr-nonce'),
+				offset : offset
 			};
 
 			this.jqxhr = $.ajax({
@@ -129,7 +123,6 @@
 			this.working = false;
 
 			this.$tableRow.addClass('form-invalid');
-			this.$checkbox.prop( 'checked', true );
 
 			console.groupEnd();
 		},
@@ -169,7 +162,7 @@
 				text = ( message.text || ( $.type( message ) === 'string' ? message : false ) );
 
 				if ( text ) {
-					this.$notices = $('<p class="chimplet-notice panel-' + type + '" for="' + this.$checkbox.attr('id') + '">' + text + '</p>').appendTo( this.$fieldset );
+					this.$notices = $('<p class="chimplet-notice panel-' + type + '">' + text + '</p>').appendTo( this.$fieldset );
 				}
 			}
 
@@ -210,6 +203,6 @@
 		}
 	};
 
-	$('.chimplet-wrap').on( 'change.chimplet.toggle-subscribers-automation', ':checkbox[name$="[subscribers][automate]"]', $.proxy(Subscribers.toggle, Subscribers) );
+	$('.chimplet-wrap').on( 'click.chimplet.sync', '[data-automation="sync"]', $.proxy( Automation.init, Automation ) );
 
 }(jQuery));
