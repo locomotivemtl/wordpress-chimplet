@@ -37,6 +37,10 @@ $all-choice-inputs: assign-selectors( $choice-inputs-list );
 // Placeholders
 // ==========================================================================
 
+%chimplet-spinner {
+	@include chimplet-spinner;
+}
+
 // ==========================================================================
 // Styles
 // ==========================================================================
@@ -82,6 +86,20 @@ $all-choice-inputs: assign-selectors( $choice-inputs-list );
 
 	.chimplet-alert {
 		color: #A00;
+	}
+
+	.chimplet-spinner {
+		@extend %chimplet-spinner;
+	}
+
+	.wp-core-ui & .button.chimplet-spinner:disabled {
+		@include chimplet-spinner( true );
+	}
+
+	.button.chimplet-spinner {
+		overflow: hidden;
+		height: 0;
+		padding-top: 25px;
 	}
 
 }
