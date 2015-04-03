@@ -400,7 +400,12 @@ class Facade
 
 	public function create_campaign( $campaign, $return_mc_error = true )
 	{
-		$result = $this->test_segment( @$campaign['segment_opts'], $return_mc_error );
+		if ( isset( $campaign['segment_opts'] ) ) {
+			$result = $this->test_segment( $campaign['segment_opts'], $return_mc_error );
+		}
+		else {
+			$result = $campaign['segment_opts'] = null;
+		}
 
 		if ( $result instanceof \Mailchimp_Error ) {
 			return ( $return_mc_error ? $result : false );
