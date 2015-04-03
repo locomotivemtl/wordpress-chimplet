@@ -1,4 +1,4 @@
-/* global console, jQuery, ajaxurl, chimpletCommon */
+/* global console, jQuery, ajaxurl */
 
 /**
  * Toggle Automation

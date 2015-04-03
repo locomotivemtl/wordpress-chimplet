@@ -1,4 +1,4 @@
-/* global jQuery */
+/* global console, jQuery */
 
 /**
  * Conditional Display
