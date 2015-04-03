@@ -357,11 +357,12 @@ class Facade
 	/**
 	 * Create all segments necessary
 	 *
-	 * @param $campaign
+	 * @param array $campaign
+	 * @param bool $return_mc_error wheter to return mailchimp error or only false
 	 * @return bool|array
 	 */
 
-	public function create_campaign( $campaign )
+	public function create_campaign( $campaign, $return_mc_error = true )
 	{
 		try {
 			$result = $this->facade->lists->segmentTest( $this->current_list['id'], $campaign['segment_opts'] );
@@ -378,7 +379,8 @@ class Facade
 			}
 		}
 		catch ( \Mailchimp_Error $e ) {
-			return false;
+			error_log( sprintf( '%s : (%s) %s', __CLASS__ . '::' . __FUNCTION__, $e->getCode(), $e->getMessage() ) );
+			return ( $return_mc_error ? $e : false );
 		}
 	}
 

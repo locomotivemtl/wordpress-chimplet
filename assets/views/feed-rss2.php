@@ -20,23 +20,22 @@ echo '<?xml version="1.0" encoding="' . get_option( 'blog_charset' ) . '"?' . '>
  */
 do_action( 'rss_tag_pre', 'rss2' );
 ?>
-<rss version="2.0"
-	xmlns:media="http://search.yahoo.com/mrss/"
-	xmlns:content="http://purl.org/rss/1.0/modules/content/"
-	xmlns:dc="http://purl.org/dc/elements/1.1/"
-	xmlns:atom="http://www.w3.org/2005/Atom"
-	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
-	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
-	<?php
+
+<rss version="2.0"<?php
+	?> xmlns:media="http://search.yahoo.com/mrss/"<?php
+	?> xmlns:content="http://purl.org/rss/1.0/modules/content/"<?php
+	?> xmlns:dc="http://purl.org/dc/elements/1.1/"<?php
+	?> xmlns:atom="http://www.w3.org/2005/Atom"<?php
+	?> xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"<?php
+	?> xmlns:slash="http://purl.org/rss/1.0/modules/slash/"<?php
+
 	/**
 	 * Fires at the end of the RSS root to add namespaces.
 	 *
 	 * @since 2.0.0
 	 */
 	do_action( 'rss2_ns' );
-	?>
->
-
+	?>>
 <channel>
 	<title><?php bloginfo_rss( 'name' ); wp_title_rss(); ?></title>
 	<atom:link href="<?php self_link(); ?>" rel="self" type="application/rss+xml" />
@@ -92,7 +91,7 @@ do_action( 'rss_tag_pre', 'rss2' );
 <?php else : ?>
 		<description><![CDATA[<?php the_excerpt_rss(); ?>]]></description>
 		<?php if ( get_the_post_thumbnail() ) : ?>
-            <media:content url="<?php $image = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), apply_filters( 'chimplet/rss/template/image_size', 'thumbnail' ) ); echo $image[0]; //xss ok ?>" medium="image" />
+            <media:content url="<?php $image = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), apply_filters( 'chimplet/feed/template/image_size', 'thumbnail' ) ); echo $image[0]; //xss ok ?>" medium="image" />
         <?php endif; ?>
 	<?php $content = get_the_content_feed( 'rss2' ); ?>
 	<?php if ( strlen( $content ) > 0 ) : ?>

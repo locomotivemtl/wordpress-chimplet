@@ -86,7 +86,7 @@ class Application extends Base
 	public $notices;
 	public $overview;
 	public $settings;
-	public $rss;
+	public $feed;
 
 	/**
 	 * Chimplet Initialization
@@ -117,7 +117,7 @@ class Application extends Base
 
 		$this->wp->load_textdomain( 'chimplet', self::$information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
 
-		$this->rss = new RSS( $this->wp );
+		$this->feed = new Feed( $this->wp );
 
 		if ( ! $this->wp->is_admin() ) {
 			return;
@@ -135,7 +135,8 @@ class Application extends Base
 		$this->wp->add_filter( 'plugin_row_meta', [ $this, 'plugin_meta' ], 10, 4 );
 
 		// Ajax function for user sync
-		$this->wp->add_action( 'wp_ajax_subscribers_sync', [ $this, 'sync_all_subscribers' ] );
+		$this->wp->add_action( 'wp_ajax_chimplet/subscribers/sync', [ $this, 'sync_all_subscribers' ] );
+		$this->wp->add_action( 'wp_ajax_chimplet/campaigns/sync',   [ $this, 'sync_all_campaigns'   ] );
 
 		// Hook for when a user gets added or udated
 		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
@@ -237,21 +238,27 @@ class Application extends Base
 	}
 
 	/**
-	 * Sync WordPress users with MailChimp
-	 * @todo Should we update the automate option here
+	 * Create MailChimp Campaigns
 	 * @return array
 	 */
 
-	public function sync_all_subscribers()
+	public function sync_all_campaigns()
 	{
-		global $wpdb;
+		check_admin_referer( 'chimplet-campaigns-sync', 'nonce' );
 
-		check_admin_referer( 'chimplet-subscribers-sync', 'subscribersNonce' );
+		$options = $this->get_options();
 
-		$limit  = 100;
-		$offset = ( isset( $_REQUEST['offset'] ) ? absint( $_REQUEST['offset'] ) : 0 );
+		$segmented_taxonomies = $this->settings->get_segments_and_groupings();
 
-		$roles   = $this->get_option( 'mailchimp.user_roles' );
+		if ( empty( $segmented_taxonomies ) ) {
+			wp_send_json_error([
+				'message' => [
+					'type' => 'error',
+					'text' => __( 'No WordPress Terms selected or Interest Groupings and Segments unsuccessfully generated.', 'chimplet' )
+				]
+			]);
+		}
+
 		$list_id = $this->get_option( 'mailchimp.list' );
 
 		if ( ! $list_id ) {
@@ -263,11 +270,137 @@ class Application extends Base
 			]);
 		}
 
+		$rss_opts = $this->generate_rss_options();
+
+		if ( ! $rss_opts ) {
+			wp_send_json_error([
+				'message' => [
+					'type' => 'error',
+					'text' => __( 'An error occurred while generating RSS options for the Campaigns found.', 'chimplet' )
+				]
+			]);
+		}
+
+		// From core
+		$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
+		if ( 'www.' == substr( $sitename, 0, 4 ) ) {
+			$sitename = substr( $sitename, 4 );
+		}
+
+		$active_campaigns = [];
+		$failed_campaigns = [];
+
+		foreach ( $segmented_taxonomies as $taxonomy_name => $taxonomy_set ) {
+			foreach ( $taxonomy_set['segments'] as $segmented_terms ) {
+				if ( empty( $segmented_terms['rules']['conditions'][0]['value'] ) ) {
+					continue;
+				}
+
+				// Here we must generate the url for mailchimp to fetch
+				// Build the RSS url on format: /chimplet/monthly/?tax[category]=6,5
+				$rss_opts['url'] = $this->feed->url_from_segmented_terms( $segmented_terms, $rss_opts['schedule'] );
+
+				$subject = sprintf( __( 'Chimplet Digest - %s', 'chimplet' ), $segmented_terms['rules']['conditions'][0]['value'] );
+
+				$campaign = $this->wp->apply_filters( 'chimplet/campaign', [
+					'type'    => 'rss',
+					'options' => $this->wp->apply_filters( 'chimplet/campaign/options', [
+						'list_id'     => $list['id'],
+						'subject'     => $this->wp->apply_filters( 'chimplet/campaign/subject', $subject, $segmented_terms, $rss_opts['schedule'] ),
+						'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
+						'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),
+						'template_id' => $this->wp->apply_filters( 'chimplet/campaign/template_id', absint( $options['mailchimp']['campaigns']['template'] ) ),
+					] ),
+					'content' => $this->wp->apply_filters( 'chimplet/campaign/content', [
+						'url' => $this->wp->get_bloginfo( 'rss2_url' ),
+					] ),
+					'segment_opts' => $this->wp->apply_filters( 'chimplet/campaign/segment_opts', $segmented_terms['rules'] ),
+					'type_opts'    => $this->wp->apply_filters( 'chimplet/campaign/type_opts', [
+						'rss' => $rss_opts
+					] ),
+				] );
+
+				$folder_id = $this->mc->get_campaign_folder_id( apply_filters( 'chimplet/campaign/folder_name', 'Chimplet' ) );
+
+				if ( is_int( $folder_id ) ) {
+					$campaign['options']['folder_id'] = $this->wp->apply_filters( 'chimplet/campaign/folder_id', $folder_id );
+				}
+
+				$campaign = $this->mc->create_campaign( $campaign );
+
+				$this->wp->do_action( 'chimplet/campaign/created', $campaign );
+
+				if ( $campaign instanceof \Mailchimp_Error ) {
+					$failed_campaigns[] = $campaign;
+				}
+				else if ( $campaign ) {
+					$active_campaigns[] = $campaign['id'];
+				}
+				else {
+					$failed_campaigns[] = false;
+				}
+			}
+		}
+
+		$active_count = count( $active_campaigns );
+		$failed_count = count( $failed_campaigns );
+		$total_count  = $active_count + $failed_count;
+
+		if ( count( $active_campaigns ) ) {
+			$options['mailchimp']['campaigns']['active'] = array_merge( $options['mailchimp']['campaigns']['active'], $active_campaigns );
+
+			$this->get_options( $options );
+		}
+
+		if ( count( $failed_campaigns ) ) {
+			wp_send_json_error([
+				'message' => [
+					'type' => 'warning',
+					'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d/%2$d</strong>).', 'chimplet' ), $failed_count, $total_count )
+				]
+			]);
+		}
+
+		wp_send_json_success([
+			'message' => [
+				'type' => 'success',
+				'text' => sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Segments and Campaigns with MailChimp.', 'chimplet' ), $total_count )
+			]
+		]);
+	}
+
+	/**
+	 * Sync WordPress users with MailChimp
+	 * @return array
+	 */
+
+	public function sync_all_subscribers()
+	{
+		global $wpdb;
+
+		check_admin_referer( 'chimplet-subscribers-sync', 'nonce' );
+
+		$limit  = 100;
+		$offset = ( isset( $_REQUEST['offset'] ) ? absint( $_REQUEST['offset'] ) : 0 );
+
+		$roles   = $this->get_option( 'mailchimp.user_roles' );
+
 		if ( ! $roles ) {
 			wp_send_json_error([
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'No WordPress User Roles found.', 'chimplet' )
+				]
+			]);
+		}
+
+		$list_id = $this->get_option( 'mailchimp.list' );
+
+		if ( ! $list_id ) {
+			wp_send_json_error([
+				'message' => [
+					'type' => 'error',
+					'text' => __( 'No MailChimp List found.', 'chimplet' )
 				]
 			]);
 		}
@@ -359,7 +492,6 @@ class Application extends Base
 								__( 'Please wait.', 'chimplet' )
 							)
 						],
-						'limit' => $limit,
 						'next' => $new_offset
 					]);
 				}
@@ -369,8 +501,7 @@ class Application extends Base
 					'message' => [
 						'type' => 'error',
 						'text' => __( 'An error occurred while syncing WordPress Users to MailChimp.', 'chimplet' )
-					],
-					'limit' => $limit
+					]
 				]);
 			}
 		}
@@ -380,7 +511,6 @@ class Application extends Base
 				'type' => 'success',
 				'text' => __( 'Successfully synced WordPress Users to MailChimp.', 'chimplet' )
 			],
-			'limit' => $limit,
 			'next' => false
 		]);
 	}
@@ -449,7 +579,7 @@ class Application extends Base
 		 * @return array|void MailChimp subscriber object
 		 */
 
-		return apply_filters( 'chimplet/user/subscribe', [
+		return $this->wp->apply_filters( 'chimplet/user/subscribe', [
 			'email' => [
 				'email' => $user->user_email,
 			],
@@ -464,7 +594,7 @@ class Application extends Base
 			 * @return string
 			 */
 
-			'email_type' => apply_filters( 'chimplet/user/email_type', 'html', $user->ID ),
+			'email_type' => $this->wp->apply_filters( 'chimplet/user/email_type', 'html', $user->ID ),
 
 			/**
 			 * Filter the merges to associate to a Subscriber
@@ -475,7 +605,7 @@ class Application extends Base
 			 * @return array|void MailChimp subscriber object
 			 */
 
-			'merge_vars' => apply_filters( 'chimplet/user/merge_vars', [
+			'merge_vars' => $this->wp->apply_filters( 'chimplet/user/merge_vars', [
 				'FNAME'   => $user->first_name,
 				'LNAME'   => $user->last_name,
 				'WP_ROLE' => $role,
@@ -510,7 +640,7 @@ class Application extends Base
 				 * @return mixed|void
 				 */
 
-				'groupings'   => apply_filters( 'chimplet/user/groupings', [], $groupings, $user->ID ),
+				'groupings'   => $this->wp->apply_filters( 'chimplet/user/groupings', [], $groupings, $user->ID ),
 
 				/**
 				 * Filter the language preference for the MailChimp Subscriber
@@ -522,9 +652,67 @@ class Application extends Base
 				 * @return string|null
 				 */
 
-				'mc_language' => apply_filters( 'chimplet/user/language', $language, $user->ID ),
+				'mc_language' => $this->wp->apply_filters( 'chimplet/user/language', $language, $user->ID ),
 			], $user, $role )
 		], $user, $role );
+	}
+
+	/**
+	 * Generate RSS options for a new Campaign
+	 * from Chimplet's options.
+	 *
+	 * @see SettingsPage\sanitize_settings()
+	 * @version 2015-04-02
+	 * @since   0.0.0 (2015-04-02)
+	 */
+
+	public function generate_rss_options()
+	{
+		$options = $this->get_option( 'mailchimp.campaigns.schedule' );
+
+		if ( empty( $options ) ) {
+			return false;
+		}
+
+		$rss_opts = [];
+
+		if ( isset( $options['frequency'] ) ) {
+			switch ( $options['frequency'] ) {
+				case 'daily':
+					$rss_opts = [
+						'schedule' => 'daily',
+						'days'     => array_fill_keys( $options['days'], true ),
+					];
+					break;
+
+				case 'weekly':
+					$rss_opts = [
+						'schedule'         => 'weekly',
+						'schedule_weekday' => $options['weekday'],
+					];
+					break;
+
+				case 'monthly':
+					$rss_opts = [
+						'schedule'          => 'monthly',
+						'schedule_monthday' => $options['monthday'],
+					];
+					break;
+
+				default:
+					return false;
+					break;
+			}
+		}
+
+		if ( isset( $options['hour'] ) ) {
+			$rss_opts['schedule_hour'] = absint( $options['hour'] );
+		}
+		else {
+			return false;
+		}
+
+		return $rss_opts;
 	}
 
 	/**
@@ -543,14 +731,7 @@ class Application extends Base
 				'handle' => 'chimplet-common',
 				'src'    => $this->get_asset( 'scripts/dist/common' . $min . '.js' ),
 				'deps'   => [ 'jquery' ],
-				'foot'   => true,
-				'localized' => [
-					'object_name' => 'chimpletCommon',
-					'data'        => [
-						'action' => 'subscribers_sync',
-						'subscriberSyncNonce' => wp_create_nonce( 'chimplet-subscribers-sync' )
-					]
-				]
+				'foot'   => true
 			]
 		];
 
