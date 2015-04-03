@@ -12,7 +12,7 @@ String.prototype.escapeSelector = function ( find ) {
 	return this.replace(find, '\\$1');
 };
 
-/* global jQuery */
+/* global console, jQuery */
 
 /**
  * Conditional Display
@@ -129,7 +129,7 @@ String.prototype.escapeSelector = function ( find ) {
 
 }(jQuery));
 
-/* global console, jQuery, ajaxurl, chimpletCommon */
+/* global console, jQuery, ajaxurl */
 
 /**
  * Toggle Automation
@@ -152,9 +152,11 @@ String.prototype.escapeSelector = function ( find ) {
 
 			this.$trigger  = $( event.target );
 			this.$fieldset = this.$trigger.closest('fieldset');
-			this.$notices  = this.$trigger.siblings('.chimplet-notice');
+			this.$notices  = this.$fieldset.children('.chimplet-notice');
 			this.$checkbox = this.$fieldset.find('[type="checkbox"]');
 			this.$tableRow = this.$fieldset.closest('tr');
+
+			console.log( '$notices', this.$notices );
 
 			if ( this.$checkbox.prop('checked') ) {
 				this.sync(0);

@@ -21,7 +21,7 @@
 
 			this.$trigger  = $( event.target );
 			this.$fieldset = this.$trigger.closest('fieldset');
-			this.$notices  = this.$trigger.siblings('.chimplet-notice');
+			this.$notices  = this.$fieldset.children('.chimplet-notice');
 			this.$checkbox = this.$fieldset.find('[type="checkbox"]');
 			this.$tableRow = this.$fieldset.closest('tr');
 
