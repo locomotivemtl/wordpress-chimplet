@@ -224,7 +224,7 @@ class SettingsPage extends BasePage
 									  ( ! $this->get_option( 'mailchimp.campaigns.schedule.days' )     ? '' : ' data-condition-days="'      . esc_attr( implode( ',', $this->get_option( 'mailchimp.campaigns.schedule.days', '' ) ) ) . '"' ) .
 									  ' data-condition-hour="'      . esc_attr( $this->get_option( 'mailchimp.campaigns.schedule.hour', '' ) ) . '"' .
 									  ' data-condition-template="'  . esc_attr( $this->get_option( 'mailchimp.campaigns.template', '' ) ) . '"',
-				'description'      => __( 'Chimplet can automate the creation of RSS Campaigns using power sets of interest groupings (Maximum of 32,000 campaigns).', 'chimplet' )
+				'description'      => __( 'Chimplet can automate the creation of RSS Campaigns using power sets of interest groupings (Maximum of 32,000 campaigns per account).', 'chimplet' )
 			]
 		);
 

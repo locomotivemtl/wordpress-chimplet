@@ -773,10 +773,16 @@ class Application extends Base
 
 		$scripts = [
 			[
-				'handle' => 'chimplet-common',
-				'src'    => $this->get_asset( 'scripts/dist/common' . $min . '.js' ),
-				'deps'   => [ 'jquery' ],
-				'foot'   => true
+				'handle'    => 'chimplet-common',
+				'src'       => $this->get_asset( 'scripts/dist/common' . $min . '.js' ),
+				'deps'      => [ 'jquery' ],
+				'foot'      => true,
+				'localized' => [
+					'name' => 'chimpletL10n',
+					'data' => [
+						'segmentCount' => __( 'Groups: %1$d / Segments: %2$d', 'chimplet' )
+					]
+				]
 			]
 		];
 
@@ -784,7 +790,7 @@ class Application extends Base
 			wp_register_script( $script['handle'], $script['src'], $script['deps'], $this->get_info( 'version' ), $script['foot'] );
 
 			if ( isset( $script['localized'] ) ) {
-				wp_localize_script( $script['handle'], $script['localized']['object_name'], $script['localized']['data'] );
+				wp_localize_script( $script['handle'], $script['localized']['name'], $script['localized']['data'] );
 			}
 		}
 

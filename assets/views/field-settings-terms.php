@@ -10,7 +10,12 @@
 
 ?>
 
-<p class="description"><?php esc_html_e( 'Select one or more terms, across available taxonomies, to be added as Interest Groupings for the selected Mailing List. (Maximum of 60 groups).', 'chimplet' ); ?></p>
+<p class="description"><?php
+	printf(
+		__( 'Select one or more terms, across available taxonomies, to be added&mdash;accordingly&mdash;as Groups and Interest Groupings (%s, across groupings, per List).', 'chimplet' ),
+		'<a target="_blank" href="http://kb.mailchimp.com/quick-answers/lists-answers/how-many-groups-can-i-have-in-my-list">' . esc_html__( 'Maximum of 60 groups', 'chimplet' ) . '</a>'
+	);
+?></p>
 
 <?php
 
@@ -97,3 +102,19 @@ foreach ( $taxonomies as $taxonomy ) :
 <?php
 
 endforeach;
+
+?>
+
+<hr>
+
+<p class="description"><?php
+	esc_html_e( 'From the selected terms, Chimplet will create a collection of segments. Each segment represents a combination of one or more terms.', 'chimplet' );
+	echo esc_html( ' ' );
+	printf(
+		esc_html__( 'More formally, a %1$s-%2$s is a subset of %1$s distinct terms. If the set has %3$s terms, the number of %1$s-combinations (segments) is equal to the binomial coefficient.', 'chimplet' ),
+		'<samp>' . esc_html( 'k' ) . '</samp>',
+		'<strong>' . esc_html( 'segment' ) . '</strong>',
+		'<samp>' . esc_html( 'n' ) . '</samp>'
+	);
+?></p>
+<p class="description"><?php esc_html_e( 'In smaller cases, this won’t amount to many segments. Although there is no limit to the number of segments which can be saved, it can become impractical to select a large set of terms.', 'chimplet' ); ?></p>
