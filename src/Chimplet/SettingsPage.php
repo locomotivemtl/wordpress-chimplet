@@ -224,7 +224,7 @@ class SettingsPage extends BasePage
 									  ( ! $this->get_option( 'mailchimp.campaigns.schedule.days' )     ? '' : ' data-condition-days="'      . esc_attr( implode( ',', $this->get_option( 'mailchimp.campaigns.schedule.days', '' ) ) ) . '"' ) .
 									  ' data-condition-hour="'      . esc_attr( $this->get_option( 'mailchimp.campaigns.schedule.hour', '' ) ) . '"' .
 									  ' data-condition-template="'  . esc_attr( $this->get_option( 'mailchimp.campaigns.template', '' ) ) . '"',
-				'description'      => __( 'Chimplet can automate the creation of RSS Campaigns using power sets of interest groupings.', 'chimplet' )
+				'description'      => __( 'Chimplet can automate the creation of RSS Campaigns using power sets of interest groupings (Maximum of 32,000 campaigns).', 'chimplet' )
 			]
 		);
 
@@ -330,7 +330,8 @@ class SettingsPage extends BasePage
 
 			if ( $segmented_taxonomies ) {
 				// Create RSS driven campaign using template and frequency specified
-				$folder_id = $this->mc->get_campaign_folder_id( apply_filters( 'chimplet/campaign/folder_name', 'Chimplet' ) );
+				$folder_name = $this->wp->apply_filters( 'chimplet/campaign/folder_name', 'Chimplet' );
+				$folder_id = $this->mc->get_campaign_folder_id( $folder_name );
 
 				if ( isset( $settings['mailchimp']['campaigns']['schedule'] ) ) {
 					$schedule = $settings['mailchimp']['campaigns']['schedule'];

@@ -70,6 +70,20 @@ class Facade
 	}
 
 	/**
+	 * Log Exception
+	 *
+	 * @since   2015-04-03
+	 * @access  public
+	 */
+
+	private function log( $e, $f = null )
+	{
+		if ( $e instanceof \Exception ) {
+			error_log( sprintf( '%1$s, %2$s -- %3$s %4$s', __CLASS__ . ( empty( $f ) ? '' : '::' . $f ), get_class( $e ), $e->getMessage(), $e->getCode() ) );
+		}
+	}
+
+	/**
 	 * Is the api key entered by the user valid?
 	 *
 	 * @version 2015-02-13
@@ -91,7 +105,9 @@ class Facade
 				return true;
 			}
 		}
-		catch( \Mailchimp_Error $e ) {
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 
@@ -118,9 +134,13 @@ class Facade
 
 		}
 		catch ( \Mailchimp_List_DoesNotExist $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return ( $return_mc_error ? $e : false );
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return ( $return_mc_error ? $e : false );
 		}
 	}
@@ -141,7 +161,9 @@ class Facade
 			$this->all_lists = $lists;
 			return $lists['data'];
 		}
-		catch( \Mailchimp_Error $e ) {
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return $return_mc_error ? $e : false;
 		}
 	}
@@ -171,6 +193,8 @@ class Facade
 			return $this->current_list_groupings = $this->facade->lists->interestGroupings( $this->current_list['id'] );
 		}
 		catch ( \Mailchimp_List_InvalidOption $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			// There is no grouping present
 			if ( 211 === $e->getCode() ) {
 				return false;
@@ -214,6 +238,8 @@ class Facade
 			return $this->facade->lists->interestGroupingAdd( $this->current_list['id'], $name, $type, $groups )['id'];
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
@@ -235,6 +261,8 @@ class Facade
 			}
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 
@@ -254,7 +282,9 @@ class Facade
 		try {
 			return $this->facade->lists->interestGroupAdd( $this->current_list['id'], $name, $grouping_id )['id'];
 		}
-		catch( \Mailchimp_Error $e ) {
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
@@ -275,7 +305,9 @@ class Facade
 			$this->facade->lists->interestGroupDel( $this->current_list['id'], $name, $grouping_id );
 			return true;
 		}
-		catch( \Mailchimp_Error $e ) {
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
@@ -338,6 +370,8 @@ class Facade
 			return $this->create_campaign_folder( $name );
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
@@ -349,6 +383,8 @@ class Facade
 			return $this->facade->folders->add( $folder_name, 'campaign' );
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
@@ -364,22 +400,34 @@ class Facade
 
 	public function create_campaign( $campaign, $return_mc_error = true )
 	{
-		try {
-			$result = $this->facade->lists->segmentTest( $this->current_list['id'], $campaign['segment_opts'] );
+		$result = $this->test_segment( @$campaign['segment_opts'], $return_mc_error );
 
-			if ( $result ) {
+		if ( $result instanceof \Mailchimp_Error ) {
+			return ( $return_mc_error ? $result : false );
+		}
+
+		try {
+			/** @todo should we skip empty segments? Create those campaigns individually when needed. */
+			if ( is_array( $result ) && isset( $result['total'] ) ) {
 				// Add the campaigns
 				list( $type, $options, $content, $segment_opts, $type_opts ) = array_values( $campaign );
 				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
 
-				// @todo should we send them immediately?
+				/** @todo should we send them immediately? */
 				// $this->facade->campaigns->send( $campaign['id'] );
 
 				return $campaign;
 			}
+			else {
+				$e = new \Mailchimp_Error( 'The segment test failed for an unknown reason. Please try again later.' );
+				$this->log( $e, __FUNCTION__ );
+
+				return ( $return_mc_error ? $e : false );
+			}
 		}
 		catch ( \Mailchimp_Error $e ) {
-			error_log( sprintf( '%s : (%s) %s', __CLASS__ . '::' . __FUNCTION__, $e->getCode(), $e->getMessage() ) );
+			$this->log( $e, __FUNCTION__ );
+
 			return ( $return_mc_error ? $e : false );
 		}
 	}
@@ -397,10 +445,41 @@ class Facade
 		try {
 			$this->facade->campaigns->delete( $campaign_id );
 		}
-		catch( \Mailchimp_Error $e ) {
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
+
+
+	/**
+	 * Test segment
+	 *
+	 * @param array $campaign
+	 * @param bool $return_mc_error wheter to return mailchimp error or only false
+	 * @return bool|array
+	 */
+
+	public function test_segment( $segment_opts, $return_mc_error = true )
+	{
+		try {
+			$result = $this->facade->lists->segmentTest( $this->current_list['id'], $segment_opts );
+
+			/** @todo should we skip empty segments? Create those campaigns individually when needed. */
+			if ( is_array( $result ) && isset( $result['total'] ) ) {
+				return $result;
+			}
+
+			throw new \Mailchimp_Error( 'The segment test failed for an unknown reason. Please try again later.' );
+		}
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
+			return ( $return_mc_error ? $e : false );
+		}
+	}
+
 
 	/**
 	 * Retrieve user template in MailChimp
@@ -416,6 +495,8 @@ class Facade
 			return $templates['user'];
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return [];
 		}
 	}
@@ -439,6 +520,8 @@ class Facade
 			return $this->current_list_merge_vars = $response['merge_vars'];
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
@@ -479,6 +562,8 @@ class Facade
 			return true;
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
@@ -501,6 +586,8 @@ class Facade
 			return true;
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}
@@ -544,6 +631,8 @@ class Facade
 			return true;
 		}
 		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
 			return false;
 		}
 	}

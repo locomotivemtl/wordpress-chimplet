@@ -287,8 +287,10 @@ class Application extends Base
 			$sitename = substr( $sitename, 4 );
 		}
 
-		$active_campaigns = [];
-		$failed_campaigns = [];
+		$active_campaigns  = [];
+		$failed_campaigns  = [];
+		$consecutive_fails = 0;
+		$consecutive_limit = 5;
 
 		foreach ( $segmented_taxonomies as $taxonomy_name => $taxonomy_set ) {
 			foreach ( $taxonomy_set['segments'] as $segmented_terms ) {
@@ -302,42 +304,85 @@ class Application extends Base
 
 				$subject = sprintf( __( 'Chimplet Digest - %s', 'chimplet' ), $segmented_terms['rules']['conditions'][0]['value'] );
 
-				$campaign = $this->wp->apply_filters( 'chimplet/campaign', [
+				$campaign_opts = $this->wp->apply_filters( 'chimplet/campaign', [
 					'type'    => 'rss',
 					'options' => $this->wp->apply_filters( 'chimplet/campaign/options', [
-						'list_id'     => $list['id'],
+						'list_id'     => $list_id,
 						'subject'     => $this->wp->apply_filters( 'chimplet/campaign/subject', $subject, $segmented_terms, $rss_opts['schedule'] ),
 						'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
 						'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),
 						'template_id' => $this->wp->apply_filters( 'chimplet/campaign/template_id', absint( $options['mailchimp']['campaigns']['template'] ) ),
 					] ),
-					'content' => $this->wp->apply_filters( 'chimplet/campaign/content', [
-						'url' => $this->wp->get_bloginfo( 'rss2_url' ),
-					] ),
+					'content'      => $this->wp->apply_filters( 'chimplet/campaign/content', [] ),
 					'segment_opts' => $this->wp->apply_filters( 'chimplet/campaign/segment_opts', $segmented_terms['rules'] ),
-					'type_opts'    => $this->wp->apply_filters( 'chimplet/campaign/type_opts', [
-						'rss' => $rss_opts
+					'type_opts' => $this->wp->apply_filters( 'chimplet/campaign/type_opts', [
+						'rss'   => $rss_opts
 					] ),
 				] );
 
-				$folder_id = $this->mc->get_campaign_folder_id( apply_filters( 'chimplet/campaign/folder_name', 'Chimplet' ) );
+				$folder_name = $this->wp->apply_filters( 'chimplet/campaign/folder_name', 'Chimplet' );
+				$folder_id = $this->mc->get_campaign_folder_id( $folder_name );
 
 				if ( is_int( $folder_id ) ) {
-					$campaign['options']['folder_id'] = $this->wp->apply_filters( 'chimplet/campaign/folder_id', $folder_id );
+					$campaign_opts['options']['folder_id'] = $this->wp->apply_filters( 'chimplet/campaign/folder_id', $folder_id );
 				}
 
-				$campaign = $this->mc->create_campaign( $campaign );
+				$campaign = $this->mc->create_campaign( $campaign_opts );
 
 				$this->wp->do_action( 'chimplet/campaign/created', $campaign );
 
 				if ( $campaign instanceof \Mailchimp_Error ) {
-					$failed_campaigns[] = $campaign;
+					switch ( get_class( $campaign ) ) {
+						case 'Mailchimp_Invalid_Folder':
+						case 'Mailchimp_Invalid_Options':
+						case 'Mailchimp_Invalid_Template':
+						case 'Mailchimp_List_DoesNotExist':
+							error_log( var_export( $campaign_opts, true ) );
+							wp_send_json_error([
+								'message' => [
+									'type' => 'error',
+									'text' => sprintf( '<code>%1$s</code> (<code>%3$s</code>) &mdash; <q>%2$s</q>', get_class( $campaign ), $campaign->getMessage(), $campaign->getCode() )
+								]
+							]);
+							break;
+
+						default:
+							$failed_campaigns[] = $campaign;
+							$consecutive_fails++;
+							break;
+					}
 				}
 				else if ( $campaign ) {
 					$active_campaigns[] = $campaign['id'];
 				}
 				else {
 					$failed_campaigns[] = false;
+					$consecutive_fails++;
+				}
+
+				if ( $consecutive_fails >= $consecutive_limit ) {
+					if ( class_exists( '\NumberFormatter' ) ) {
+						$nf = new \NumberFormatter( get_locale(), \NumberFormatter::SPELLOUT );
+						$_limit = $nf->format( $consecutive_limit );
+					}
+					else {
+						$_limit = $consecutive_limit;
+					}
+
+					$last_error = end( $failed_campaigns );
+
+					$_text = sprintf( __( 'Chimplet has experienced %1$s consecutive failures to create Campaigns. Cancelling the rest.', 'chimplet' ), $_limit );
+
+					if ( $last_error instanceof \Mailchimp_Error ) {
+						$_text .= ' <br>' . sprintf( __( 'Last error: %s', 'chimplet' ), sprintf( '<code>%1$s</code> (<code>%3$s</code>) &mdash; <q>%2$s</q>', get_class( $last_error ), $last_error->getMessage(), $last_error->getCode() ) );
+					}
+
+					wp_send_json_error([
+						'message' => [
+							'type' => 'error',
+							'text' => $_text
+						]
+					]);
 				}
 			}
 		}
@@ -356,7 +401,7 @@ class Application extends Base
 			wp_send_json_error([
 				'message' => [
 					'type' => 'warning',
-					'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d/%2$d</strong>).', 'chimplet' ), $failed_count, $total_count )
+					'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d failure(s)/%2$d success(es)</strong>).', 'chimplet' ), $failed_count, $active_count )
 				]
 			]);
 		}
