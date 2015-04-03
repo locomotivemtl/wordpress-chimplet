@@ -56,7 +56,7 @@ for ( $i = 1; $i <= 7; $i++ ) {
 			<input type="checkbox"
 			       name="%3$s"
 			       id="%2$s"
-			       value="%1$s"%4$s>
+			       value="%1$s"%4$s data-condition-key="days">
 			<span>%6$s</span>
 		</label>' . "\n",
 		$val,
@@ -86,13 +86,13 @@ for ( $i = 1; $i <= 7; $i++ ) {
 				'monthly' => __( 'Every Month', 'chimplet' ),
 			];
 
-			foreach ( $frequencies as $key => $name ) {
+			foreach ( $frequencies as $freq_key => $freq_name ) {
 				$key = $key;
 				$freq_options .= sprintf(
 					'<option value="%s"%s>%s</option>',
-					esc_attr( $key ),
-					selected( $key, $options['frequency'], false ),
-					esc_html( $name )
+					esc_attr( $freq_key ),
+					selected( $freq_key, $options['frequency'], false ),
+					esc_html( $freq_name )
 				);
 			}
 
@@ -112,7 +112,7 @@ for ( $i = 1; $i <= 7; $i++ ) {
 			$name = $field_name . '[schedule][weekday]';
 
 			printf(
-				'<select id="%s" name="%s" autocomplete="off">%s</select>',
+				'<select id="%s" name="%s" autocomplete="off" data-condition-key="weekday">%s</select>',
 				esc_attr( $id ),
 				esc_attr( $name ),
 				$weekday_options
@@ -157,7 +157,7 @@ for ( $i = 1; $i <= 7; $i++ ) {
 			}
 
 			printf(
-				'<select id="%s" name="%s" autocomplete="off">%s</select>',
+				'<select id="%s" name="%s" autocomplete="off" data-condition-key="monthday">%s</select>',
 				esc_attr( $id ),
 				esc_attr( $name ),
 				$monthday_options
@@ -185,7 +185,7 @@ for ( $i = 1; $i <= 7; $i++ ) {
 			}
 
 			printf(
-				'<select id="%s" name="%s" autocomplete="off">%s</select>' . "\n" . $date->format( 'T' ),
+				'<select id="%s" name="%s" autocomplete="off" data-condition-key="hour">%s</select>' . "\n" . $date->format( 'T' ),
 				esc_attr( $id ),
 				esc_attr( $name ),
 				$hourly_options
