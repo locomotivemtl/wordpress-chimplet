@@ -394,7 +394,7 @@ class Application extends Base
 		if ( count( $active_campaigns ) ) {
 			$options['mailchimp']['campaigns']['active'] = array_merge( $options['mailchimp']['campaigns']['active'], $active_campaigns );
 
-			$this->get_options( $options );
+			$this->update_options( $options );
 		}
 
 		if ( count( $failed_campaigns ) ) {

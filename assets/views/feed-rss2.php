@@ -1,9 +1,21 @@
 <?php
+
 /**
- * RSS2 Feed Template for displaying RSS2 Posts feed.
+ * File: RSS2 Feed Template for displaying RSS2 Posts feed.
  *
- * @package WordPress
+ * @package Locomotive\Chimplet\Views
  */
+
+global $wp_query;
+
+$schedule = $wp_query->get( 'chimplet_schedule' );
+
+if ( in_array( $schedule, [ 'hourly', 'daily', 'weekly', 'monthly', 'yearly' ] ) ) {
+	$duration = $schedule;
+}
+else {
+	$duration = 'hourly';
+}
 
 header( 'Content-Type: ' . feed_content_type( 'rss-http' ) . '; charset=' . get_option( 'blog_charset' ), true );
 $more = 1;
@@ -19,8 +31,8 @@ echo '<?xml version="1.0" encoding="' . get_option( 'blog_charset' ) . '"?' . '>
  *                        'rdf', 'atom', and 'atom-comments'.
  */
 do_action( 'rss_tag_pre', 'rss2' );
-?>
 
+?>
 <rss version="2.0"<?php
 	?> xmlns:media="http://search.yahoo.com/mrss/"<?php
 	?> xmlns:content="http://purl.org/rss/1.0/modules/content/"<?php
@@ -35,39 +47,55 @@ do_action( 'rss_tag_pre', 'rss2' );
 	 * @since 2.0.0
 	 */
 	do_action( 'rss2_ns' );
+
 	?>>
 <channel>
 	<title><?php bloginfo_rss( 'name' ); wp_title_rss(); ?></title>
-	<atom:link href="<?php self_link(); ?>" rel="self" type="application/rss+xml" />
-	<link><?php bloginfo_rss( 'url' ) ?></link>
+	<?php
+
+	$_request_uri   = $_SERVER['REQUEST_URI'];
+	$_request_parts = explode( '?', $_SERVER['REQUEST_URI'] );
+
+	wp_parse_str( end( $_request_parts ), $_query_uri );
+
+	$_SERVER['REQUEST_URI'] = reset( $_request_parts );
+
+
+	$host = @parse_url( home_url() );
+
+	?><atom:link href="<?php echo add_query_arg( $_query_uri, esc_url( apply_filters( 'self_link', set_url_scheme( 'http://' . $host['host'] . wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) ) ); ?>" rel="self" type="application/rss+xml" />
+	<?php
+
+	$_SERVER['REQUEST_URI'] = $_request_uri;
+
+	?><link><?php bloginfo_rss( 'url' ) ?></link>
 	<description><?php bloginfo_rss( 'description' ) ?></description>
 	<lastBuildDate><?php echo mysql2date( 'D, d M Y H:i:s +0000', get_lastpostmodified( 'GMT' ), false ); //xss ok ?></lastBuildDate>
 	<language><?php bloginfo_rss( 'language' ); ?></language>
 	<?php
-	$duration = 'hourly';
+
 	/**
 	 * Filter how often to update the RSS feed.
-	 *
-	 * @since 2.1.0
 	 *
 	 * @param string $duration The update period.
 	 *                         Default 'hourly'. Accepts 'hourly', 'daily', 'weekly', 'monthly', 'yearly'.
 	 */
-	?>
-	<sy:updatePeriod><?php echo apply_filters( 'rss_update_period', $duration ); //xss ok ?></sy:updatePeriod>
+
+	?><sy:updatePeriod><?php echo apply_filters( 'rss_update_period', $duration ); //xss ok ?></sy:updatePeriod>
 	<?php
+
 	$frequency = '1';
+
 	/**
 	 * Filter the RSS update frequency.
-	 *
-	 * @since 2.1.0
 	 *
 	 * @param string $frequency An integer passed as a string representing the frequency
 	 *                          of RSS updates within the update period. Default '1'.
 	 */
-	?>
-	<sy:updateFrequency><?php echo apply_filters( 'rss_update_frequency', $frequency ); //xss ok ?></sy:updateFrequency>
+
+	?><sy:updateFrequency><?php echo apply_filters( 'rss_update_frequency', $frequency ); //xss ok ?></sy:updateFrequency>
 	<?php
+
 	/**
 	 * Fires at the end of the RSS2 Feed Header.
 	 *

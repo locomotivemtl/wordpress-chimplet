@@ -20,10 +20,12 @@ use Locomotive\WordPress\Facade as WP;
 class Feed extends Base {
 
 	/**
-	 * @var WP  $wp  WordPress Facade
+	 * @var WP     $wp           WordPress Facade
+	 * @var array  $frequencies  Available frequencies from MailChimp
 	 */
 
 	public $wp;
+	public $frequencies;
 
 
 	/**
@@ -39,8 +41,12 @@ class Feed extends Base {
 	{
 		$this->wp = ( $wp instanceof WP ? $wp : new WP );
 
-		$this->wp->add_action( 'init',          [ $this, 'init' ], 10 );
-		$this->wp->add_action( 'pre_get_posts', [ $this, 'pre_get_posts' ], 10 );
+		$this->frequencies = [ 'monthly', 'weekly', 'daily' ];
+
+		$this->wp->add_action( 'init',             [ $this, 'init' ], 10 );
+		$this->wp->add_action( 'pre_get_posts',    [ $this, 'pre_get_posts' ], 10 );
+
+		$this->wp->add_filter( 'get_wp_title_rss', [ $this, 'wp_title_rss' ], 10, 2 );
 
 		if ( $this->get_option( 'mailchimp.campaigns.schedule.frequency' ) ) {
 			$this->wp->add_action( 'template_redirect', [ $this, 'render_feed' ], 1 );
@@ -53,8 +59,10 @@ class Feed extends Base {
 
 	public function init()
 	{
-		add_rewrite_tag( '%chimplet_schedule%', '(monthly|weekly|daily)' );
-		add_rewrite_rule( 'chimplet/(monthly|weekly|daily)/?$', 'index.php?chimplet_schedule=$matches[1]', 'top' );
+		$freq_regex = implode( '|', $this->frequencies );
+
+		add_rewrite_tag( '%chimplet_schedule%', "({$freq_regex})" );
+		add_rewrite_rule( "chimplet/{$freq_regex}/?$", 'index.php?chimplet_schedule=$matches[1]', 'top' );
 	}
 
 	/**
@@ -65,6 +73,8 @@ class Feed extends Base {
 
 	public function pre_get_posts( &$query )
 	{
+		$query->is_chimplet = false;
+
 		$schedule = $query->get( 'chimplet_schedule' );
 
 		if ( empty( $schedule ) ) {
@@ -141,7 +151,72 @@ class Feed extends Base {
 		$query->set( 'date_query', $date_query );
 		$query->set( 'chimplet_feed', true );
 
+		$query->is_tax = true;
+		$query->is_feed = true;
+		$query->is_chimplet = true;
+
 		do_action_ref_array( 'chimplet/feed/pre_get_posts', array( &$query ) );
+	}
+
+	/**
+	 * Filter the blog title for use as the feed title.
+	 *
+	 * @param string $title The current blog title.
+	 * @param string $sep   Separator used by wp_title().
+	 */
+
+	public function wp_title_rss( $title, $sep )
+	{
+		global $wp_query;
+
+		if ( $wp_query->is_chimplet ) {
+
+			$schedule = $wp_query->get( 'chimplet_schedule' );
+
+			switch ( $schedule ) {
+				case 'monthly':
+					$title = " $sep " . __( 'Monthly', 'chimplet' );
+					break;
+
+				case 'weekly':
+					$title = " $sep " . __( 'Weekly', 'chimplet' );
+					break;
+
+				case 'daily':
+					$title = " $sep " . __( 'Daily', 'chimplet' );
+					break;
+			}
+
+			if ( is_tax() ) {
+				$queried_terms = ( is_array( $_GET['tax'] ) ? $_GET['tax'] : [] );
+
+				$allowed_tax = $this->get_option( 'mailchimp.terms' );
+
+				$terms = [];
+
+				foreach ( $queried_terms as $tax_name => $term_ids ) {
+					$term_ids = explode( ',', $term_ids );
+
+					$term_obj = get_terms( $tax_name, [
+						'fields'  => 'id=>name',
+						'include' => $term_ids
+					] );
+
+					if ( ! empty( $term_obj ) ) {
+						$terms = array_merge( $terms, $term_obj );
+					}
+				}
+
+				$terms = array_unique( $terms );
+
+				if ( $terms ) {
+					$title .= " $sep " . implode( ', ', $terms );
+				}
+			}
+
+		}
+
+    	return $title;
 	}
 
 	/**
