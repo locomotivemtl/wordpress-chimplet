@@ -156,9 +156,9 @@ class Feed extends Base {
 			return;
 		}
 
-		$path = $this->render_view( 'feed-rss2.php' );
+		$path = $this->get_path( 'assets/views/feed-rss2.php' );
 
-		include apply_filters( 'chimplet/feed/template_path', $path );
+		include $this->wp->apply_filters( "chimplet/render_feed={$path}", $this->wp->apply_filters( 'chimplet/render_feed', $path, $args, $title ), $args, $title );
 
 		exit;
 	}
