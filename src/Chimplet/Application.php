@@ -391,13 +391,13 @@ class Application extends Base
 		$failed_count = count( $failed_campaigns );
 		$total_count  = $active_count + $failed_count;
 
-		if ( count( $active_campaigns ) ) {
-			$options['mailchimp']['campaigns']['active'] = array_merge( $options['mailchimp']['campaigns']['active'], $active_campaigns );
+		if ( $active_count ) {
+			$options['mailchimp']['campaigns']['active'] = $active_campaigns;
 
 			$this->update_options( $options );
 		}
 
-		if ( count( $failed_campaigns ) ) {
+		if ( $failed_count ) {
 			wp_send_json_error([
 				'message' => [
 					'type' => 'warning',
