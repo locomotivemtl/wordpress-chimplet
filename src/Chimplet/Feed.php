@@ -62,7 +62,7 @@ class Feed extends Base {
 		$freq_regex = implode( '|', $this->frequencies );
 
 		add_rewrite_tag( '%chimplet_schedule%', "({$freq_regex})" );
-		add_rewrite_rule( "chimplet/{$freq_regex}/?$", 'index.php?chimplet_schedule=$matches[1]', 'top' );
+		add_rewrite_rule( "chimplet/({$freq_regex})/?$", 'index.php?chimplet_schedule=$matches[1]', 'top' );
 	}
 
 	/**
