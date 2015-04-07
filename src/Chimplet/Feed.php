@@ -213,10 +213,9 @@ class Feed extends Base {
 					$title .= " $sep " . implode( ', ', $terms );
 				}
 			}
-
 		}
 
-    	return $title;
+		return $title;
 	}
 
 	/**

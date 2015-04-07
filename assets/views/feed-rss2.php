@@ -60,8 +60,7 @@ do_action( 'rss_tag_pre', 'rss2' );
 
 	$_SERVER['REQUEST_URI'] = reset( $_request_parts );
 
-
-	$host = @parse_url( home_url() );
+	$host = parse_url( home_url() );
 
 	?><atom:link href="<?php echo add_query_arg( $_query_uri, esc_url( apply_filters( 'self_link', set_url_scheme( 'http://' . $host['host'] . wp_unslash( $_SERVER['REQUEST_URI'] ) ) ) ) ); ?>" rel="self" type="application/rss+xml" />
 	<?php
