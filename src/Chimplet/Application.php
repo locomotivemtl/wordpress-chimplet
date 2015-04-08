@@ -369,12 +369,14 @@ class Application extends Base
 				// Build the RSS url on format: /chimplet/monthly/?tax[category]=6,5
 				$rss_opts['url'] = $this->feed->url_from_segmented_terms( $segmented_terms, $rss_opts['schedule'] );
 
-				$subject = sprintf( __( 'Chimplet Digest - %s', 'chimplet' ), $segmented_terms['rules']['conditions'][0]['value'] );
+				$title   = sprintf( __( 'Chimplet Digest - %s', 'chimplet' ), str_replace( ',', ', ', $segmented_terms['rules']['conditions'][0]['value'] ) );
+				$subject = sprintf( __( 'Chimplet %s Digest', 'chimplet' ), ucfirst( $rss_opts['schedule'] ) );
 
 				$campaign_opts = $this->wp->apply_filters( 'chimplet/campaign', [
 					'type'    => 'rss',
 					'options' => $this->wp->apply_filters( 'chimplet/campaign/options', [
 						'list_id'     => $list_id,
+						'title'       => $this->wp->apply_filters( 'chimplet/campaign/title', $title, $segmented_terms, $rss_opts['schedule'] ),
 						'subject'     => $this->wp->apply_filters( 'chimplet/campaign/subject', $subject, $segmented_terms, $rss_opts['schedule'] ),
 						'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
 						'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),

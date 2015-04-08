@@ -213,6 +213,8 @@ class Feed extends Base {
 					$title .= " $sep " . implode( ', ', $terms );
 				}
 			}
+
+			$title = apply_filters( 'chimplet/feed/channel/title', $title );
 		}
 
 		return $title;
