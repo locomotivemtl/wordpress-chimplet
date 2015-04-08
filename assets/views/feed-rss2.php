@@ -25,8 +25,6 @@ echo '<?xml version="1.0" encoding="' . get_option( 'blog_charset' ) . '"?' . '>
 /**
  * Fires between the xml and rss tags in a feed.
  *
- * @since 4.0.0
- *
  * @param string $context Type of feed. Possible values include 'rss2', 'rss2-comments',
  *                        'rdf', 'atom', and 'atom-comments'.
  */
@@ -43,8 +41,6 @@ do_action( 'rss_tag_pre', 'rss2' );
 
 	/**
 	 * Fires at the end of the RSS root to add namespaces.
-	 *
-	 * @since 2.0.0
 	 */
 	do_action( 'rss2_ns' );
 
@@ -76,8 +72,8 @@ do_action( 'rss_tag_pre', 'rss2' );
 	/**
 	 * Filter how often to update the RSS feed.
 	 *
-	 * @param string $duration The update period.
-	 *                         Default 'hourly'. Accepts 'hourly', 'daily', 'weekly', 'monthly', 'yearly'.
+	 * @param string $duration The update period. Default 'hourly'.
+	 *                         Accepts 'hourly', 'daily', 'weekly', 'monthly', 'yearly'.
 	 */
 
 	?><sy:updatePeriod><?php echo apply_filters( 'rss_update_period', $duration ); //xss ok ?></sy:updatePeriod>
@@ -97,12 +93,11 @@ do_action( 'rss_tag_pre', 'rss2' );
 
 	/**
 	 * Fires at the end of the RSS2 Feed Header.
-	 *
-	 * @since 2.0.0
 	 */
 	do_action( 'rss2_head' );
 
 	while ( have_posts() ) : the_post();
+
 	?>
 	<item>
 		<title><?php the_title_rss() ?></title>
@@ -113,29 +108,47 @@ do_action( 'rss_tag_pre', 'rss2' );
 		<?php the_category_rss( 'rss2' ) ?>
 
 		<guid isPermaLink="false"><?php the_guid(); ?></guid>
-<?php if ( get_option( 'rss_use_excerpt' ) ) : ?>
+		<?php
+		if ( get_the_post_thumbnail() ) :
+			$size = apply_filters( 'chimplet/feed/template/image_size', 'thumbnail' );
+			$data = Locomotive\Chimplet\get_image_sizes( $size );
+
+			if ( $data ) :
+				$image = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), $size );
+
+				?><media:content<?php
+					?> url="<?php echo $image[0]; //xss ok ?>"<?php
+					?> medium="image"<?php
+					?> height="<?php echo $data['height']; ?>"<?php
+					?> width="<?php echo $data['width']; ?>"<?php
+					?> /><?php
+
+			endif;
+		endif;
+		?>
 		<description><![CDATA[<?php the_excerpt_rss(); ?>]]></description>
-<?php else : ?>
-		<description><![CDATA[<?php the_excerpt_rss(); ?>]]></description>
-		<?php if ( get_the_post_thumbnail() ) : ?>
-            <media:content url="<?php $image = wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), apply_filters( 'chimplet/feed/template/image_size', 'thumbnail' ) ); echo $image[0]; //xss ok ?>" medium="image" />
-        <?php endif; ?>
-	<?php $content = get_the_content_feed( 'rss2' ); ?>
-	<?php if ( strlen( $content ) > 0 ) : ?>
-		<content:encoded><![CDATA[<?php echo $content; //xss ok ?>]]></content:encoded>
-	<?php else : ?>
-		<content:encoded><![CDATA[<?php the_excerpt_rss(); ?>]]></content:encoded>
-	<?php endif; ?>
-<?php endif; ?>
-<?php rss_enclosure(); ?>
-	<?php
-	/**
-	 * Fires at the end of each RSS2 feed item.
-	 *
-	 * @since 2.0.0
-	 */
-	do_action( 'rss2_item' );
-	?>
+		<?php
+		if ( ! get_option( 'rss_use_excerpt' ) ) :
+			$content = get_the_content_feed( 'rss2' );
+
+			if ( strlen( $content ) > 0 ) :
+			?><content:encoded><![CDATA[<?php echo $content; //xss ok ?>]]></content:encoded>
+			<?php
+			else :
+			?><content:encoded><![CDATA[<?php the_excerpt_rss(); ?>]]></content:encoded>
+			<?php
+			endif;
+		endif;
+		?>
+		<?php rss_enclosure(); ?>
+		<?php
+
+		/**
+		 * Fires at the end of each RSS2 feed item.
+		 */
+		do_action( 'rss2_item' );
+
+		?>
 	</item>
 	<?php endwhile; ?>
 </channel>
