@@ -119,8 +119,8 @@ do_action( 'rss_tag_pre', 'rss2' );
 				?><media:content<?php
 					?> url="<?php echo $image[0]; //xss ok ?>"<?php
 					?> medium="image"<?php
-					?> height="<?php echo $data['height']; ?>"<?php
-					?> width="<?php echo $data['width']; ?>"<?php
+					?> height="<?php echo esc_attr( $data['height'] ); ?>"<?php
+					?> width="<?php echo esc_attr( $data['width'] ); ?>"<?php
 					?> /><?php
 
 			endif;

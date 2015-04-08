@@ -56,7 +56,7 @@ function get_image_sizes( $sizes = [] )
 	$get_intermediate_image_sizes = get_intermediate_image_sizes();
 
 	// Create the full array with sizes and crop info
-	foreach( $get_intermediate_image_sizes as $_size ) {
+	foreach ( $get_intermediate_image_sizes as $_size ) {
 		if ( in_array( $_size, [ 'thumbnail', 'medium', 'large' ] ) ) {
 			$image_sizes[ $_size ] = [
 				'width'  => get_option( $_size . '_size_w' ),
