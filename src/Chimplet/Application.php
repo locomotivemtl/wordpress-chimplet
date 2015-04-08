@@ -376,24 +376,27 @@ class Application extends Base
 					'type'    => 'rss',
 					'options' => $this->wp->apply_filters( 'chimplet/campaign/options', [
 						'list_id'     => $list_id,
-						'title'       => $this->wp->apply_filters( 'chimplet/campaign/title', $title, $segmented_terms, $rss_opts['schedule'] ),
-						'subject'     => $this->wp->apply_filters( 'chimplet/campaign/subject', $subject, $segmented_terms, $rss_opts['schedule'] ),
+						'title'       => $title,
+						'subject'     => $subject,
 						'from_email'  => $this->wp->apply_filters( 'wp_mail_from', 'chimplet@' . $sitename ), // xss ok
 						'from_name'   => $this->wp->apply_filters( 'wp_mail_from_name', 'Chimplet' ),
-						'template_id' => $this->wp->apply_filters( 'chimplet/campaign/template_id', absint( $options['mailchimp']['campaigns']['template'] ) ),
-					] ),
-					'content'      => $this->wp->apply_filters( 'chimplet/campaign/content', [] ),
-					'segment_opts' => $this->wp->apply_filters( 'chimplet/campaign/segment_opts', $segmented_terms['rules'] ),
+						'to_name'     => '*|FNAME|* *|LNAME|*',
+						'template_id' => absint( $options['mailchimp']['campaigns']['template'] ),
+					], $segmented_terms, $rss_opts['schedule'] ),
+					'content'      => $this->wp->apply_filters( 'chimplet/campaign/content', [], $segmented_terms, $rss_opts['schedule'] ),
+					'segment_opts' => $this->wp->apply_filters( 'chimplet/campaign/segment_opts', $segmented_terms, $rss_opts['schedule'] ),
 					'type_opts' => $this->wp->apply_filters( 'chimplet/campaign/type_opts', [
 						'rss'   => $rss_opts
-					] ),
-				] );
+					], $segmented_terms, $rss_opts['schedule'] ),
+				], $segmented_terms, $rss_opts['schedule'] );
 
-				$folder_name = $this->wp->apply_filters( 'chimplet/campaign/folder_name', 'Chimplet' );
-				$folder_id = $this->mc->get_campaign_folder_id( $folder_name );
+				if ( ! isset( $campaign_opts['options']['folder_id'] ) ) {
+					$folder_name = $this->wp->apply_filters( 'chimplet/campaign/folder_name', 'Chimplet', $segmented_terms, $rss_opts['schedule'] );
+					$folder_id = $this->mc->get_campaign_folder_id( $folder_name );
 
-				if ( is_int( $folder_id ) ) {
-					$campaign_opts['options']['folder_id'] = $this->wp->apply_filters( 'chimplet/campaign/folder_id', $folder_id );
+					if ( is_int( $folder_id ) ) {
+						$campaign_opts['options']['folder_id'] = $this->wp->apply_filters( 'chimplet/campaign/folder_id', $folder_id, $segmented_terms, $rss_opts['schedule'] );
+					}
 				}
 
 				$campaign = $this->mc->create_campaign( $campaign_opts );
