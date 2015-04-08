@@ -384,7 +384,7 @@ class Application extends Base
 						'template_id' => absint( $options['mailchimp']['campaigns']['template'] ),
 					], $segmented_terms, $rss_opts['schedule'] ),
 					'content'      => $this->wp->apply_filters( 'chimplet/campaign/content', [], $segmented_terms, $rss_opts['schedule'] ),
-					'segment_opts' => $this->wp->apply_filters( 'chimplet/campaign/segment_opts', $segmented_terms, $rss_opts['schedule'] ),
+					'segment_opts' => $this->wp->apply_filters( 'chimplet/campaign/segment_opts', $segmented_terms['rules'], $segmented_terms, $rss_opts['schedule'] ),
 					'type_opts' => $this->wp->apply_filters( 'chimplet/campaign/type_opts', [
 						'rss'   => $rss_opts
 					], $segmented_terms, $rss_opts['schedule'] ),
