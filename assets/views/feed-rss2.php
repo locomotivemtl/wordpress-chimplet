@@ -130,6 +130,7 @@ do_action( 'rss_tag_pre', 'rss2' );
 		<?php
 		if ( ! get_option( 'rss_use_excerpt' ) ) :
 			$content = get_the_content_feed( 'rss2' );
+			$content = preg_replace( '#(<(p|a)[^>]*>)*<img[^>]+\>(<\/(a|p)>)*#i', '', $content );
 
 			if ( strlen( $content ) > 0 ) :
 			?><content:encoded><![CDATA[<?php echo $content; //xss ok ?>]]></content:encoded>
