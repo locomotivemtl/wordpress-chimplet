@@ -214,7 +214,7 @@ class Feed extends Base {
 				}
 			}
 
-			$title = apply_filters( 'chimplet/feed/channel/title', $title );
+			$title = apply_filters( 'chimplet/feed/channel/title', $title, $sep );
 		}
 
 		return $title;
