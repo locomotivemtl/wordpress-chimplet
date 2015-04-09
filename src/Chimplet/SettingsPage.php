@@ -301,6 +301,26 @@ class SettingsPage extends BasePage
 			return $settings;
 		}
 
+		// Create webhooks
+		$webhooks = $this->get_option( 'mailchimp.webhooks', [] );
+		$hook_key = wp_hash( $settings['mailchimp']['api_key'] . '|' . $settings['mailchimp']['list'], 'api' );
+
+		if ( isset( $webhooks['secret'] ) && $hook_key !== $webhooks['secret'] ) {
+			$this->app->delete_webhooks( $webhooks );
+
+			unset( $webhooks['secret'] );
+		}
+
+		if ( empty( $webhooks['secret'] ) ) {
+			$webhooks['secret'] = $hook_key;
+
+			$this->app->add_webhooks( $webhooks );
+
+			if ( ! empty( $webhooks ) ) {
+				$settings['mailchimp']['webhooks'] = $webhooks;
+			}
+		}
+
 		$segmented_taxonomies = [];
 
 		// Do we have any terms?

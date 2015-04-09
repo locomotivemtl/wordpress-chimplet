@@ -201,9 +201,10 @@ class Application extends Base
 		$this->wp->add_action( 'init',            [ $this, 'wp_init' ] );
 		$this->wp->add_filter( 'plugin_row_meta', [ $this, 'plugin_meta' ], 10, 4 );
 
-		// Ajax function for user sync
-		$this->wp->add_action( 'wp_ajax_chimplet/subscribers/sync', [ $this, 'sync_all_subscribers' ] );
-		$this->wp->add_action( 'wp_ajax_chimplet/campaigns/sync',   [ $this, 'sync_all_campaigns'   ] );
+		// AJAX function for user sync
+		$this->wp->add_action( 'wp_ajax_chimplet/subscribers/sync',   [ $this, 'sync_all_subscribers' ] );
+		$this->wp->add_action( 'wp_ajax_chimplet/campaigns/sync',     [ $this, 'sync_all_campaigns'   ] );
+		$this->wp->add_action( 'wp_ajax_chimplet/mailchimp/webhooks', [ $this, 'handle_webhooks'      ] );
 
 		// Hook for when a user gets added or udated
 		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
@@ -302,6 +303,176 @@ class Application extends Base
 		}
 
 		$this->register_assets();
+	}
+
+	/**
+	 * Delete MailChimp Webhooks
+	 *
+	 * @param array $options Chimplet settings for MailChimp Webhooks.
+	 * @return array
+	 */
+
+	public function delete_webhooks( &$options = [] )
+	{
+		if ( empty( $options['hooks'] ) ) {
+			$options['hooks'] = $this->get_option( 'mailchimp.webhooks.hooks', [] );
+		}
+
+		$list_id = $this->get_option( 'mailchimp.list' );
+
+		if ( $list_id && ! empty( $options['hooks'] ) ) {
+			foreach ( $options['hooks'] as $url => $id ) {
+				$this->mc->delete_webhook( $url );
+			}
+		}
+
+		$options['hooks'] = [];
+	}
+
+	/**
+	 * Create MailChimp Webhooks
+	 *
+	 * @param array $options Chimplet settings for MailChimp Webhooks.
+	 * @return array
+	 */
+
+	public function add_webhooks( &$options = [] )
+	{
+		if ( ! isset( $options['hooks'] ) ) {
+			$options['hooks'] = [];
+		}
+
+		$list_id = $this->get_option( 'mailchimp.list' );
+
+		if ( ! $list_id || empty( $options['secret'] ) ) {
+			return false;
+		}
+
+		$url = add_query_arg(
+			[
+				'action' => 'chimplet/mailchimp/webhooks',
+				'secret' => $webhooks['secret']
+			],
+			admin_url( 'admin-ajax.php' )
+		);
+
+		$webhooks = [
+			[
+				'url'     => $url,
+				'actions' => [
+					'subscribe'   => true,
+					'unsubscribe' => true,
+					'profile'     => true,
+					'cleaned'     => true,
+					'upemail'     => true,
+					'campaign'    => false
+				],
+				'sources' => [
+					'user'  => true,
+					'admin' => true,
+					'api'   => false
+				]
+			]
+		];
+
+		foreach ( $webhooks as $hook ) {
+			if ( $id = $this->mc->add_webhook( $hook['url'], $hook['actions'], $hook['sources'], false ) ) {
+				$options['hooks'][ $hook['url'] ] = $id;
+			}
+		}
+
+	}
+
+	/**
+	 * Handle requests from MailChimp Webhooks
+	 */
+
+	public function handle_webhooks()
+	{
+		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
+			wp_die();
+		}
+
+		$options = $this->get_option( 'mailchimp.webhooks', [] );
+
+		$secret = sanitize_key( filter_input( INPUT_POST, 'secret' ) );
+
+		if ( empty( $webhooks['secret'] ) || $secret !== $webhooks['secret'] ) {
+			wp_die();
+		}
+
+		$type = sanitize_key( filter_input( INPUT_POST, 'type' ) );
+		$data = filter_input( INPUT_POST, 'data' );
+
+		if ( isset( $data['old_email'] ) ) {
+			$old_email = sanitize_email( $data['old_email'] );
+			$new_email = sanitize_email( $data['new_email'] );
+
+			$email = $old_email;
+		}
+		else if ( isset( $data['email'] ) ) {
+			$email = sanitize_email( $data['email'] );
+		}
+		else {
+			wp_die();
+		}
+
+		$user = get_user_by( 'email', $user );
+
+		if ( $user instanceof WP_User ) {
+			$user_id = $user->ID;
+		}
+		else {
+			$user_id = null;
+		}
+
+		$this->wp->do_action( 'chimplet/event/before', $type, $data );
+
+		switch ( $type )
+		{
+			case 'subscribe':
+			case 'unsubscribe':
+			case 'cleaned':
+			case 'profile':
+			case 'upemail':
+				/**
+				 * @param int|null  $user_id
+				 * @param string    $type
+				 * @param array     $data
+				 */
+				$this->wp->do_action( "chimplet/event/{$type}", $user_id, $type, $data );
+
+			case 'subscribe':
+				// Create WP user
+				// Do hook to save interests
+				break;
+
+			case 'unsubscribe':
+			case 'cleaned':
+				if ( $user_id ) {
+					// Do hook to remove all interests
+					// Do hook to flag "action" and "reason"
+				}
+				break;
+
+			case 'profile':
+				if ( $user_id ) {
+					// Do hook to update WP user profile
+					// Do hook to update interests
+				}
+				break;
+
+			case 'upemail':
+				if ( $user_id ) {
+					// Do hook to update WP user email
+				}
+				break;
+
+		}
+
+		$this->wp->do_action( 'chimplet/event/after', $type, $data );
+
+		wp_die();
 	}
 
 	/**

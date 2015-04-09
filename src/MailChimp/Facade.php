@@ -485,6 +485,112 @@ class Facade
 		}
 	}
 
+	/**
+	 * Get webhooks from List
+	 *
+	 * @param $name
+	 * @param string $type
+	 * @param $groups
+	 * @return bool|int
+	 */
+
+	public function get_webhooks()
+	{
+		try {
+			$webhooks = $this->current_webhooks = $this->facade->lists->webhooks( $this->current_list['id'] );
+
+			return $webhooks;
+		}
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
+			return false;
+		}
+	}
+
+	/**
+	 * Add new webhook
+	 *
+	 * @param string $url
+	 * @param array $actions
+	 * @param array $sources
+	 * @return bool|int
+	 */
+
+	public function add_webhook( $url, $actions = [], $sources = [], $return_mc_error = true )
+	{
+		if ( empty( $this->current_webhooks ) ) {
+			$this->get_webhooks();
+		}
+
+		try {
+			$response = -1;
+
+			foreach ( $this->current_webhooks as $webhook ) {
+				if ( $url === $webhook['url'] ) {
+					throw new \Mailchimp_Error( 'The webhook already exists.' );
+					break;
+				}
+			}
+
+			$response = $this->facade->lists->webhookAdd( $this->current_list['id'], $url, $actions, $sources );
+
+			if ( is_array( $response ) && isset( $response['id'] ) ) {
+				return $response['id'];
+			}
+
+			throw new \Mailchimp_Error( 'The webhook could not be added for an unknown reason. Please try again later.' );
+		}
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
+			return ( $return_mc_error ? $e : false );
+		}
+
+		return false;
+	}
+
+	/**
+	 * Remove a webhook
+	 *
+	 * @param string $url
+	 * @return bool
+	 */
+
+	public function delete_webhook( $url )
+	{
+		if ( empty( $this->current_webhooks ) ) {
+			$this->get_webhooks();
+		}
+
+		try {
+			$response = -1;
+
+			foreach ( $this->current_webhooks as $webhook ) {
+				if ( $url === $webhook['url'] ) {
+					$response = $this->facade->lists->webhookDel( $grouping_id );
+					break;
+				}
+			}
+
+			if ( is_array( $response ) && isset( $response['complete'] ) ) {
+				return $response['complete'];
+			}
+
+			if ( $response === -1 ) {
+				throw new \Mailchimp_Error( 'The webhook does not exist.' );
+			}
+
+			throw new \Mailchimp_Error( 'The webhook could not be deleted for an unknown reason. Please try again later.' );
+		}
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+
+			return false;
+		}
+
+		return false;
+	}
 
 	/**
 	 * Retrieve user template in MailChimp
