@@ -428,7 +428,7 @@ class Application extends Base
 				else if ( $campaign ) {
 					$active_campaigns[] = $campaign['id'];
 
-					if ( ! isset( $campaign['is_active'] ) || ! $campaign['is_active'] ) {
+					if ( ! isset( $campaign['is_broadcast'] ) || ! $campaign['is_broadcast'] ) {
 						$unsent_campaigns[] = $campaign['id'];
 					}
 				}

@@ -419,7 +419,7 @@ class Facade
 				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
 
 				if ( isset( $campaign['id'] ) && $campaign['id'] ) {
-					$campaign['is_active'] = $this->send_campaign( $campaign['id'], $campaign['type'] );
+					$campaign['is_broadcast'] = $this->send_campaign( $campaign['id'], $campaign['type'] );
 				}
 
 				return $campaign;
@@ -471,7 +471,7 @@ class Facade
 	public function send_campaign( $campaign_id, $campaign_type = '' )
 	{
 		try {
-			$response = $this->facade->campaigns->send( $campaign['id'] );
+			$response = $this->facade->campaigns->send( $campaign_id );
 
 			if ( is_array( $response ) && isset( $response['complete'] ) ) {
 				return $response['complete'];
