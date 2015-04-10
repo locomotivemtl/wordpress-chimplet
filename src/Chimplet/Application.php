@@ -480,7 +480,7 @@ class Application extends Base
 				wp_send_json_error([
 					'message' => [
 						'type' => 'warning',
-						'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d failure(s)/%2$d success(es)</strong>).', 'chimplet' ) . ' <br>' . __( 'Unfortunately, <strong>%3$d</strong> campaign(s) could not be sent or started. Visit your MailChimp account for more details.', 'chimplet' ), $failed_count, $active_count, $unsent_count )
+						'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d failure(s)/%2$d success(es)</strong>).', 'chimplet' ) . ' <br>' . __( 'Unfortunately, <strong>%3$d</strong> Campaign(s) could not be sent or started. Visit your MailChimp account for more details.', 'chimplet' ), $failed_count, $active_count, $unsent_count )
 					]
 				]);
 			}
@@ -498,7 +498,7 @@ class Application extends Base
 			wp_send_json_error([
 				'message' => [
 					'type' => 'warning',
-					'text' => sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Segments and Campaigns with MailChimp.', 'chimplet' ) . ' <br>' . __( 'Unfortunately, <strong>%1$d</strong> campaign(s) could not be sent or started. Visit your MailChimp account for more details.', 'chimplet' ), $total_count, $unsent_count )
+					'text' => sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Segments and Campaigns with MailChimp.', 'chimplet' ) . ' <br>' . __( 'Unfortunately, <strong>%1$d</strong> Campaign(s) could not be sent or started. Visit your MailChimp account for more details.', 'chimplet' ), $total_count, $unsent_count )
 				]
 			]);
 		}
