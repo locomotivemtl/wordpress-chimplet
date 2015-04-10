@@ -145,11 +145,13 @@ class Application extends Base
 	public $mc;
 
 	/**
-	 * @var AdminNotices  $notices   WordPress Admin Notifications controller
-	 * @var OverviewPage  $overview  Overview Dashboard page
-	 * @var SettingsPage  $settings  Plugin Settings page
+	 * @var array         $supported_events  Allowed and supported MailChimp Webhook Events
+	 * @var AdminNotices  $notices           WordPress Admin Notifications controller
+	 * @var OverviewPage  $overview          Overview Dashboard page
+	 * @var SettingsPage  $settings          Plugin Settings page
 	 */
 
+	public $supported_events;
 	public $notices;
 	public $overview;
 	public $settings;
@@ -184,6 +186,14 @@ class Application extends Base
 
 		$this->wp->load_textdomain( 'chimplet', self::$information['path'] . 'languages/chimplet-' . get_locale() . '.mo' );
 
+		$this->supported_events = [
+			'subscribe',
+			'unsubscribe',
+			'cleaned',
+			'profile',
+			'upemail'
+		];
+
 		$this->feed = new Feed( $this->wp );
 
 		if ( ! $this->wp->is_admin() ) {
@@ -206,14 +216,25 @@ class Application extends Base
 		$this->wp->add_action( 'wp_ajax_chimplet/campaigns/sync',     [ $this, 'sync_all_campaigns'   ] );
 		$this->wp->add_action( 'wp_ajax_chimplet/mailchimp/webhooks', [ $this, 'handle_webhooks'      ] );
 
-		// Hook for when a user gets added or udated
+		// Register hooks for when a user gets added or udated
 		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
 			$this->wp->add_action( 'profile_update', [ $this, 'sync_subscriber' ], 10, 1 );
 			$this->wp->add_action( 'user_register',  [ $this, 'sync_subscriber' ], 10, 1 );
 		}
 
-		// Third party can use this do initiate user sync
+		// Third parties can use this do initiate user sync
 		$this->wp->add_action( 'chimplet/user/sync', [ $this, 'sync_subscriber' ], 10, 1 );
+
+		// Register hooks for webhook events
+		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
+			foreach ( $this->supported_events as $event ) {
+				$method = "handle_{$event}_webhook";
+
+				if ( method_exists( $this, $method ) ) {
+					$this->wp->add_action( "chimplet/event/type={$event}", [ $this, $method ], 10, 2 );
+				}
+			}
+		}
 
 		$this->wp->register_activation_hook( LOCOMOTIVE_CHIMPLET_ABS, [ $this, 'activation_hook' ] );
 	}
@@ -362,8 +383,8 @@ class Application extends Base
 				'actions' => [
 					'subscribe'   => true,
 					'unsubscribe' => true,
-					'profile'     => true,
 					'cleaned'     => true,
+					'profile'     => true,
 					'upemail'     => true,
 					'campaign'    => false
 				],
@@ -380,7 +401,6 @@ class Application extends Base
 				$options['hooks'][ $hook['url'] ] = $id;
 			}
 		}
-
 	}
 
 	/**
@@ -389,8 +409,17 @@ class Application extends Base
 
 	public function handle_webhooks()
 	{
-		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
-			wp_die();
+		$end = [
+			'message' => __( 'Hello, MailChimp!', 'chimplet' ),
+			'title'   => __( 'Chimplet Webhook API', 'chimplet' ),
+			'args'    => [
+				'response'  => 200,  // Don't use a failed code like 404 or 500, could confuse MailChimp
+				'back_link' => false
+			]
+		];
+
+		if ( ! $this->get_option( 'mailchimp.subscribers.automate' ) ) {
+			call_user_func_array( [ $this->wp, 'wp_die' ], $end );
 		}
 
 		$options = $this->get_option( 'mailchimp.webhooks', [] );
@@ -398,26 +427,28 @@ class Application extends Base
 		$secret = sanitize_key( filter_input( INPUT_POST, 'secret' ) );
 
 		if ( empty( $webhooks['secret'] ) || $secret !== $webhooks['secret'] ) {
-			wp_die();
+			call_user_func_array( [ $this->wp, 'wp_die' ], array_merge( $end, [ 'message' => __( 'Invalid Secret Key', 'chimplet' ) ] ) );
 		}
 
 		$type = sanitize_key( filter_input( INPUT_POST, 'type' ) );
+
+		if ( ! in_array( $type, $this->supported_events ) ) {
+			call_user_func_array( [ $this->wp, 'wp_die' ], array_merge( $end, [ 'message' => __( 'Invalid Event', 'chimplet' ) ] ) );
+		}
+
 		$data = filter_input( INPUT_POST, 'data' );
 
 		if ( isset( $data['old_email'] ) ) {
-			$old_email = sanitize_email( $data['old_email'] );
-			$new_email = sanitize_email( $data['new_email'] );
-
-			$email = $old_email;
+			$email = sanitize_email( $data['old_email'] );
 		}
 		else if ( isset( $data['email'] ) ) {
 			$email = sanitize_email( $data['email'] );
 		}
 		else {
-			wp_die();
+			call_user_func_array( [ $this->wp, 'wp_die' ], array_merge( $end, [ 'message' => __( 'Invalid Email Address', 'chimplet' ) ] ) );
 		}
 
-		$user = get_user_by( 'email', $user );
+		$user = get_user_by( 'email', $email );
 
 		if ( $user instanceof WP_User ) {
 			$user_id = $user->ID;
@@ -426,53 +457,224 @@ class Application extends Base
 			$user_id = null;
 		}
 
-		$this->wp->do_action( 'chimplet/event/before', $type, $data );
+		/**
+		 * Fires before the main MailChimp webhook event.
+		 *
+		 * @param int|null  $user_id
+		 * @param string    $type
+		 * @param array     $data
+		 */
 
-		switch ( $type )
-		{
-			case 'subscribe':
-			case 'unsubscribe':
-			case 'cleaned':
-			case 'profile':
-			case 'upemail':
-				/**
-				 * @param int|null  $user_id
-				 * @param string    $type
-				 * @param array     $data
-				 */
-				$this->wp->do_action( "chimplet/event/{$type}", $user_id, $type, $data );
+		$this->wp->do_action( 'chimplet/event/before', $user_id, $type, $data );
 
-			case 'subscribe':
-				// Create WP user
-				// Do hook to save interests
-				break;
+		/**
+		 * Fires before the specific MailChimp webhook event.
+		 *
+		 * @param int|null  $user_id
+		 * @param array     $data
+		 */
 
-			case 'unsubscribe':
-			case 'cleaned':
-				if ( $user_id ) {
-					// Do hook to remove all interests
-					// Do hook to flag "action" and "reason"
+		$this->wp->do_action( "chimplet/event/before/type={$type}", $user_id, $data );
+
+		/**
+		 * Allows Chimplet and third-parties to perform operations
+		 * relating to a specific MailChimp webhook event.
+		 *
+		 * Chimplet will execute hooks for each type of event.
+		 * Third parties can register hooks around Chimplet's
+		 * or replace them with their own.
+		 *
+		 * If {@see $type} is "subscribe":
+		 *
+		 *     A Subscriber has been added to MailChimp without MailChimp.
+		 *     Chimplet will execute a hook to insert the user into WordPress.
+		 *
+		 * If {@see $type} is "unsubscribe" or "cleaned":
+		 *
+		 *     Chimplet does not execute any hooks.
+		 *
+		 *     A MC Subscriber unsubscribes, is deleted, or cleansed (bounced),
+		 *     from the List. Third parties should either quarantine the WP User
+		 *     or simply remove their selected Interests.
+		 *
+		 * If {@see $type} is "profile":
+		 *
+		 *    A MC Subscriber has updated their profile on MailChimp.
+		 *    Chimplet will attempt to update the target's WP Profile.
+		 *    The hook will execute filters and actions of its own
+		 *    during this process.
+		 *
+		 * If {@see $type} is "upemail":
+		 *
+		 *    A MC Subscriber has changed their email address on MailChimp.
+		 *    Chimplet will attempt update the target's email address on
+		 *    their WP Profile. The hook will execute filters and actions
+		 *    of its own during this process.
+		 *
+		 *    Note that you will always receive a Profile Update
+		 *    at the same time as an Email Update.
+		 *
+		 * @param int|null  $user_id
+		 * @param array     $data
+		 */
+		$this->wp->do_action( "chimplet/event/type={$type}", $user_id, $data );
+
+		/**
+		 * Fires after the main MailChimp webhook event.
+		 *
+		 * @param int|null  $user_id
+		 * @param string    $type
+		 * @param array     $data
+		 */
+
+		$this->wp->do_action( 'chimplet/event/after', $user_id, $type, $data );
+
+		/**
+		 * Fires after the specific MailChimp webhook event.
+		 *
+		 * @param int|null  $user_id
+		 * @param array     $data
+		 */
+
+		$this->wp->do_action( "chimplet/event/after/type={$type}", $user_id, $data );
+
+		call_user_func_array( [ $this->wp, 'wp_die' ], array_merge( $end, [ 'message' => __( 'Complete', 'chimplet' ) ] ) );
+	}
+
+	/**
+	 * Handle Subscription from MailChimp
+	 *
+	 * @param int|null  $user_id
+	 * @param array     $data
+	 */
+
+	public function handle_subscribe_webhook( $user_id = null, &$data = [] )
+	{
+		$type = 'subscribe';
+
+		// Create WP user
+		// Do hook to save interests
+	}
+
+	/**
+	 * Handle Profile Updates from MailChimp
+	 *
+	 * @param int|null  $user_id
+	 * @param array     $data
+	 */
+
+	public function handle_profile_webhook( $user_id = null, &$data = [] )
+	{
+		$type = 'profile';
+
+		if ( $user_id ) {
+			// Do hook to update WP user profile
+			// Do hook to update interests
+
+			/**
+			 * @todo  Register hook, with priority 1, to sanitize and preset
+			 *        certain changes in advance for third-party hooks.
+			 *        Perform operations such as map "FNAME", "LNAME",
+			 *        sanitize email.
+			 *
+			 * @param array   $user_data
+			 * @param int|null  $user_id
+			 * @param string  $type
+			 * @param array   $data
+			 */
+			$user_data = $this->wp->apply_filters( 'chimplet/user/data', [], $user_id, $type, $data );
+
+			if ( is_array( $user_data ) && count( $user_data ) > 0 ) {
+				$user_data['ID'] = $user_id;
+
+				$response = wp_update_user( $user_data );
+
+				if ( is_wp_error( $response ) ) {
+					/**
+					 * There was an error, probably that user doesn't exist.
+					 *
+					 * @param int|null  $user_id
+					 * @param string    $type
+					 * @param array     $data
+					 */
+					$this->wp->do_action( 'chimplet/user/update_failed', $user_id, $type, $data );
+				} else {
+					/**
+					 * @param int|null  $user_id
+					 * @param string    $type
+					 * @param array     $data
+					 */
+					$this->wp->do_action( 'chimplet/user/updated', $user_id, $type, $data );
 				}
-				break;
+			}
+		}
+	}
 
-			case 'profile':
-				if ( $user_id ) {
-					// Do hook to update WP user profile
-					// Do hook to update interests
-				}
-				break;
+	/**
+	 * Handle Email Address Changes from MailChimp
+	 *
+	 * @param int|null  $user_id
+	 * @param array     $data
+	 */
 
-			case 'upemail':
-				if ( $user_id ) {
-					// Do hook to update WP user email
-				}
-				break;
+	public function handle_upemail_webhook( $user_id = null, &$data = [] )
+	{
+		$type = 'upemail';
 
+		if ( isset( $data['old_email'] ) && isset( $data['new_email'] ) ) {
+			$old_email = sanitize_email( $data['old_email'] );
+			$new_email = sanitize_email( $data['new_email'] );
+		}
+		else {
+			return false;
 		}
 
-		$this->wp->do_action( 'chimplet/event/after', $type, $data );
+		$user = get_user_by( 'id', $user_id );
 
-		wp_die();
+		if ( $user instanceof WP_User ) {
+			$user_id = $user->ID;
+		}
+		else {
+			return false;
+		}
+
+		if ( $user_id ) {
+			if ( $existing_id = email_exists( $new_email ) ) {
+				/**
+				 * For some reason, the submitted email address exists
+				 * in the database and is assigned to another user.
+				 *
+				 * @todo  Register hook to notify administrator of conflict.
+				 *
+				 * @param int|null  $user_id      The targeted user ID that changes are being applied to.
+				 * @param string    $old_email    The target's old email address.
+				 * @param int|null  $existing_id  The user ID whose email address is in conflict with the target's submission.
+				 * @param string    $new_email    The target's new email address that is in conflict with another user.
+				 */
+				$this->wp->do_action( 'chimplet/user/email/conflict', $user_id, $old_email, $existing_id, $new_email );
+			}
+			else {
+				$response = wp_update_user( [ 'ID' => $user_id, 'user_email' => $new_email ] );
+
+				if ( is_wp_error( $response ) ) {
+					/**
+					 * There was an error, probably that user doesn't exist.
+					 *
+					 * @param int|null  $user_id    The targeted user ID that changes are being applied to.
+					 * @param string    $new_email  The target's old email address.
+					 * @param string    $old_email  The target's new email address.
+					 */
+					$this->wp->do_action( 'chimplet/user/email/update_failed', $user_id, $old_email, $new_email );
+				} else {
+					/**
+					 * @param int|null  $user_id    The targeted user ID that changes are being applied to.
+					 * @param string    $new_email  The target's old email address.
+					 * @param string    $old_email  The target's new email address.
+					 */
+					$this->wp->do_action( 'chimplet/user/email/updated', $user_id, $old_email, $new_email );
+				}
+			}
+		}
 	}
 
 	/**
@@ -489,34 +691,34 @@ class Application extends Base
 		$segmented_taxonomies = $this->settings->get_segments_and_groupings();
 
 		if ( empty( $segmented_taxonomies ) ) {
-			wp_send_json_error([
+			wp_send_json_error( [
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'No WordPress Terms selected or Interest Groupings and Segments unsuccessfully generated.', 'chimplet' )
 				]
-			]);
+			] );
 		}
 
 		$list_id = $this->get_option( 'mailchimp.list' );
 
 		if ( ! $list_id ) {
-			wp_send_json_error([
+			wp_send_json_error( [
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'No MailChimp List found.', 'chimplet' )
 				]
-			]);
+			] );
 		}
 
 		$rss_opts = $this->generate_rss_options();
 
 		if ( ! $rss_opts ) {
-			wp_send_json_error([
+			wp_send_json_error( [
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'An error occurred while generating RSS options for the Campaigns found.', 'chimplet' )
 				]
-			]);
+			] );
 		}
 
 		// From core
@@ -581,12 +783,12 @@ class Application extends Base
 						case 'Mailchimp_Invalid_Template':
 						case 'Mailchimp_List_DoesNotExist':
 							error_log( var_export( $campaign_opts, true ) );
-							wp_send_json_error([
+							wp_send_json_error( [
 								'message' => [
 									'type' => 'error',
 									'text' => sprintf( '<code>%1$s</code> (<code>%3$s</code>) &mdash; <q>%2$s</q>', get_class( $campaign ), $campaign->getMessage(), $campaign->getCode() )
 								]
-							]);
+							] );
 							break;
 
 						default:
@@ -620,12 +822,12 @@ class Application extends Base
 						$_text .= ' <br>' . sprintf( __( 'Last error: %s', 'chimplet' ), sprintf( '<code>%1$s</code> (<code>%3$s</code>) &mdash; <q>%2$s</q>', get_class( $last_error ), $last_error->getMessage(), $last_error->getCode() ) );
 					}
 
-					wp_send_json_error([
+					wp_send_json_error( [
 						'message' => [
 							'type' => 'error',
 							'text' => $_text
 						]
-					]);
+					] );
 				}
 			}
 		}
@@ -641,20 +843,20 @@ class Application extends Base
 		}
 
 		if ( $failed_count ) {
-			wp_send_json_error([
+			wp_send_json_error( [
 				'message' => [
 					'type' => 'warning',
 					'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d failure(s)/%2$d success(es)</strong>).', 'chimplet' ), $failed_count, $active_count )
 				]
-			]);
+			] );
 		}
 
-		wp_send_json_success([
+		wp_send_json_success( [
 			'message' => [
 				'type' => 'success',
 				'text' => sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Segments and Campaigns with MailChimp.', 'chimplet' ), $total_count )
 			]
-		]);
+		] );
 	}
 
 	/**
@@ -674,23 +876,23 @@ class Application extends Base
 		$roles   = $this->get_option( 'mailchimp.user_roles' );
 
 		if ( ! $roles ) {
-			wp_send_json_error([
+			wp_send_json_error( [
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'No WordPress User Roles found.', 'chimplet' )
 				]
-			]);
+			] );
 		}
 
 		$list_id = $this->get_option( 'mailchimp.list' );
 
 		if ( ! $list_id ) {
-			wp_send_json_error([
+			wp_send_json_error( [
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'No MailChimp List found.', 'chimplet' )
 				]
-			]);
+			] );
 		}
 
 		/**
@@ -730,12 +932,12 @@ class Application extends Base
 			$user_query = new \WP_User_Query( $query_args );
 		}
 		else {
-			wp_send_json_error([
+			wp_send_json_error( [
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'An error occurred while attempting to select WordPress Users.', 'chimplet' )
 				]
-			]);
+			] );
 		}
 
 		$subscribers = [];
@@ -766,7 +968,7 @@ class Application extends Base
 				if ( $limit === count( $subscribers ) ) {
 					$new_offset = ( $offset + $limit );
 
-					wp_send_json_success([
+					wp_send_json_success( [
 						'message' => [
 							'type' => 'info',
 							// Please don’t turn off your console.
@@ -781,26 +983,26 @@ class Application extends Base
 							)
 						],
 						'next' => $new_offset
-					]);
+					] );
 				}
 			}
 			else {
-				wp_send_json_error([
+				wp_send_json_error( [
 					'message' => [
 						'type' => 'error',
 						'text' => __( 'An error occurred while syncing WordPress Users to MailChimp.', 'chimplet' )
 					]
-				]);
+				] );
 			}
 		}
 
-		wp_send_json_success([
+		wp_send_json_success( [
 			'message' => [
 				'type' => 'success',
 				'text' => __( 'Successfully synced WordPress Users to MailChimp.', 'chimplet' )
 			],
 			'next' => false
-		]);
+		] );
 	}
 
 	/**
