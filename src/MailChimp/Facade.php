@@ -414,6 +414,10 @@ class Facade
 		try {
 			/** @todo should we skip empty segments? Create those campaigns individually when needed. */
 			if ( is_array( $result ) && isset( $result['total'] ) ) {
+				if ( 0 === (int) $result['total'] ) {
+					throw new \Mailchimp_Campaign_InvalidSegment( 'The segment is empty (0 recipients).' );
+				}
+
 				// Add the campaigns
 				list( $type, $options, $content, $segment_opts, $type_opts ) = array_values( $campaign );
 				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
@@ -425,17 +429,14 @@ class Facade
 				return $campaign;
 			}
 			else {
-				$e = new \Mailchimp_Error( 'The segment test failed for an unknown reason. Please try again later.' );
-				$this->log( $e, __FUNCTION__ );
-
-				return ( $return_mc_error ? $e : false );
+				throw new \Mailchimp_Error( 'The segment test failed for an unknown reason. Please try again later.' );
 			}
 		}
 		catch ( \Mailchimp_Error $e ) {
 			$this->log( $e, __FUNCTION__ );
-
-			return ( $return_mc_error ? $e : false );
 		}
+
+		return ( $return_mc_error ? $e : false );
 	}
 
 
