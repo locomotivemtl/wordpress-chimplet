@@ -490,7 +490,7 @@ class Application extends Base
 		}
 		else {
 			$type = 'success';
-			$message = sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Segments and Campaigns with MailChimp.', 'chimplet' ), $total_count );
+			$message = sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Campaigns with MailChimp.', 'chimplet' ), ( $total_count - $empty_segments ) );
 		}
 
 		if ( $unsent_count ) {
