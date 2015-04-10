@@ -356,6 +356,7 @@ class Application extends Base
 
 		$active_campaigns  = [];
 		$failed_campaigns  = [];
+		$unsent_campaigns  = [];
 		$consecutive_fails = 0;
 		$consecutive_limit = 5;
 
@@ -426,6 +427,10 @@ class Application extends Base
 				}
 				else if ( $campaign ) {
 					$active_campaigns[] = $campaign['id'];
+
+					if ( ! isset( $campaign['is_active'] ) || ! $campaign['is_active'] ) {
+						$unsent_campaigns[] = $campaign['id'];
+					}
 				}
 				else {
 					$failed_campaigns[] = false;
@@ -461,6 +466,7 @@ class Application extends Base
 
 		$active_count = count( $active_campaigns );
 		$failed_count = count( $failed_campaigns );
+		$unsent_count = count( $unsent_campaigns );
 		$total_count  = $active_count + $failed_count;
 
 		if ( $active_count ) {
@@ -470,20 +476,40 @@ class Application extends Base
 		}
 
 		if ( $failed_count ) {
+			if ( $unsent_count ) {
+				wp_send_json_error([
+					'message' => [
+						'type' => 'warning',
+						'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d failure(s)/%2$d success(es)</strong>).', 'chimplet' ) . ' ' . __( 'Unfortunately, %3$d campaign(s) could not be sent or started. Visit your MailChimp account for more details.', 'chimplet' ), $failed_count, $active_count, $unsent_count )
+					]
+				]);
+			}
+			else {
+				wp_send_json_error([
+					'message' => [
+						'type' => 'warning',
+						'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d failure(s)/%2$d success(es)</strong>).', 'chimplet' ), $failed_count, $active_count )
+					]
+				]);
+			}
+		}
+
+		if ( $unsent_count ) {
 			wp_send_json_error([
 				'message' => [
 					'type' => 'warning',
-					'text' => sprintf( __( 'Not all Segments and Campaigns were synchronized with MailChimp (<strong>%1$d failure(s)/%2$d success(es)</strong>).', 'chimplet' ), $failed_count, $active_count )
+					'text' => sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Segments and Campaigns with MailChimp.', 'chimplet' ) . ' ' . __( 'Unfortunately, %1$d campaign(s) could not be sent or started. Visit your MailChimp account for more details.', 'chimplet' ), $total_count, $unsent_count )
 				]
 			]);
 		}
-
-		wp_send_json_success([
-			'message' => [
-				'type' => 'success',
-				'text' => sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Segments and Campaigns with MailChimp.', 'chimplet' ), $total_count )
-			]
-		]);
+		else {
+			wp_send_json_success([
+				'message' => [
+					'type' => 'success',
+					'text' => sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Segments and Campaigns with MailChimp.', 'chimplet' ), $total_count )
+				]
+			]);
+		}
 	}
 
 	/**

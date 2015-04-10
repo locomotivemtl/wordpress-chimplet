@@ -418,8 +418,9 @@ class Facade
 				list( $type, $options, $content, $segment_opts, $type_opts ) = array_values( $campaign );
 				$campaign = $this->facade->campaigns->create( $type, $options, $content, $segment_opts, $type_opts );
 
-				/** @todo should we send them immediately? */
-				// $this->facade->campaigns->send( $campaign['id'] );
+				if ( isset( $campaign['id'] ) && $campaign['id'] ) {
+					$campaign['is_active'] = $this->send_campaign( $campaign['id'], $campaign['type'] );
+				}
 
 				return $campaign;
 			}
@@ -452,9 +453,42 @@ class Facade
 		}
 		catch ( \Mailchimp_Error $e ) {
 			$this->log( $e, __FUNCTION__ );
-
-			return false;
 		}
+
+		return false;
+	}
+
+
+	/**
+	 * Send a given campaign immediately. For RSS campaigns, this will "start" them.
+	 *
+	 * @todo Should we send them immediately?
+	 * @param string|int $campaign_id
+	 * @param string $campaign_type
+	 * @return int|bool
+	 */
+
+	public function send_campaign( $campaign_id, $campaign_type = '' )
+	{
+		try {
+			$response = $this->facade->campaigns->send( $campaign['id'] );
+
+			if ( is_array( $response ) && isset( $response['complete'] ) ) {
+				return $response['complete'];
+			}
+
+			if ( 'rss' === $campaign_type ) {
+				throw new \Mailchimp_Error( 'The RSS campaign could not be started for an unknown reason.' );
+			}
+			else {
+				throw new \Mailchimp_Error( 'The campaign could not be sent for an unknown reason.' );
+			}
+		}
+		catch ( \Mailchimp_Error $e ) {
+			$this->log( $e, __FUNCTION__ );
+		}
+
+		return false;
 	}
 
 
