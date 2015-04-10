@@ -70,7 +70,8 @@ module.exports = function(grunt) {
 					'assets/scripts/src/chimplet/utilities.js',
 					'assets/scripts/src/chimplet/conditional-display.js',
 					'assets/scripts/src/chimplet/toggle-checkboxes.js',
-					'assets/scripts/src/chimplet/subscribers.js'
+					'assets/scripts/src/chimplet/segmentation.js',
+					'assets/scripts/src/chimplet/synchronization.js'
 				],
 				dest: 'assets/scripts/dist/common.js'
 			}
@@ -78,6 +79,11 @@ module.exports = function(grunt) {
 
 		// uglify: Minify (javascript)files with UglifyJS
 		uglify: {
+			options: {
+				compress: {
+					drop_console: true
+				}
+			},
 			plugin: {
 				files: {
 					'assets/scripts/dist/common.min.js': 'assets/scripts/dist/common.js'

@@ -4,7 +4,7 @@
  * File: Chimplet Settings Section
  *
  * @package Locomotive\Chimplet\Views
- * @version 2015-03-03
+ * @version 2015-03-24
  * @since   0.0.0 (2015-03-03)
  */
 
@@ -24,6 +24,7 @@ else if ( is_array( $section['callback'] ) ) {
 	}
 }
 
+if ( isset( $wp_settings_fields[ $page ][ $section['id'] ] ) ) {
 
 ?>
 
@@ -44,7 +45,6 @@ else if ( is_array( $section['callback'] ) ) {
 		call_user_func( $before_fields, $section );
 	}
 
-	if ( isset( $wp_settings_fields[ $page ][ $section['id'] ] ) ) {
 		?>
 		<table class="form-table">
 			<tbody>
@@ -54,12 +54,15 @@ else if ( is_array( $section['callback'] ) ) {
 			</tbody>
 		</table>
 		<?php
-	}
 
-	if ( is_callable( $after_fields ) ) {
-		call_user_func( $after_fields, $section );
-	}
+		if ( is_callable( $after_fields ) ) {
+			call_user_func( $after_fields, $section );
+		}
 
 	?>
 	</div>
 </section>
+
+<?php
+
+}

@@ -25,3 +25,12 @@
 		clear   : both;
 	}
 }
+
+@mixin chimplet-spinner( $important: true ) {
+	$important: unquote( if( $important, '!important', '' ) );
+
+	background-size: 20px 20px $important;
+	background-image: url(../../images/spinner.gif) $important;
+	background-repeat: no-repeat $important;
+	background-position: 50% 50% $important;
+}

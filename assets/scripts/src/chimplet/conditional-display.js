@@ -1,4 +1,4 @@
-/* global jQuery */
+/* global console, jQuery */
 
 /**
  * Conditional Display
@@ -13,19 +13,49 @@
 	var Condition = {
 		toggle: function (event)
 		{
-			var $trigger, $targets, $shown, $hidden, condition, value;
+			var $trigger, $checkboxes, $scope, $targets, $shown, $hidden, condition, value;
 
-			$trigger = $( event.currentTarget );
+			console.group( 'Condition.toggle()' );
+
+			$trigger = $( event.target );
 
 			condition = 'data-condition-' + $trigger.data( 'condition-key' );
 
-			value = $trigger.val();
+			if ( $trigger.is(':radio') && ! $trigger.prop('checked') ) {
+				value = null;
+			}
+			if ( $trigger.is(':checkbox') ) {
+				$scope = $trigger.parents('[data-checkbox-scoped]');
+
+				$checkboxes = $( ':checkbox:checked[name="' + $trigger.attr('name').escapeSelector() + '"]', ( $scope.length ? $scope : null ) ).not(':disabled');
+
+				console.log( '$scope',      $scope );
+				console.log( '$checkboxes', $checkboxes );
+
+				value = $checkboxes.map(function(){
+					return $(this).val();
+				}).toArray().join();
+			}
+			else {
+				value = $trigger.val();
+			}
 
 			$targets = $( '[' + condition + ']' );
 
-			$shown  = $targets.filter('[' + condition + '="' + value + '"]').removeClass( 'hidden' );
+			console.log( '$trigger',  $trigger );
+			console.log( 'condition', condition );
+			console.log( 'value',     value );
+			console.log( '$targets',  $targets );
 
+			console.log( 'targets', '[' + condition + '="' + value + '"]' );
+
+			$shown  = $targets.filter('[' + condition + '="' + value + '"]').removeClass( 'hidden' );
 			$hidden = $targets.not('[' + condition + '="' + value + '"]').addClass( 'hidden' );
+
+			console.log( '$shown',  $shown );
+			console.log( '$hidden', $hidden );
+
+			console.groupEnd();
 		}
 	};
 

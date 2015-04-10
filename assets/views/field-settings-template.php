@@ -25,7 +25,7 @@ $field_name = 'chimplet[mailchimp][campaigns]';
 		esc_html_e( 'No template found.', 'chimplet' );
 	} else {
 		printf(
-			'<select id="%s" name="%s" autocomplete="off">',
+			'<select id="%s" name="%s" autocomplete="off" data-condition-key="template">',
 			esc_attr( $id ),
 			esc_attr( $field_name ) . '[template]'
 		);

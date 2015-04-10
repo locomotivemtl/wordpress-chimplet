@@ -134,7 +134,7 @@ abstract class Base
 					<strong class="screen-reader-text"><?php esc_html_e( 'Chimplet', 'chimplet' ); ?>: </strong>
 					<?php echo esc_html( $title ); ?>
 				</h2>
-				<?php include $path; ?>
+				<?php include $this->wp->apply_filters( "chimplet/render_view={$path}", $this->wp->apply_filters( 'chimplet/render_view', $path, $args ), $args ); ?>
 
 			</div>
 
@@ -149,14 +149,12 @@ abstract class Base
 	 * @param array $args
 	 */
 
-	public function render_section( $template, $args = [] ) {
-
+	public function render_section( $template, $args = [] )
+	{
 		$path = $this->get_path( "assets/views/section-{$template}.php" );
 
 		if ( file_exists( $path ) ) {
-
-			include $path;
-
+			include $this->wp->apply_filters( "chimplet/render_section={$path}", $this->wp->apply_filters( 'chimplet/render_section', $path, $args ), $args );
 		}
 	}
 
@@ -167,14 +165,12 @@ abstract class Base
 	 * @param array $args
 	 */
 
-	public function render_field( $template, $args = [] ) {
-
+	public function render_field( $template, $args = [] )
+	{
 		$path = $this->get_path( "assets/views/field-{$template}.php" );
 
 		if ( file_exists( $path ) ) {
-
-			include $path;
-
+			include $this->wp->apply_filters( "chimplet/render_field={$path}", $this->wp->apply_filters( 'chimplet/render_field', $path, $args ), $args );
 		}
 	}
 

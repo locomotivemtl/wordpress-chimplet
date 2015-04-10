@@ -10,9 +10,36 @@
 // Settings
 // ==========================================================================
 
+$text-inputs-list: 'input[type="color"]',
+                   'input[type="date"]',
+                   'input[type="datetime"]',
+                   'input[type="datetime-local"]',
+                   'input[type="email"]',
+                   'input[type="month"]',
+                   'input[type="number"]',
+                   'input[type="password"]',
+                   'input[type="search"]',
+                   'input[type="tel"]',
+                   'input[type="text"]',
+                   'input[type="time"]',
+                   'input[type="url"]',
+                   'input[type="week"]',
+                   'textarea';
+
+$choice-inputs-list: 'input[type="radio"]',
+                     'input[type="checkbox"]';
+
+$all-text-inputs:   assign-selectors( $text-inputs-list );
+$all-choice-inputs: assign-selectors( $choice-inputs-list );
+
+
 // ==========================================================================
 // Placeholders
 // ==========================================================================
+
+%chimplet-spinner {
+	@include chimplet-spinner;
+}
 
 // ==========================================================================
 // Styles
@@ -40,16 +67,39 @@
 
 	}
 
-	input[type="radio"],
-	input[type="checkbox"] {
+	.form-invalid {
+		background-color: #FDF3F3 !important;
+	}
+
+	#{$all-choice-inputs} {
 		-webkit-user-select: none;
 		-moz-user-select: none;
 		-ms-user-select: none;
 		user-select: none;
 	}
 
+	input,
+	textarea,
+	select {
+		max-width: 100%;
+	}
+
 	.chimplet-alert {
 		color: #A00;
+	}
+
+	.chimplet-spinner {
+		@extend %chimplet-spinner;
+	}
+
+	.wp-core-ui & .button.chimplet-spinner:disabled {
+		@include chimplet-spinner( true );
+	}
+
+	.button.chimplet-spinner {
+		overflow: hidden;
+		height: 0;
+		padding-top: 25px;
 	}
 
 }
