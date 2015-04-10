@@ -201,12 +201,12 @@ class Application extends Base
 		$this->wp->add_action( 'init',            [ $this, 'wp_init' ] );
 		$this->wp->add_filter( 'plugin_row_meta', [ $this, 'plugin_meta' ], 10, 4 );
 
-		// Ajax function for user sync
-		$this->wp->add_action( 'wp_ajax_chimplet/subscribers/sync', [ $this, 'sync_all_subscribers' ] );
-		$this->wp->add_action( 'wp_ajax_chimplet/campaigns/sync',   [ $this, 'sync_all_campaigns'   ] );
+		if ( $this->get_option( 'mailchimp.campaigns.automate' ) ) {
+			$this->wp->add_action( 'wp_ajax_chimplet/campaigns/sync', [ $this, 'sync_all_campaigns' ] );
+		}
 
-		// Hook for when a user gets added or udated
 		if ( $this->get_option( 'mailchimp.subscribers.automate' ) ) {
+			$this->wp->add_action( 'wp_ajax_chimplet/subscribers/sync', [ $this, 'sync_all_subscribers' ] );
 			$this->wp->add_action( 'profile_update', [ $this, 'sync_subscriber' ], 10, 1 );
 			$this->wp->add_action( 'user_register',  [ $this, 'sync_subscriber' ], 10, 1 );
 		}
@@ -347,6 +347,9 @@ class Application extends Base
 				]
 			]);
 		}
+
+		// Delete all campaigns saved and recreate segments
+		$this->settings->delete_active_campaigns();
 
 		// From core
 		$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay

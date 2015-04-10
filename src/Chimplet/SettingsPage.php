@@ -446,7 +446,7 @@ class SettingsPage extends BasePage
 	 * We established that we needed to clear the campaigns we created.
 	 */
 
-	private function delete_active_campaigns()
+	public function delete_active_campaigns()
 	{
 		if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
 			foreach ( $active_campaigns as $cid ) {
