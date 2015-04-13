@@ -441,26 +441,6 @@ class Facade
 
 
 	/**
-	 * Delete a campaign using a campaign ID
-	 *
-	 * @param $campaign_id
-	 * @return bool
-	 */
-
-	public function delete_campaign( $campaign_id )
-	{
-		try {
-			$this->facade->campaigns->delete( $campaign_id );
-		}
-		catch ( \Mailchimp_Error $e ) {
-			$this->log( $e, __FUNCTION__ );
-		}
-
-		return false;
-	}
-
-
-	/**
 	 * Send a given campaign immediately. For RSS campaigns, this will "start" them.
 	 *
 	 * @todo Should we send them immediately?
@@ -693,7 +673,23 @@ class Facade
 	public function __call( $method, $arguments )
 	{
 		if ( method_exists( $this->facade, $method ) ) {
-			return call_user_func_array( [ $this->facade, $method ], $arguments );
+			try {
+				$response = call_user_func_array( [ $this->facade, $method ], $arguments );
+
+				if ( is_array( $response ) && isset( $response['complete'] ) ) {
+					return $response['complete'];
+				}
+				else {
+					return $response;
+				}
+
+				throw new \Mailchimp_Error( 'An unknown error occurred processing your request.' );
+			}
+			catch ( \Mailchimp_Error $e ) {
+				$this->log( $e, __FUNCTION__ );
+			}
+
+			return false;
 		}
 
 		throw new \Exception( sprintf( 'The function, "%s::%s", does not exist.', get_class( $this->facade ), $method ) );
