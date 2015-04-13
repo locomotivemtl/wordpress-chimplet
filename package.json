@@ -2,7 +2,7 @@
     "name": "@locomotive/chimplet",
     "description": "Automatically synchronize Users, Categories, and Posts to MailChimp Lists, Groups, and Campaigns.",
     "keywords": ["mailchimp","wordpress","plugin","email"],
-    "version": "0.0.0",
+    "version": "1.0.0",
     "engines": {
         "node": ">= 0.10.0"
     },
