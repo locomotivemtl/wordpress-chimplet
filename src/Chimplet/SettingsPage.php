@@ -450,7 +450,8 @@ class SettingsPage extends BasePage
 	{
 		if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
 			foreach ( $active_campaigns as $cid ) {
-				$this->mc->delete_campaign( $cid );
+				$this->mc->campaigns->pause( $cid );
+				$this->mc->campaigns->delete( $cid );
 			}
 		}
 	}
