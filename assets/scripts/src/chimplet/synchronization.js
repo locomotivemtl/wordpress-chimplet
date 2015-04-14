@@ -34,7 +34,10 @@
 		},
 		showLoader: function()
 		{
-			this.$notices.remove();
+			if ( this.$notices.length ) {
+				this.$notices.remove();
+			}
+
 			this.$tableRow.removeClass('form-invalid');
 
 			this.$checkbox.attr( 'disabled', 'disabled' ).hide();
@@ -45,14 +48,15 @@
 			this.$trigger.removeAttr('disabled').removeClass('chimplet-spinner');
 			this.$checkbox.removeAttr('disabled').show();
 		},
-		sync: function( offset )
+		sync: function( offset, extra )
 		{
 			this.working = true;
 
 			var formData = {
 				action : this.$trigger.data('xhr-action'),
 				nonce  : this.$trigger.data('xhr-nonce'),
-				offset : offset
+				offset : offset,
+				extra  : ( extra || null )
 			};
 
 			this.jqxhr = $.ajax({
@@ -103,7 +107,7 @@
 			if ( response.success ) {
 				console.log( 'continue', ( response.data && 'next' in response.data && response.data.next > 0 ) );
 				if ( response.data && 'next' in response.data && response.data.next > 0 ) {
-					this.sync( response.data.next );
+					this.sync( response.data.next, ( response.data.extra || null ) );
 				} else {
 					this.working = false;
 				}
@@ -157,6 +161,10 @@
 			console.log( 'response', response );
 
 			if ( this.hasNotices( response ) ) {
+				if ( this.$notices.length ) {
+					this.$notices.remove();
+				}
+
 				message = response.data.message;
 				type = ( message.type || 'info' );
 				text = ( message.text || ( $.type( message ) === 'string' ? message : false ) );

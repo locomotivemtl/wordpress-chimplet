@@ -1,4 +1,4 @@
-# Chimplet [![devDependency Status](https://david-dm.org/locomotivemtl/wordpress-chimplet/dev-status.svg)](https://david-dm.org/locomotivemtl/wordpress-chimplet#info=devDependencies) [![Build Status](https://travis-ci.org/locomotivemtl/wordpress-chimplet.png?branch=master)](https://travis-ci.org/locomotivemtl/wordpress-chimplet)
+# Chimplet [![devDependency Status](https://david-dm.org/locomotivemtl/wordpress-chimplet/dev-status.svg)](https://david-dm.org/locomotivemtl/wordpress-chimplet#info=devDependencies) [![Build Status](https://travis-ci.org/locomotivemtl/wordpress-chimplet.png?branch=develop)](https://travis-ci.org/locomotivemtl/wordpress-chimplet)
 
 WordPress Plugin that automatically synchronizes Users, Taxonomies, Terms, and Posts to MailChimp Lists, Groupings, Groups, and Campaigns.
 

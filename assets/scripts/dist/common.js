@@ -15,12 +15,12 @@ String.prototype.escapeSelector = function( find )
 
 Array.prototype.powerSet = function()
 {
-	var i = 1
-	  , j = 0
-	  , sets = []
-	  , size = this.length
-	  , combination
-	  , combinationsCount = ( 1 << size );
+	var i = 1,
+	    j = 0,
+	    sets = [],
+	    size = this.length,
+	    combination,
+	    combinationsCount = ( 1 << size );
 
 	for ( i = 1; i < combinationsCount; i++ ) {
 		combination = [];
@@ -154,7 +154,7 @@ Array.prototype.powerSet = function()
 
 }(jQuery));
 
-/* global console, jQuery */
+/* global console, jQuery, chimpletL10n */
 
 /**
  * Segment Combinations
@@ -273,7 +273,10 @@ Array.prototype.powerSet = function()
 		},
 		showLoader: function()
 		{
-			this.$notices.remove();
+			if ( this.$notices.length ) {
+				this.$notices.remove();
+			}
+
 			this.$tableRow.removeClass('form-invalid');
 
 			this.$checkbox.attr( 'disabled', 'disabled' ).hide();
@@ -284,14 +287,15 @@ Array.prototype.powerSet = function()
 			this.$trigger.removeAttr('disabled').removeClass('chimplet-spinner');
 			this.$checkbox.removeAttr('disabled').show();
 		},
-		sync: function( offset )
+		sync: function( offset, extra )
 		{
 			this.working = true;
 
 			var formData = {
 				action : this.$trigger.data('xhr-action'),
 				nonce  : this.$trigger.data('xhr-nonce'),
-				offset : offset
+				offset : offset,
+				extra  : ( extra || null )
 			};
 
 			this.jqxhr = $.ajax({
@@ -342,7 +346,7 @@ Array.prototype.powerSet = function()
 			if ( response.success ) {
 				console.log( 'continue', ( response.data && 'next' in response.data && response.data.next > 0 ) );
 				if ( response.data && 'next' in response.data && response.data.next > 0 ) {
-					this.sync( response.data.next );
+					this.sync( response.data.next, ( response.data.extra || null ) );
 				} else {
 					this.working = false;
 				}
@@ -396,6 +400,10 @@ Array.prototype.powerSet = function()
 			console.log( 'response', response );
 
 			if ( this.hasNotices( response ) ) {
+				if ( this.$notices.length ) {
+					this.$notices.remove();
+				}
+
 				message = response.data.message;
 				type = ( message.type || 'info' );
 				text = ( message.text || ( $.type( message ) === 'string' ? message : false ) );

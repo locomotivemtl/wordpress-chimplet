@@ -317,81 +317,78 @@ class SettingsPage extends BasePage
 		if ( isset( $settings['mailchimp']['terms'] ) ) {
 			$settings['mailchimp']['terms'] = $this->clean_terms( $settings['mailchimp']['terms'] );
 
-			$this->update_terms( $settings['mailchimp']['terms'], $segmented_taxonomies );
+			if ( $this->get_option( 'mailchimp.terms' ) !== $settings['mailchimp']['terms'] ) {
+				$this->update_terms( $settings['mailchimp']['terms'], $segmented_taxonomies );
+			}
 		}
 
 		if ( isset( $settings['mailchimp']['user_roles'] ) ) {
-			$this->save_user_roles( $settings['mailchimp']['user_roles'] );
+			if ( $this->get_option( 'mailchimp.user_roles' ) !== $settings['mailchimp']['user_roles'] ) {
+				$this->save_user_roles( $settings['mailchimp']['user_roles'] );
+			}
 		}
 
 		// We have new segments we add a corresponding campaigns
 		if ( isset( $settings['mailchimp']['campaigns']['automate'] ) ) {
-			// Here we compare old campaign settings to the new one
-			if ( ! $segmented_taxonomies ) {
-				$old_options = $this->get_option( 'mailchimp.campaigns' );
-
-				if ( $old_options !== $settings['mailchimp']['campaigns'] ) {
-					// Delete all campaigns saved and recreate segments
-					$this->delete_active_campaigns();
-
-					$segmented_taxonomies = $this->handle_segments_and_groupings( $this->get_option( 'mailchimp.terms' ) );
-				}
+			// Merge old settings
+			if ( $options = $this->get_option( 'mailchimp.campaigns.active' ) ) {
+				$settings['mailchimp']['campaigns']['active'] = $options;
 			}
 
-			if ( $segmented_taxonomies ) {
-				// Create RSS driven campaign using template and frequency specified
-				$folder_name = $this->wp->apply_filters( 'chimplet/campaign/folder_name', 'Chimplet' );
-				$folder_id = $this->mc->get_campaign_folder_id( $folder_name );
+			if ( $options = $this->get_option( 'mailchimp.campaigns.trashed' ) ) {
+				$settings['mailchimp']['campaigns']['trashed'] = $options;
+			}
 
-				if ( isset( $settings['mailchimp']['campaigns']['schedule'] ) ) {
-					$schedule = $settings['mailchimp']['campaigns']['schedule'];
+			// Create RSS driven campaign using template and frequency specified
+			$folder_name = $this->wp->apply_filters( 'chimplet/campaign/folder_name', 'Chimplet' );
+			$folder_id = $this->mc->get_campaign_folder_id( $folder_name );
 
-					if ( isset( $schedule['frequency'] ) ) {
-						switch ( $schedule['frequency'] ) {
-							case 'daily':
-								unset( $schedule['monthday'], $schedule['weekday'] );
-								$schedule['days'] = array_map( 'intval', $schedule['days'] );
-								break;
+			if ( isset( $settings['mailchimp']['campaigns']['schedule'] ) ) {
+				$schedule = $settings['mailchimp']['campaigns']['schedule'];
 
-							case 'weekly':
-								unset( $schedule['monthday'], $schedule['days'] );
-								$schedule['weekday'] = absint( $schedule['weekday'] );
-								break;
+				if ( isset( $schedule['frequency'] ) ) {
+					switch ( $schedule['frequency'] ) {
+						case 'daily':
+							unset( $schedule['monthday'], $schedule['weekday'] );
+							$schedule['days'] = array_map( 'intval', $schedule['days'] );
+							break;
 
-							case 'monthly':
-								unset( $schedule['weekday'], $schedule['days'] );
-								$schedule['monthday'] = intval( $schedule['monthday'] );
-								break;
+						case 'weekly':
+							unset( $schedule['monthday'], $schedule['days'] );
+							$schedule['weekday'] = absint( $schedule['weekday'] );
+							break;
 
-							default:
-								$this->wp->add_settings_error(
-									self::SETTINGS_KEY,
-									'mailchimp-shedule-frequency-failed',
-									sprintf( __( 'Invalid schedule frequency.' ) ),
-									'error'
-								);
-								break;
-						}
+						case 'monthly':
+							unset( $schedule['weekday'], $schedule['days'] );
+							$schedule['monthday'] = intval( $schedule['monthday'] );
+							break;
+
+						default:
+							$this->wp->add_settings_error(
+								self::SETTINGS_KEY,
+								'mailchimp-shedule-frequency-failed',
+								sprintf( __( 'Invalid schedule frequency.' ) ),
+								'error'
+							);
+							break;
 					}
-
-					if ( isset( $schedule['hour'] ) ) {
-						$schedule['hour'] = absint( $schedule['hour'] );
-					}
-					else {
-						$this->wp->add_settings_error(
-							self::SETTINGS_KEY,
-							'mailchimp-shedule-hour-failed',
-							sprintf( __( 'Invalid schedule hour.' ) ),
-							'error'
-						);
-					}
-
-					$settings['mailchimp']['campaigns']['schedule'] = $schedule;
-
-					$this->wp->flush_rewrite_rules();
 				}
 
-				// Trigger generation on first occurence.
+				if ( isset( $schedule['hour'] ) ) {
+					$schedule['hour'] = absint( $schedule['hour'] );
+				}
+				else {
+					$this->wp->add_settings_error(
+						self::SETTINGS_KEY,
+						'mailchimp-shedule-hour-failed',
+						sprintf( __( 'Invalid schedule hour.' ) ),
+						'error'
+					);
+				}
+
+				$settings['mailchimp']['campaigns']['schedule'] = $schedule;
+
+				$this->wp->flush_rewrite_rules();
 			}
 		}
 		else {
@@ -446,6 +443,8 @@ class SettingsPage extends BasePage
 					unset( $arr[ $i ] );
 				}
 			}
+
+			$arr = array_values( $arr );
 		}
 		else {
 			$arr = [];
@@ -458,12 +457,75 @@ class SettingsPage extends BasePage
 
 	public function delete_active_campaigns()
 	{
-		if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
-			foreach ( $active_campaigns as $cid ) {
-				$this->mc->campaigns->pause( $cid );
-				$this->mc->campaigns->delete( $cid );
-			}
+		$options = $this->get_options();
+
+		if ( empty( $options['mailchimp']['campaigns']['active'] ) ) {
+			return;
 		}
+
+		$active_campaigns = $options['mailchimp']['campaigns']['active'];
+
+		if ( ! isset( $options['mailchimp']['campaigns']['trashed'] ) ) {
+			$options['mailchimp']['campaigns']['trashed'] = [];
+		}
+
+		if ( ! isset( $options['mailchimp']['campaigns']['trashed']['paused'] ) ) {
+			$options['mailchimp']['campaigns']['trashed']['paused'] = [];
+		}
+
+		if ( ! isset( $options['mailchimp']['campaigns']['trashed']['deleted'] ) ) {
+			$options['mailchimp']['campaigns']['trashed']['deleted'] = [];
+		}
+
+		if ( ! isset( $options['mailchimp']['campaigns']['trashed']['failed'] ) ) {
+			$options['mailchimp']['campaigns']['trashed']['failed'] = [];
+		}
+
+		foreach ( $active_campaigns as $i => $cid ) {
+			try {
+				if ( $this->mc->campaigns->pause( $cid ) ) {
+					if ( $this->mc->campaigns->delete( $cid ) ) {
+						$options['mailchimp']['campaigns']['trashed']['deleted'][] = $cid;
+					}
+					else {
+						$options['mailchimp']['campaigns']['trashed']['paused'][] = $cid;
+					}
+				}
+				else {
+					$options['mailchimp']['campaigns']['trashed']['failed'][] = $cid;
+				}
+			}
+			catch ( \Mailchimp_Campaign_DoesNotExist $e ) {
+				$options['mailchimp']['campaigns']['trashed']['deleted'][] = $cid;
+			}
+			catch ( \Mailchimp_Error $e ) {
+				$options['mailchimp']['campaigns']['trashed']['failed'][] = $cid;
+			}
+
+			unset( $options['mailchimp']['campaigns']['active'][ $i ] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['trashed']['paused'] ) ) {
+			unset( $options['mailchimp']['campaigns']['trashed']['paused'] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['trashed']['deleted'] ) ) {
+			unset( $options['mailchimp']['campaigns']['trashed']['deleted'] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['trashed']['failed'] ) ) {
+			unset( $options['mailchimp']['campaigns']['trashed']['failed'] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['trashed'] ) ) {
+			unset( $options['mailchimp']['campaigns']['trashed'] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['active'] ) ) {
+			unset( $options['mailchimp']['campaigns']['active'] );
+		}
+
+		$this->update_options( $options );
 	}
 
 	/**
@@ -502,6 +564,26 @@ class SettingsPage extends BasePage
 				}
 			}
 		}
+	}
+
+	/**
+	 * Retrieve grouping and related segments
+	 *
+	 * @param array $segmented_taxonomies
+	 * @return int
+	 */
+
+	public function get_segment_total( $segmented_taxonomies )
+	{
+		$c = 0;
+
+		array_walk( $segmented_taxonomies, function ( $v, $i ) use ( &$c ) {
+			if ( isset( $v['segments'] ) && is_array( $v['segments'] ) ) {
+				$c = $c + count( $v['segments'] );
+			}
+		} );
+
+		return $c;
 	}
 
 	/**
