@@ -313,7 +313,7 @@ class Application extends Base
 	{
 		check_admin_referer( 'chimplet-campaigns-sync', 'nonce' );
 
-		$limit  = 2;
+		$limit  = 10;
 		$offset = ( isset( $_REQUEST['offset'] ) ? absint( $_REQUEST['offset'] ) : 0 );
 		$extra  = [];
 
