@@ -505,6 +505,26 @@ class SettingsPage extends BasePage
 			unset( $options['mailchimp']['campaigns']['active'][ $i ] );
 		}
 
+		if ( empty( $options['mailchimp']['campaigns']['trashed']['paused'] ) ) {
+			unset( $options['mailchimp']['campaigns']['trashed']['paused'] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['trashed']['deleted'] ) ) {
+			unset( $options['mailchimp']['campaigns']['trashed']['deleted'] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['trashed']['failed'] ) ) {
+			unset( $options['mailchimp']['campaigns']['trashed']['failed'] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['trashed'] ) ) {
+			unset( $options['mailchimp']['campaigns']['trashed'] );
+		}
+
+		if ( empty( $options['mailchimp']['campaigns']['active'] ) ) {
+			unset( $options['mailchimp']['campaigns']['active'] );
+		}
+
 		$this->update_options( $options );
 	}
 
