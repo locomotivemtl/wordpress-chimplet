@@ -97,7 +97,9 @@ class SettingsPage extends BasePage
 					$this->wp->add_settings_section(
 						'chimplet-section-mailchimp-campaigns',
 						__( 'Campaign Management', 'chimplet' ),
-						null,
+						[
+							'before' => ( $this->get_option( 'mailchimp.campaigns.automate' ) ? [ $this, 'render_mailchimp_campaigns_section' ] : null )
+						],
 						$this->view['menu_slug']
 					);
 
@@ -178,6 +180,8 @@ class SettingsPage extends BasePage
 		);
 
 		if ( $this->get_option( 'mailchimp.user_roles' ) ) {
+			$user_query = $this->app->get_wp_users();
+
 			$this->wp->add_settings_field(
 				'chimplet-field-mailchimp-subscribers-automate',
 				__( 'Subcribers', 'chimplet' ),
@@ -195,10 +199,14 @@ class SettingsPage extends BasePage
 					'button_id'       => 'chimplet-field-mailchimp-subscribers-sync',
 					'button_text'     => __( 'Synchronize Subscribers', 'chimplet' ),
 					'button_attr'     => ' data-condition-chimplet-subscribers-sync="on"',
+					'counter_label'   => __( 'Eligible WordPress Users: %d', 'chimplet' ),
+					'counter_value'   => $user_query->get_total(),
 					'description'     => __( 'Chimplet can automatically sync subscribers of the above user roles with the MailChimp list selected.', 'chimplet' )
 				]
 			);
 		}
+
+		$campaign_opts = $this->get_option( 'mailchimp.campaigns' );
 
 		$this->wp->add_settings_field(
 			'chimplet-field-mailchimp-campaign-automate',
@@ -224,6 +232,8 @@ class SettingsPage extends BasePage
 									  ( ! $this->get_option( 'mailchimp.campaigns.schedule.days' )     ? '' : ' data-condition-days="'      . esc_attr( implode( ',', $this->get_option( 'mailchimp.campaigns.schedule.days', '' ) ) ) . '"' ) .
 									  ' data-condition-hour="'      . esc_attr( $this->get_option( 'mailchimp.campaigns.schedule.hour', '' ) ) . '"' .
 									  ' data-condition-template="'  . esc_attr( $this->get_option( 'mailchimp.campaigns.template', '' ) ) . '"',
+				'counter_label'    => __( 'Generated Campaigns: %d', 'chimplet' ),
+				'counter_value'    => count( $this->get_option( 'mailchimp.campaigns.active', [] ) ),
 				'description'      => __( 'Chimplet can automate the creation of RSS Campaigns using power sets of interest groupings (Maximum of 32,000 campaigns per account).', 'chimplet' )
 			]
 		);
@@ -844,7 +854,32 @@ class SettingsPage extends BasePage
 
 	public function render_mailchimp_section( $args )
 	{
-		$this->render_section( 'settings-mailchimp', $this->get_options() );
+		if ( $this->get_option( 'mailchimp.api_key' ) ) {
+			?>
+			<p><?php esc_html_e( 'With an integrated API Key, additional options are provided below.', 'chimplet' ); ?></p>
+			<p><?php esc_html_e( 'Removing the API Key will disable Chimplet’s data synchronization features and no longer provide it access to your account to manage your subscribers and campaigns. Disabling Chimplet does not delete any data from MailChimp nor does it disable Post Category feeds and the active RSS-Driven Campaigns.', 'chimplet' ); ?></p>
+			<?php
+		}
+		else {
+			?>
+			<p><?php _e( 'To integrate your blog with your MailChimp account, you need to generate an API key.', 'chimplet' ); ?></p>
+			<aside class="panel-assistance inset">
+				<p><?php
+					printf(
+						esc_html__( 'Users with Admin or Manager permissions can generate and view API keys. You can %s from your Account Panel.', 'chimplet' ),
+						'<a target="_blank" href="' . '//kb.mailchimp.com/accounts/management/about-api-keys#Find-or-Generate-Your-API-Key' . '">' . esc_html__( 'find or generate an API key', 'chimplet' ) . '</a>'
+					);
+					?></p>
+				<ol>
+					<li><?php printf( esc_html__( 'Click your profile name to expand the Account Panel, and choose %1$s.', 'chimplet' ), '<em>' . __( 'Account', 'chimplet' ) . '</em>' ); ?></li>
+					<li><?php printf( esc_html__( 'Click the %1$s drop-down menu and choose %2$s.', 'chimplet' ), '<em>' . esc_html__( 'Extras', 'chimplet' ) . '</em>', '<em>' . __( 'API keys', 'chimplet' ) . '</em>' ); ?></li>
+					<li><?php printf( esc_html__( 'Copy an existing API key or click the %1$s button.', 'chimplet' ), '<em>' . esc_html__( 'Create A Key', 'chimplet' ) . '</em>' ); ?></li>
+					<li><?php esc_html_e( 'Name your key descriptively, so you know what application uses that key.', 'chimplet' ); ?></li>
+				</ol>
+			</aside>
+			<p><?php esc_html_e( 'Once the API Key is integrated with Chimplet, you will be provided with additional options.', 'chimplet' ); ?></p>
+			<?php
+		}
 	}
 
 	/**
@@ -910,6 +945,22 @@ class SettingsPage extends BasePage
 	public function render_mailchimp_field_user_roles( $args )
 	{
 		$this->render_field( 'settings-user-roles', $args );
+	}
+
+	/**
+	 * Display the MailChimp Campaigns Section
+	 *
+	 * @used-by Function: add_settings_section
+	 * @since   0.0.0 (2015-04-14)
+	 *
+	 * @param  array  $args
+	 */
+
+	public function render_mailchimp_campaigns_section( $args )
+	{
+		?>
+		<p><?php esc_html_e( 'Any changes related to Groupings (taxonomies and terms) that are saved will delete all Campaigns created by Chimplet. They must be re-generated manually, below. The syncing process is separate from the principal saving of settings to reduce page load times.', 'chimplet' ); ?></p>
+		<?php
 	}
 
 	/**
