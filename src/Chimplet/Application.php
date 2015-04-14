@@ -313,16 +313,29 @@ class Application extends Base
 	{
 		check_admin_referer( 'chimplet-campaigns-sync', 'nonce' );
 
+		$limit  = 2;
+		$offset = ( isset( $_REQUEST['offset'] ) ? absint( $_REQUEST['offset'] ) : 0 );
+		$extra  = [];
+
+		foreach ( [ 'active', 'failed', 'unsent', 'empty' ] as $c ) {
+			$extra[ $c ] = ( isset( $_REQUEST['extra'][ $c ] ) ? absint( $_REQUEST['extra'][ $c ] ) : 0 );
+		}
+
+		unset( $c );
+
 		$options = $this->get_options();
 
 		$segmented_taxonomies = $this->settings->get_segments_and_groupings();
+		$total_segments = $this->settings->get_segment_total( $segmented_taxonomies );
 
 		if ( empty( $segmented_taxonomies ) ) {
 			wp_send_json_error([
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'No WordPress Terms selected or Interest Groupings and Segments unsuccessfully generated.', 'chimplet' )
-				]
+				],
+				'next'  => false,
+				'extra' => []
 			]);
 		}
 
@@ -333,7 +346,9 @@ class Application extends Base
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'No MailChimp List found.', 'chimplet' )
-				]
+				],
+				'next'  => false,
+				'extra' => []
 			]);
 		}
 
@@ -344,12 +359,16 @@ class Application extends Base
 				'message' => [
 					'type' => 'error',
 					'text' => __( 'An error occurred while generating RSS options for the Campaigns found.', 'chimplet' )
-				]
+				],
+				'next'  => false,
+				'extra' => []
 			]);
 		}
 
 		// Delete all campaigns saved and recreate segments
-		$this->settings->delete_active_campaigns();
+		if ( 0 === $offset ) {
+			$this->settings->delete_active_campaigns();
+		}
 
 		// From core
 		$sitename = strtolower( $_SERVER['SERVER_NAME'] ); //input var okay
@@ -357,15 +376,24 @@ class Application extends Base
 			$sitename = substr( $sitename, 4 );
 		}
 
-		$active_campaigns  = [];
+		$active_campaigns  = &$options['mailchimp']['campaigns']['active'];
 		$failed_campaigns  = [];
 		$unsent_campaigns  = [];
 		$empty_segments    = 0;
 		$consecutive_fails = 0;
 		$consecutive_limit = 5;
 
+		$i = -1;
+		$j = 0;
+
 		foreach ( $segmented_taxonomies as $taxonomy_name => $taxonomy_set ) {
 			foreach ( $taxonomy_set['segments'] as $segmented_terms ) {
+				$i++;
+
+				if ( $i < $offset ) {
+					continue;
+				}
+
 				if ( empty( $segmented_terms['rules']['conditions'][0]['value'] ) ) {
 					continue;
 				}
@@ -415,11 +443,14 @@ class Application extends Base
 						case 'Mailchimp_Invalid_Template':
 						case 'Mailchimp_List_DoesNotExist':
 							error_log( var_export( $campaign_opts, true ) );
+
 							wp_send_json_error([
 								'message' => [
 									'type' => 'error',
 									'text' => sprintf( '<code>%1$s</code> (<code>%3$s</code>) &mdash; <q>%2$s</q>', get_class( $campaign ), $campaign->getMessage(), $campaign->getCode() )
-								]
+								],
+								'next'  => false,
+								'extra' => []
 							]);
 							break;
 
@@ -466,21 +497,57 @@ class Application extends Base
 						'message' => [
 							'type' => 'error',
 							'text' => $_text
-						]
+						],
+						'next'  => false,
+						'extra' => []
 					]);
+				}
+
+				$j++;
+
+				if ( $j >= $limit ) {
+					break 2;
 				}
 			}
 		}
 
-		$active_count = count( $active_campaigns );
-		$failed_count = count( $failed_campaigns );
-		$unsent_count = count( $unsent_campaigns );
-		$total_count  = $active_count + $failed_count + $empty_segments;
+		$active_count = count( $active_campaigns ) + $extra['active'];
+		$failed_count = count( $failed_campaigns ) + $extra['failed'];
+		$unsent_count = count( $unsent_campaigns ) + $extra['unsent'];
+
+		$empty_segments = $empty_segments + $extra['empty'];
 
 		if ( $active_count ) {
-			$options['mailchimp']['campaigns']['active'] = $active_campaigns;
+			// $options['mailchimp']['campaigns']['active'] = $active_campaigns;
 
 			$this->update_options( $options );
+		}
+
+		if ( $j >= $limit ) {
+			$new_offset = ( $offset + $limit );
+
+			wp_send_json_success([
+				'message' => [
+					'type' => 'info',
+					// Please don’t turn off your console.
+					'text' => sprintf(
+						__( 'Synced %1$d/%2$d WordPress Users to MailChimp; <strong>%3$d sent</strong>, <strong>%4$d unsent</strong>, <strong>%5$d failure(s)</strong>, <strong>%6$d skipped</strong>.', 'chimplet' ) . ' ' . __( 'Please wait.', 'chimplet' ),
+						$new_offset,
+						$total_segments,
+						$active_count,
+						$unsent_count,
+						$failed_count,
+						$empty_segments
+					)
+				],
+				'next'  => $new_offset,
+				'extra' => [
+					'active' => $active_count,
+					'unsent' => $unsent_count,
+					'failed' => $failed_count,
+					'empty'  => $empty_segments
+				]
+			]);
 		}
 
 		if ( $active_count < 1 ) {
@@ -493,7 +560,7 @@ class Application extends Base
 		}
 		else {
 			$type = 'success';
-			$message = sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Campaigns with MailChimp.', 'chimplet' ), ( $total_count - $empty_segments ) );
+			$message = sprintf( __( 'Successfully synchronized <strong>%1$d</strong> Campaigns with MailChimp.', 'chimplet' ), ( $total_segments - $empty_segments ) );
 		}
 
 		if ( $unsent_count ) {
@@ -508,7 +575,9 @@ class Application extends Base
 			'message' => [
 				'type' => $type,
 				'text' => $message
-			]
+			],
+			'next'  => false,
+			'extra' => []
 		]);
 	}
 
@@ -594,7 +663,7 @@ class Application extends Base
 			$result = $this->mc->sync_list_users( $list_id, $subscribers );
 
 			if ( $result ) {
-				if ( $limit === count( $subscribers ) ) {
+				if ( count( $subscribers ) >= $limit ) {
 					$new_offset = ( $offset + $limit );
 
 					wp_send_json_success([
@@ -604,7 +673,7 @@ class Application extends Base
 							'text' => sprintf(
 								'<strong>%s</strong> %s',
 								sprintf(
-									__( 'Syncing %1$d/%2$d WordPress Users to MailChimp.', 'chimplet' ),
+									__( 'Synced %1$d/%2$d WordPress Users to MailChimp.', 'chimplet' ),
 									$new_offset,
 									$user_query->get_total()
 								),
@@ -620,7 +689,8 @@ class Application extends Base
 					'message' => [
 						'type' => 'error',
 						'text' => __( 'An error occurred while syncing WordPress Users to MailChimp.', 'chimplet' )
-					]
+					],
+					'next' => false
 				]);
 			}
 		}

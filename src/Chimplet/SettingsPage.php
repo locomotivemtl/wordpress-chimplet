@@ -458,12 +458,47 @@ class SettingsPage extends BasePage
 
 	public function delete_active_campaigns()
 	{
-		if ( $active_campaigns = $this->get_option( 'mailchimp.campaigns.active' ) ) {
-			foreach ( $active_campaigns as $cid ) {
-				$this->mc->campaigns->pause( $cid );
-				$this->mc->campaigns->delete( $cid );
-			}
+		$options = $this->get_options();
+
+		if ( empty( $options['mailchimp']['campaigns']['active'] ) ) {
+			return;
 		}
+
+		$active_campaigns = $options['mailchimp']['campaigns']['active'];
+
+		if ( ! isset( $options['mailchimp']['campaigns']['trashed'] ) ) {
+			$options['mailchimp']['campaigns']['trashed'] = [];
+		}
+
+		if ( ! isset( $options['mailchimp']['campaigns']['trashed']['paused'] ) ) {
+			$options['mailchimp']['campaigns']['trashed']['paused'] = [];
+		}
+
+		if ( ! isset( $options['mailchimp']['campaigns']['trashed']['deleted'] ) ) {
+			$options['mailchimp']['campaigns']['trashed']['deleted'] = [];
+		}
+
+		if ( ! isset( $options['mailchimp']['campaigns']['trashed']['failed'] ) ) {
+			$options['mailchimp']['campaigns']['trashed']['failed'] = [];
+		}
+
+		foreach ( $active_campaigns as $i => $cid ) {
+			if ( $this->mc->campaigns->pause( $cid ) ) {
+				if ( $this->mc->campaigns->delete( $cid ) ) {
+					$options['mailchimp']['campaigns']['trashed']['deleted'][] = $cid;
+				}
+				else {
+					$options['mailchimp']['campaigns']['trashed']['paused'][] = $cid;
+				}
+			}
+			else {
+				$options['mailchimp']['campaigns']['trashed']['failed'][] = $cid;
+			}
+
+			unset( $options['mailchimp']['campaigns']['active'][ $i ] );
+		}
+
+		$this->update_options( $options );
 	}
 
 	/**
@@ -502,6 +537,26 @@ class SettingsPage extends BasePage
 				}
 			}
 		}
+	}
+
+	/**
+	 * Retrieve grouping and related segments
+	 *
+	 * @param array $segmented_taxonomies
+	 * @return int
+	 */
+
+	public function get_segment_total( $segmented_taxonomies )
+	{
+		$c = 0;
+
+		array_walk( $segmented_taxonomies, function ( $v, $i ) use ( &$c ) {
+			if ( isset( $v['segments'] ) && is_array( $v['segments'] ) ) {
+				$c = $c + count( $v['segments'] );
+			}
+		} );
+
+		return $c;
 	}
 
 	/**
