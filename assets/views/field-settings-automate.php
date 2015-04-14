@@ -36,6 +36,14 @@ if ( $match && ( isset( $args['button_condition'] ) ? $args['button_condition'] 
 		esc_html( $args['button_text'] ),
 		( (string) $args['button_attr'] )
 	);
+
+	if ( isset( $args['counter_value'] ) && isset( $args['counter_label'] ) ) {
+
+		echo '<p class="chimplet-counter">';
+		printf( $args['counter_label'], $args['counter_value'] );
+		echo '</p>';
+
+	}
 }
 
 echo '</fieldset>';

@@ -526,7 +526,7 @@ class Application extends Base
 		$limit  = 100;
 		$offset = ( isset( $_REQUEST['offset'] ) ? absint( $_REQUEST['offset'] ) : 0 );
 
-		$roles   = $this->get_option( 'mailchimp.user_roles' );
+		$roles  = $this->get_option( 'mailchimp.user_roles' );
 
 		if ( ! $roles ) {
 			wp_send_json_error([
@@ -554,37 +554,13 @@ class Application extends Base
 		 * @link http://wordpress.stackexchange.com/a/88158/18350 Multiple roles
 		 */
 
-		$query_args = [
-			'orderby' => 'registered',
-			'order'   => 'ASC',
+		$user_query = $this->get_wp_users([
 			'offset'  => $offset,
-			'number'  => $limit
-		];
+			'number'  => $limit,
+			'role'    => $roles
+		]);
 
-		if ( count( $roles ) > 1 ) {
-			$blog_id = get_current_blog_id();
-			$prefix  = $wpdb->get_blog_prefix( $blog_id );
-
-			$meta_query = [ 'relation' => 'OR' ];
-
-			foreach ( $roles as $role ) {
-				$meta_query[] = [
-					'key'     => $prefix . 'capabilities',
-					'value'   => '"' . $role . '"',
-					'compare' => 'like'
-				];
-			}
-
-			$query_args['meta_query'] = $meta_query;
-		}
-		else {
-			$query_args['role'] = reset( $roles );
-		}
-
-		if ( isset( $query_args['role'] ) || isset( $query_args['meta_query'] ) ) {
-			$user_query = new \WP_User_Query( $query_args );
-		}
-		else {
+		if ( ! ( $user_query instanceof \WP_User_Query ) ) {
 			wp_send_json_error([
 				'message' => [
 					'type' => 'error',
@@ -683,6 +659,66 @@ class Application extends Base
 				$this->mc->sync_list_users( $list_id, [ $subscriber ] );
 			}
 		}
+	}
+
+	/**
+	 * Get WordPress Users
+	 *
+	 * @param array $args
+	 * @return WP_Query|bool
+	 */
+
+	public function get_wp_users( $args = [] )
+	{
+		global $wpdb;
+		$defaults = [
+			'orderby' => 'registered',
+			'order'   => 'ASC'
+		];
+
+		if ( isset( $args['roles'] ) ) {
+			$args['role'] = $args['roles'];
+			unset( $args['roles'] );
+		}
+
+		if ( empty( $args['role'] ) ) {
+			$args['role'] = $this->get_option( 'mailchimp.user_roles', [] );
+		}
+
+		$args = wp_parse_args( $args, $defaults );
+
+		if ( is_array( $args['role'] ) ) {
+			if ( count( $args['role'] ) > 1 ) {
+				$blog_id = get_current_blog_id();
+				$prefix  = $wpdb->get_blog_prefix( $blog_id );
+
+				$meta_query = [ 'relation' => 'OR' ];
+
+				foreach ( $args['role'] as $role ) {
+					$meta_query[] = [
+						'key'     => $prefix . 'capabilities',
+						'value'   => '"' . $role . '"',
+						'compare' => 'like'
+					];
+				}
+
+				$args['meta_query'] = $meta_query;
+
+				unset( $args['role'] );
+			}
+			else {
+				$args['role'] = reset( $args['role'] );
+			}
+		}
+
+		if ( isset( $args['role'] ) || isset( $args['meta_query'] ) ) {
+			$query = new \WP_User_Query( $args );
+		}
+		else {
+			return false;
+		}
+
+		return $query;
 	}
 
 	/**
