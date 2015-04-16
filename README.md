@@ -81,6 +81,8 @@ Enabling the "Automate creation of Campaigns" checkbox will provide additional o
 
 Each Campaign is assigned to a unique List Segment and its equivalent RSS feed. Each Segment/RSS represents the aggregated selection of a subscriber's Interests.
 
+All Chimplet-created Campaigns will be added to a folder for cleaner sorting. Filters allow you to customize the name of that directory.
+
 Examples:
 
 > Subscribers that selected only the "Foo" category will only be assigned to that Campaign.
@@ -93,9 +95,13 @@ The more Terms you make available to Users to select, the more Campaigns Chimple
 
 > If Subscribers can only select from 4 Categories, Chimplet can create up to 15 Campaigns. If you offer 8 Categories, that's up to 255 Campaigns.
 
-If there are no Subscribers assigned to a particular Segment, for example no one selected the "Qux" category: that Chimplet will skip creating that Campaign. MailChimp won't allow you to create Campaigns with empty Segments.
+If there are no Subscribers assigned to a particular Segment, for example no one selected the "Qux" category: that Chimplet will skip creating that Campaign. MailChimp won't allow you to create Campaigns with empty Segments. Although the idea of Chimplet creating 255 Campaigns can be scary, often it could generate as little as 3 Campaigns because Subscribers' Interests are not as distinctive as calculated.
 
-It's a good practice to re-generate your Campaigns before the send out date arrives in order to make sure all your Subscribers are properly assigned.
+**Recommendations**
+
+It's good practice to re-generate your Campaigns before the send out date arrives in order to make sure all your Subscribers are properly assigned.
+
+After re-generating your Campaigns, keep an eye on your list of RSS-driven Campaigns in your MailChimp account for any duplicates. Chimplet will do its best to pause and delete deprecated Campaigns and accomodate errors from MailChimp's API but cannot guarantee 100% reliablity.
 
 ## Contribution & Support
 
